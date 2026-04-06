@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+
+<html lang="en" dir="ltr" id="html-root">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mr. Kim's CAFE</title>
+  <meta name="description" content="Mr. Kim's CAFE — Premium coffee, fresh drinks and good vibes. | مقهى مستر كيم — قهوة مميزة ومشروبات طازجة وأجواء رائعة." />
+
+  <!-- Google Fonts: Nunito (EN) + Cairo (AR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================
+       DESIGN TOKENS
+    ========================================= */
+    :root {
+      --green:        #367d4d;
+      --green-dark:   #285f3b;
+      --green-light:  #4a9962;
+      --green-pale:   #e8f5ee;
+      --white:        #ffffff;
+      --off-white:    #f7f9f7;
+      --text-dark:    #1a1a1a;
+      --text-mid:     #4a4a4a;
+      --text-soft:    #888888;
+      --star:         #f5a623;
+      --radius-xs:    6px;
+      --radius-sm:    12px;
+      --radius-md:    20px;
+      --radius-lg:    32px;
+      --radius-pill:  9999px;
+      --shadow-xs:    0 2px 8px rgba(0,0,0,0.07);
+      --shadow-sm:    0 4px 16px rgba(0,0,0,0.09);
+      --shadow-md:    0 8px 32px rgba(0,0,0,0.13);
+      --ease:         cubic-bezier(0.16,1,0.3,1);
+      --speed:        0.3s;
+    }
+
+    /* =========================================
+       RESET & BASE
+    ========================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: 'Nunito', 'Cairo', sans-serif;
+      background: var(--white);
+      color: var(--text-dark);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+    html[lang="ar"] body { font-family: 'Cairo', 'Nunito', sans-serif; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; }
+    ul { list-style: none; }
+
+    /* =========================================
+       LANGUAGE VISIBILITY
+    ========================================= */
+    .en, .ar { display: none; }
+    html[lang="en"] .en { display: revert; }
+    html[lang="ar"] .ar { display: revert; }
+
+    /* Inline spans */
+    span.en, span.ar { display: none; }
+    html[lang="en"] span.en { display: inline; }
+    html[lang="ar"] span.ar { display: inline; }
+
+    /* RTL */
+    html[lang="ar"] { direction: rtl; }
+
+    /* =========================================
+       NAVBAR
+    ========================================= */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      background: var(--white);
+      height: 72px;
+      padding: 0 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+
+    .nav-logo {
+      height: 46px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .nav-links a {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dark);
+      padding-bottom: 3px;
+      border-bottom: 2px solid transparent;
+      transition: color var(--speed) var(--ease), border-color var(--speed) var(--ease);
+    }
+    .nav-links a:hover {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .lang-toggle {
+      display: flex;
+      background: var(--off-white);
+      border-radius: var(--radius-pill);
+      padding: 3px;
+      gap: 2px;
+    }
+    .lang-btn {
+      padding: 6px 16px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-mid);
+      transition: all var(--speed) var(--ease);
+      font-family: inherit;
+    }
+    .lang-btn.active {
+      background: var(--green);
+      color: var(--white);
+    }
+
+    .btn-nav-order {
+      background: var(--green);
+      color: var(--white);
+      padding: 10px 22px;
+      border-radius: var(--radius-pill);
+      font-weight: 800;
+      font-size: 13px;
+      transition: background var(--speed) var(--ease), transform var(--speed) var(--ease);
+    }
+    .btn-nav-order:hover { background: var(--green-dark); transform: translateY(-1px); }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      padding: 6px;
+    }
+    .hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--text-dark); border-radius: 2px;
+      transition: all var(--speed) var(--ease);
+    }
+
+    /* =========================================
+       HERO
+    ========================================= */
+    .hero {
+      min-height: 100vh;
+      background: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 40px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(125% 125% at 50% 90%, #4a9962 40%, #285f3b 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+      bottom: -100px; left: -100px;
+      pointer-events: none;
+    }
+
+    .hero-inner { position: relative; z-index: 1; max-width: 680px; }
+
+    .hero-logo-wrap {
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin: 0 auto 36px;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-logo { width: 105%; height: 105%; object-fit: cover; display: block; margin: -2.5%; }
+
+    .hero-title {
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1.05;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: rgba(255,255,255,0.82);
+      font-weight: 600;
+      margin-bottom: 44px;
+    }
+    .btn-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white);
+      color: var(--green);
+      padding: 17px 44px;
+      border-radius: var(--radius-pill);
+      font-weight: 900;
+      font-size: 1rem;
+      box-shadow: var(--shadow-md);
+      transition: transform var(--speed) var(--ease), box-shadow var(--speed) var(--ease);
+    }
+    .btn-hero:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,0,0,0.22); }
+
+    /* =========================================
+       BANNER
+    ========================================= */
+    .banner {
+      background: var(--green-dark);
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      padding: 14px 24px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+
+    /* =========================================
+       SECTION COMMONS
+    ========================================= */
+    section { padding: 88px 48px; }
+
+    .max-w { max-width: 1200px; margin: 0 auto; }
+
+    .section-eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 900;
+      line-height: 1.12;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      font-size: 1rem;
+      color: var(--text-mid);
+      line-height: 1.75;
+      max-width: 540px;
+    }
+
+    /* =========================================
+       SPLIT BLOCKS (Starbucks-style)
+    ========================================= */
+    .split-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 480px;
+    }
+    .split-block.reverse { direction: rtl; }
+    html[lang="ar"] .split-block.reverse { direction: ltr; }
+    html[lang="ar"] .split-block:not(.reverse) { direction: rtl; }
+
+    .split-img {
+      width: 100%;
+      height: 100%;
+      min-height: 380px;
+      object-fit: cover;
+      display: block;
+    }
+    .split-img-placeholder {
+      width: 100%;
+      min-height: 380px;
+      background: linear-gradient(135deg, #c8e8d4 0%, #a0d4b2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+    }
+
+    .split-content {
+      background: var(--green);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 56px;
+      direction: ltr;
+    }
+    html[lang="ar"] .split-content { direction: rtl; text-align: right; }
+
+    .split-content-inner { max-width: 420px; }
+
+    .split-content .section-title { color: var(--white); }
+    .split-content .section-eyebrow { color: rgba(255,255,255,0.6); }
+    .split-content .section-desc { color: rgba(255,255,255,0.82); max-width: 100%; }
+
+    .btn-split {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid rgba(255,255,255,0.7);
+      color: var(--white);
+      padding: 13px 30px;
+      border-radius: var(--radius-pill);
+      font-weight: 800;
+      font-size: 14px;
+      margin-top: 32px;
+      transition: all var(--speed) var(--ease);
+    }
+    .btn-split:hover { background: rgba(255,255,255,0.15); border-color: var(--white); }
+    .btn-split.solid {
+      background: var(--white);
+      color: var(--green);
+      border-color: var(--white);
+    }
+    .btn-split.solid:hover { background: var(--off-white); }
+
+    /* Light split variant */
+    .split-content.light {
+      background: var(--off-white);
+      color: var(--text-dark);
+    }
+    .split-content.light .section-title { color: var(--text-dark); }
+    .split-content.light .section-desc { color: var(--text-mid); }
+    .split-content.light .section-eyebrow { color: var(--green); }
+    .split-content.light .btn-split {
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .split-content.light .btn-split:hover { background: var(--green); color: var(--white); border-color: var(--green); }
+
+    /* =========================================
+       MENU SECTION
+    ========================================= */
+    .menu-section { background: var(--off-white); }
+
+    .menu-head { text-align: center; margin-bottom: 44px; }
+    .menu-head .section-desc { margin: 0 auto; }
+
+    .menu-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .menu-tab {
+      padding: 9px 22px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      font-size: 14px;
+      background: var(--white);
+      color: var(--text-mid);
+      border: 2px solid transparent;
+      transition: all var(--speed) var(--ease);
+      font-family: inherit;
+    }
+    .menu-tab.active,
+    .menu-tab:hover { background: var(--green); color: var(--white); }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+      max-width: 1200px;
+      margin: 0 auto 44px;
+    }
+
+    .menu-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-xs);
+      transition: transform var(--speed) var(--ease), box-shadow var(--speed) var(--ease);
+    }
+    .menu-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+
+    .card-thumb {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+    .card-thumb-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: linear-gradient(135deg, var(--green-pale) 0%, #c8e8d4 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 52px;
+    }
+
+    .card-body { padding: 16px 18px 20px; }
+    .card-name {
+      font-weight: 800;
+      font-size: 0.95rem;
+      margin-bottom: 5px;
+    }
+    .card-desc {
+      font-size: 0.82rem;
+      color: var(--text-soft);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .card-price {
+      font-weight: 900;
+      color: var(--green);
+      font-size: 1rem;
+    }
+
+    .menu-cta { text-align: center; }
+    .btn-outline-green {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid var(--green);
+      color: var(--green);
+      padding: 14px 34px;
+      border-radius: var(--radius-pill);
+      font-weight: 800;
+      font-size: 0.95rem;
+      transition: all var(--speed) var(--ease);
+    }
+    .btn-outline-green:hover { background: var(--green); color: var(--white); }
+
+    /* =========================================
+       ORDER SECTION
+    ========================================= */
+    .order-section {
+      background: var(--green);
+      text-align: center;
+      padding: 80px 48px;
+    }
+    .order-section .section-eyebrow { color: rgba(255,255,255,0.55); }
+    .order-section .section-title { color: var(--white); }
+    .order-section .section-desc { color: rgba(255,255,255,0.8); margin: 0 auto 40px; }
+
+    .order-btns {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .btn-white {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white);
+      color: var(--green);
+      padding: 16px 38px;
+      border-radius: var(--radius-pill);
+      font-weight: 900;
+      font-size: 0.95rem;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--speed) var(--ease);
+    }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .btn-white-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid rgba(255,255,255,0.6);
+      color: var(--white);
+      padding: 16px 38px;
+      border-radius: var(--radius-pill);
+      font-weight: 800;
+      font-size: 0.95rem;
+      transition: all var(--speed) var(--ease);
+    }
+    .btn-white-ghost:hover { border-color: var(--white); background: rgba(255,255,255,0.1); }
+
+    /* =========================================
+       ABOUT SECTION
+    ========================================= */
+    .about-section { background: var(--white); }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .about-img-wrap { position: relative; }
+    .about-img {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      object-fit: cover;
+      aspect-ratio: 3/4;
+    }
+    .about-img-placeholder {
+      width: 100%;
+      aspect-ratio: 3/4;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, var(--green-pale), #b8dfc8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 80px;
+    }
+
+    .about-badge {
+      position: absolute;
+      bottom: -18px;
+      right: -18px;
+      background: var(--green);
+      color: var(--white);
+      padding: 18px 22px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      min-width: 110px;
+    }
+    html[lang="ar"] .about-badge { right: auto; left: -18px; }
+
+    .badge-num { font-size: 2rem; font-weight: 900; line-height: 1; display: block; }
+    .badge-lbl { font-size: 0.75rem; font-weight: 700; opacity: 0.82; display: block; margin-top: 4px; }
+
+    .about-text .section-desc { max-width: 100%; margin-bottom: 16px; }
+
+    .features { display: flex; flex-direction: column; gap: 20px; margin-top: 32px; }
+    .feature { display: flex; align-items: flex-start; gap: 14px; }
+    html[lang="ar"] .feature { flex-direction: row-reverse; text-align: right; }
+
+    .feat-icon {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: var(--green-pale);
+      border-radius: var(--radius-xs);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .feat-title { font-weight: 800; font-size: 0.9rem; margin-bottom: 3px; }
+    .feat-desc { font-size: 0.82rem; color: var(--text-soft); }
+
+    /* =========================================
+       RATINGS SECTION
+    ========================================= */
+    .ratings-section { background: var(--off-white); }
+
+    .ratings-head { text-align: center; margin-bottom: 52px; }
+    .rating-big {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 12px 0 0;
+    }
+    .rating-num { font-size: 4.5rem; font-weight: 900; color: var(--green); line-height: 1; }
+    .star-row { display: flex; gap: 3px; font-size: 22px; color: var(--star); }
+    .rating-meta { font-size: 0.8rem; color: var(--text-soft); font-weight: 600; margin-top: 4px; }
+
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .review-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      box-shadow: var(--shadow-xs);
+    }
+    .review-stars { font-size: 15px; color: var(--star); margin-bottom: 14px; }
+    .review-text {
+      font-size: 0.93rem;
+      color: var(--text-mid);
+      line-height: 1.75;
+      margin-bottom: 22px;
+      font-style: italic;
+    }
+    .review-author { display: flex; align-items: center; gap: 12px; }
+    html[lang="ar"] .review-author { flex-direction: row-reverse; }
+    .review-av {
+      width: 42px; height: 42px; flex-shrink: 0;
+      background: var(--green-pale);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: var(--green);
+    }
+    .review-name { font-weight: 800; font-size: 0.88rem; }
+    .review-src { font-size: 0.75rem; color: var(--text-soft); margin-top: 2px; }
+
+    /* =========================================
+       CONTACT SECTION
+    ========================================= */
+    .contact-section { background: var(--white); }
+
+    .contact-head { text-align: center; margin-bottom: 56px; }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: start;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .contact-items { display: flex; flex-direction: column; gap: 28px; }
+
+    .c-item { display: flex; align-items: flex-start; gap: 16px; }
+    html[lang="ar"] .c-item { flex-direction: row-reverse; text-align: right; }
+
+    .c-icon {
+      width: 48px; height: 48px; flex-shrink: 0;
+      background: var(--green-pale);
+      border-radius: var(--radius-xs);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .c-title { font-weight: 800; font-size: 0.92rem; margin-bottom: 5px; }
+    .c-detail {
+      font-size: 0.88rem;
+      color: var(--text-mid);
+      line-height: 1.65;
+    }
+    .c-link { color: var(--green); font-weight: 700; }
+    .c-link:hover { text-decoration: underline; }
+
+    .map-box {
+      margin-top: 28px;
+      width: 100%;
+      height: 260px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--green-pale);
+      border: 2px dashed #a0c8b0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--green);
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .map-box iframe {
+      width: 100%; height: 100%; border: none;
+    }
+
+    /* Contact Form */
+    .contact-form-wrap {
+      background: var(--off-white);
+      padding: 40px;
+      border-radius: var(--radius-lg);
+    }
+    .form-title { font-size: 1.2rem; font-weight: 900; margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.88rem;
+      margin-bottom: 7px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 13px 16px;
+      border: 2px solid #e0e8e3;
+      border-radius: var(--radius-xs);
+      font-family: inherit;
+      font-size: 0.92rem;
+      color: var(--text-dark);
+      background: var(--white);
+      outline: none;
+      transition: border-color var(--speed) var(--ease);
+    }
+    html[lang="ar"] .form-input { text-align: right; direction: rtl; }
+    .form-input:focus { border-color: var(--green); }
+    textarea.form-input { resize: vertical; min-height: 110px; }
+    .form-submit {
+      width: 100%;
+      background: var(--green);
+      color: var(--white);
+      padding: 15px;
+      border-radius: var(--radius-pill);
+      font-weight: 900;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: background var(--speed) var(--ease);
+    }
+    .form-submit:hover { background: var(--green-dark); }
+
+    /* =========================================
+       FOOTER
+    ========================================= */
+    footer {
+      background: #141a16;
+      color: var(--white);
+      padding: 64px 48px 32px;
+    }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid rgba(255,255,255,0.09);
+      margin-bottom: 28px;
+    }
+
+    .footer-logo {
+      height: 56px; width: auto;
+      object-fit: contain;
+      margin-bottom: 16px;
+      /* White logo version — invert if logo is dark green on white */
+      filter: brightness(0) invert(1);
+    }
+    .footer-bio {
+      font-size: 0.87rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .social-row { display: flex; gap: 10px; }
+    html[lang="ar"] .social-row { flex-direction: row-reverse; }
+    .social-btn {
+      width: 42px; height: 42px;
+      background: rgba(255,255,255,0.08);
+      border-radius: var(--radius-xs);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      transition: background var(--speed) var(--ease);
+      color: var(--white);
+    }
+    .social-btn:hover { background: var(--green); }
+
+    .footer-col-head {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+      margin-bottom: 18px;
+    }
+    .footer-links { display: flex; flex-direction: column; gap: 10px; }
+    .footer-links a {
+      font-size: 0.87rem;
+      color: rgba(255,255,255,0.62);
+      transition: color var(--speed) var(--ease);
+    }
+    .footer-links a:hover { color: var(--white); }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.3);
+    }
+    html[lang="ar"] .footer-bottom { flex-direction: row-reverse; }
+
+    /* =========================================
+       RESPONSIVE
+    ========================================= */
+    @media (max-width: 1024px) {
+      .menu-grid { grid-template-columns: repeat(3, 1fr); }
+      .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+
+    @media (max-width: 768px) {
+      .navbar { padding: 0 20px; }
+      .nav-links, .btn-nav-order { display: none; }
+      .hamburger { display: flex; }
+
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 72px; left: 0; right: 0;
+        background: var(--white);
+        padding: 20px 24px;
+        gap: 8px;
+        box-shadow: var(--shadow-md);
+        z-index: 199;
+      }
+      .nav-links.open a { font-size: 15px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+
+      section { padding: 60px 24px; }
+
+      .split-block { grid-template-columns: 1fr; }
+      .split-block.reverse { direction: ltr; }
+      .split-content { padding: 44px 28px; }
+
+      .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 40px; }
+      .about-badge { right: 12px; bottom: 12px; }
+      html[lang="ar"] .about-badge { left: 12px; right: auto; }
+
+      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .reviews-grid { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr; gap: 28px; }
+      .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+      .order-btns { flex-direction: column; align-items: center; }
+    }
+
+    @media (max-width: 420px) {
+      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .card-body { padding: 10px 12px 14px; }
+      .card-name { font-size: 0.82rem; }
+      .card-desc { font-size: 0.72rem; margin-bottom: 8px; }
+      .card-price { font-size: 0.88rem; }
+      .hero-logo-wrap { width: 120px; height: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAVBAR
+============================================================ -->
+<nav class="navbar" aria-label="Main navigation">
+
+  <a href="#home" aria-label="Mr. Kim's CAFE">
+    <img class="nav-logo" src="text logo.png" alt="Mr. Kim's CAFE">
+  </a>
+
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#menu">      <span class="en">Menu</span><span class="ar">القائمة</span></a></li>
+    <li><a href="#order">     <span class="en">Order</span><span class="ar">اطلب</span></a></li>
+    <li><a href="#about">     <span class="en">About Us</span><span class="ar">من نحن</span></a></li>
+    <li><a href="#ratings">   <span class="en">Reviews</span><span class="ar">التقييمات</span></a></li>
+    <li><a href="#contact">   <span class="en">Contact</span><span class="ar">تواصل معنا</span></a></li>
+  </ul>
+
+  <div class="nav-right">
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn"        id="btn-ar" onclick="setLang('ar')">العربية</button>
+    </div>
+
+    <a href="#menu" class="btn-nav-order">
+      <span class="en">Order Now</span>
+      <span class="ar">اطلب الآن</span>
+    </a>
+
+    <button class="hamburger" id="hamburger"
+            aria-label="Toggle menu" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+
+<!-- ============================================================
+     HERO
+============================================================ -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+
+    <div class="hero-logo-wrap">
+      <!--
+        REPLACE_IMG: hero logo
+        캐릭터 로고 (킴스커피-02.jpg 왼쪽 부분)
+      -->
+      <img class="hero-logo"
+           src="logo.jpg"
+           alt="Kim's CAFE logo">
+    </div>
+
+    <h1 class="hero-title">
+      <span class="en">Mr. Kim's<br>CAFE</span>
+      <span class="ar">مقهى<br>مستر كيم</span>
+    </h1>
+
+    <p class="hero-sub">
+      <span class="en">Good coffee. Good vibes. Always. ☕</span>
+      <span class="ar">قهوة جيدة. أجواء رائعة. دائماً. ☕</span>
+    </p>
+
+    <a href="#order" class="btn-hero">
+      <span class="en">Start an Order</span>
+      <span class="ar">ابدأ طلبك</span>
+    </a>
+
+  </div>
+</section>
+
+
+<!-- Announcement Banner -->
+<div class="banner">
+  <span class="en">🌿 Fresh ingredients · Real flavors · Made with love every single day</span>
+  <span class="ar">🌿 مكونات طازجة · نكهات حقيقية · مصنوع بحب كل يوم</span>
+</div>
+
+
+<!-- ============================================================
+     SPLIT BLOCK 1 — Spring / Seasonal Offer
+============================================================ -->
+<div class="split-block" id="seasonal">
+
+  <!--
+    REPLACE_IMG: seasonal/promo image
+    추천: 킴스커피_대지 1 사본 5.jpg (종이컵 사진)
+  -->
+<img class="split-img" src="cups.jpg" alt="Kim's CAFE drinks" loading="lazy">
+
+  <div class="split-content">
+    <div class="split-content-inner">
+      <p class="section-eyebrow">
+        <span class="en">New Season</span>
+        <span class="ar">موسم جديد</span>
+      </p>
+      <h2 class="section-title">
+        <span class="en">Fresh picks for<br>every mood</span>
+        <span class="ar">اختيارات طازجة<br>لكل مزاج</span>
+      </h2>
+      <p class="section-desc">
+        <span class="en">Discover our latest seasonal drinks and snacks — crafted fresh daily with the finest ingredients.</span>
+        <span class="ar">اكتشف مشروباتنا الموسمية ومأكولاتنا الجديدة — محضّرة طازجة يومياً بأجود المكونات.</span>
+      </p>
+      <a href="#menu" class="btn-split solid">
+        <span class="en">See the Menu</span>
+        <span class="ar">عرض القائمة</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ============================================================
+     SPLIT BLOCK 2 — Merchandise / Cups
+============================================================ -->
+<div class="split-block reverse">
+
+  <div class="split-content light">
+    <div class="split-content-inner">
+      <p class="section-eyebrow">
+        <span class="en">Our Signature Cups</span>
+        <span class="ar">كؤوسنا المميزة</span>
+      </p>
+      <h2 class="section-title">
+        <span class="en">Sip in style,<br>every time</span>
+        <span class="ar">اشرب بأناقة<br>في كل مرة</span>
+      </h2>
+      <p class="section-desc">
+        <span class="en">Our Kim's CAFE mugs and cups are available in store. Take a piece of the vibe home with you.</span>
+        <span class="ar">كؤوس وأكواب مقهى كيم متوفرة في المتجر. خذ معك قطعة من الأجواء إلى المنزل.</span>
+      </p>
+      <a href="#contact" class="btn-split">
+        <span class="en">Find Our Store</span>
+        <span class="ar">اعثر على متجرنا</span>
+      </a>
+    </div>
+  </div>
+
+  <!--
+    REPLACE_IMG: mugs / merchandise photo
+    추천: 킴스커피_대지 1 사본 2.jpg (흰 머그컵)
+  -->
+<img class="split-img" src="mug.jpg" alt="Kim's CAFE mugs" loading="lazy">
+
+</div>
+
+
+<!-- ============================================================
+     MENU SECTION
+============================================================ -->
+<section class="menu-section" id="menu">
+
+  <div class="menu-head">
+    <p class="section-eyebrow">
+      <span class="en">Our Menu</span>
+      <span class="ar">قائمتنا</span>
+    </p>
+    <h2 class="section-title">
+      <span class="en">Something for everyone</span>
+      <span class="ar">شيء للجميع</span>
+    </h2>
+    <p class="section-desc">
+      <span class="en">From specialty coffee to refreshing cold drinks and fresh bites — we've got you covered.</span>
+      <span class="ar">من القهوة المتخصصة إلى المشروبات الباردة المنعشة والوجبات الطازجة — نحن هنا لك.</span>
+    </p>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="menu-tabs" role="tablist">
+    <button class="menu-tab active" onclick="filterMenu('all',this)"     role="tab"><span class="en">All</span>          <span class="ar">الكل</span></button>
+    <button class="menu-tab"        onclick="filterMenu('coffee',this)"  role="tab"><span class="en">Coffee</span>       <span class="ar">قهوة</span></button>
+    <button class="menu-tab"        onclick="filterMenu('cold',this)"    role="tab"><span class="en">Cold Drinks</span>  <span class="ar">مشروبات باردة</span></button>
+    <button class="menu-tab"        onclick="filterMenu('food',this)"    role="tab"><span class="en">Food</span>         <span class="ar">مأكولات</span></button>
+    <button class="menu-tab"        onclick="filterMenu('special',this)" role="tab"><span class="en">Specials</span>     <span class="ar">العروض</span></button>
+  </div>
+
+  <!-- Menu Cards -->
+  <div class="menu-grid max-w" id="menu-grid">
+
+    <!-- REPLACE: Update names, descriptions, prices & add real images -->
+
+    <div class="menu-card" data-cat="coffee">
+      <div class="card-thumb-placeholder">☕</div>
+      <div class="card-body">
+        <div class="card-name en">Classic Americano</div>
+        <div class="card-name ar">أمريكانو كلاسيك</div>
+        <div class="card-desc en">Bold espresso with hot water</div>
+        <div class="card-desc ar">إسبريسو قوي مع الماء الساخن</div>
+        <div class="card-price en"><!-- REPLACE_PRICES --> 15 AED</div>
+        <div class="card-price ar">١٥ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="coffee">
+      <div class="card-thumb-placeholder">🥛</div>
+      <div class="card-body">
+        <div class="card-name en">Creamy Latte</div>
+        <div class="card-name ar">لاتيه كريمي</div>
+        <div class="card-desc en">Smooth espresso with steamed milk</div>
+        <div class="card-desc ar">إسبريسو ناعم مع الحليب المبخر</div>
+        <div class="card-price en">18 AED</div>
+        <div class="card-price ar">١٨ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="coffee">
+      <div class="card-thumb-placeholder">☁️</div>
+      <div class="card-body">
+        <div class="card-name en">Cappuccino</div>
+        <div class="card-name ar">كابتشينو</div>
+        <div class="card-desc en">Espresso with velvety milk foam</div>
+        <div class="card-desc ar">إسبريسو مع رغوة حليب مخملية</div>
+        <div class="card-price en">18 AED</div>
+        <div class="card-price ar">١٨ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="special">
+      <div class="card-thumb-placeholder">🟢</div>
+      <div class="card-body">
+        <div class="card-name en">Matcha Latte</div>
+        <div class="card-name ar">ماتشا لاتيه</div>
+        <div class="card-desc en">Premium Japanese matcha with milk</div>
+        <div class="card-desc ar">ماتشا ياباني فاخر مع الحليب</div>
+        <div class="card-price en">22 AED</div>
+        <div class="card-price ar">٢٢ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="cold">
+      <div class="card-thumb-placeholder">🧊</div>
+      <div class="card-body">
+        <div class="card-name en">Iced Americano</div>
+        <div class="card-name ar">آيسد أمريكانو</div>
+        <div class="card-desc en">Cold brew over crystal ice</div>
+        <div class="card-desc ar">قهوة باردة على الثلج</div>
+        <div class="card-price en">16 AED</div>
+        <div class="card-price ar">١٦ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="cold">
+      <div class="card-thumb-placeholder">🥤</div>
+      <div class="card-body">
+        <div class="card-name en">Fresh Juice</div>
+        <div class="card-name ar">عصير طازج</div>
+        <div class="card-desc en">Seasonal fruits, daily pressed</div>
+        <div class="card-desc ar">فواكه موسمية، معصورة يومياً</div>
+        <div class="card-price en">20 AED</div>
+        <div class="card-price ar">٢٠ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="food">
+      <div class="card-thumb-placeholder">🥐</div>
+      <div class="card-body">
+        <div class="card-name en">Butter Croissant</div>
+        <div class="card-name ar">كرواسون بالزبدة</div>
+        <div class="card-desc en">Flaky and freshly baked daily</div>
+        <div class="card-desc ar">مقرمش ومخبوز طازج يومياً</div>
+        <div class="card-price en">12 AED</div>
+        <div class="card-price ar">١٢ درهم</div>
+      </div>
+    </div>
+
+    <div class="menu-card" data-cat="food">
+      <div class="card-thumb-placeholder">🥪</div>
+      <div class="card-body">
+        <div class="card-name en">Club Sandwich</div>
+        <div class="card-name ar">ساندويش كلوب</div>
+        <div class="card-desc en">Toasted with fresh fillings</div>
+        <div class="card-desc ar">محمص مع حشوة طازجة</div>
+        <div class="card-price en">25 AED</div>
+        <div class="card-price ar">٢٥ درهم</div>
+      </div>
+    </div>
+
+  </div><!-- /menu-grid -->
+
+  <div class="menu-cta">
+    <a href="https://www.instagram.com/mr.kims_cafe"
+       target="_blank" rel="noopener noreferrer"
+       class="btn-outline-green">
+      📷
+      <span class="en">View Full Menu on Instagram</span>
+      <span class="ar">عرض القائمة الكاملة على انستغرام</span>
+    </a>
+  </div>
+
+</section>
+
+
+<!-- ============================================================
+     ORDER CTA SECTION
+============================================================ -->
+<section class="order-section" id="order">
+  <p class="section-eyebrow">
+    <span class="en">Ready to Order?</span>
+    <span class="ar">جاهز للطلب؟</span>
+  </p>
+  <h2 class="section-title">
+    <span class="en">Your perfect drink is one tap away</span>
+    <span class="ar">مشروبك المثالي على بُعد نقرة واحدة</span>
+  </h2>
+  <p class="section-desc">
+    <span class="en">Order via WhatsApp for fast delivery or pick up in store.</span>
+    <span class="ar">اطلب عبر واتساب للتوصيل السريع أو الاستلام من المتجر.</span>
+  </p>
+  <div class="order-btns">
+    <a href="#contact" class="btn-white-ghost">
+      📍
+      <span class="en">Find Our Store</span>
+      <span class="ar">اعثر على متجرنا</span>
+    </a>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     ABOUT US
+============================================================ -->
+<section class="about-section" id="about">
+  <div class="about-grid">
+
+    <div class="about-img-wrap">
+      <!--
+        REPLACE_IMG: about/storefront photo
+        추천: 킴스커피_대지 1.jpg (벤치 사진 — 가장 분위기 있음)
+      -->
+<img class="about-img" src="bench.jpg" alt="Kim's CAFE storefront" loading="lazy">
+
+      <div class="about-badge">
+        <span class="badge-num">100%</span>
+        <span class="badge-lbl en">Fresh Daily</span>
+        <span class="badge-lbl ar">طازج يومياً</span>
+      </div>
+    </div>
+
+    <div class="about-text">
+      <p class="section-eyebrow">
+        <span class="en">Our Story</span>
+        <span class="ar">قصتنا</span>
+      </p>
+      <h2 class="section-title">
+        <span class="en">More than a cafe —<br>it's a vibe</span>
+        <span class="ar">أكثر من مقهى —<br>إنه أسلوب حياة</span>
+      </h2>
+      <p class="section-desc">
+        <span class="en">Mr. Kim's CAFE was born from a simple love of great coffee and warm spaces. We believe every cup should feel personal and every visit should feel like home.</span>
+        <span class="ar">ولد مقهى مستر كيم من حب بسيط للقهوة الرائعة والأجواء الدافئة. نؤمن بأن كل كوب يجب أن يكون شخصياً، وكل زيارة يجب أن تشعر وكأنها في البيت.</span>
+      </p>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feat-icon">🫘</div>
+          <div>
+            <div class="feat-title en">Premium Beans</div>
+            <div class="feat-title ar">حبوب مميزة</div>
+            <div class="feat-desc en">Sourced from the world's finest farms</div>
+            <div class="feat-desc ar">مصدرها أفضل المزارع في العالم</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feat-icon">❤️</div>
+          <div>
+            <div class="feat-title en">Made with Love</div>
+            <div class="feat-title ar">مصنوع بحب</div>
+            <div class="feat-desc en">Every drink crafted by skilled baristas</div>
+            <div class="feat-desc ar">كل مشروب محضّر بيد بارستا محترف</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feat-icon">🌿</div>
+          <div>
+            <div class="feat-title en">Fresh Every Day</div>
+            <div class="feat-title ar">طازج كل يوم</div>
+            <div class="feat-desc en">Daily fresh supplies, zero compromise</div>
+            <div class="feat-desc ar">توريد طازج يومياً، دون أي تنازل</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     RATINGS / REVIEWS
+============================================================ -->
+<section class="ratings-section" id="ratings">
+
+  <div class="ratings-head">
+    <p class="section-eyebrow">
+      <span class="en">What People Say</span>
+      <span class="ar">ماذا يقول ضيوفنا</span>
+    </p>
+    <h2 class="section-title">
+      <span class="en">Our guests love us</span>
+      <span class="ar">ضيوفنا يحبوننا</span>
+    </h2>
+    <div class="rating-big">
+      <span class="rating-num">4.9</span>
+      <div>
+        <div class="star-row">★★★★★</div>
+        <div class="rating-meta en">Based on 200+ reviews</div>
+        <div class="rating-meta ar">بناءً على أكثر من ٢٠٠ تقييم</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reviews-grid max-w">
+
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text en">"Best coffee in town, hands down! The latte art is gorgeous and the atmosphere is so cozy. Mr. Kim himself greeted us — absolute legend!"</p>
+      <p class="review-text ar">"أفضل قهوة في المدينة بلا منافس! فن اللاتيه رائع والأجواء دافئة. استقبلنا مستر كيم شخصياً — أسطورة حقيقية!"</p>
+      <div class="review-author">
+        <div class="review-av">A</div>
+        <div>
+          <div class="review-name en">Ahmed K.</div>
+          <div class="review-name ar">أحمد ك.</div>
+          <div class="review-src">Google Reviews</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text en">"The matcha latte is incredible — rich, creamy and perfectly balanced. The branded cups are adorable. Visiting every day!"</p>
+      <p class="review-text ar">"ماتشا لاتيه رائعة — غنية وكريمية ومتوازنة تماماً. الكؤوس جميلة جداً. سأعود كل يوم!"</p>
+      <div class="review-author">
+        <div class="review-av">S</div>
+        <div>
+          <div class="review-name en">Sara M.</div>
+          <div class="review-name ar">سارة م.</div>
+          <div class="review-src">Instagram</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text en">"Finally a cafe that feels personal! Loved the branding, loved the coffee, loved the staff. Kim's is now my go-to spot."</p>
+      <p class="review-text ar">"أخيراً مقهى يشعر بالشخصية! أحببت الهوية، أحببت القهوة، أحببت الموظفين. مقهى كيم أصبح وجهتي المفضلة."</p>
+      <div class="review-author">
+        <div class="review-av">R</div>
+        <div>
+          <div class="review-name en">Rania H.</div>
+          <div class="review-name ar">رانيا ه.</div>
+          <div class="review-src">TripAdvisor</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CONTACT & LOCATION
+============================================================ -->
+<section class="contact-section" id="contact">
+
+  <div class="contact-head">
+    <p class="section-eyebrow">
+      <span class="en">Get in Touch</span>
+      <span class="ar">تواصل معنا</span>
+    </p>
+    <h2 class="section-title">
+      <span class="en">Contact & Location</span>
+      <span class="ar">التواصل والموقع</span>
+    </h2>
+  </div>
+
+  <div class="contact-grid">
+
+    <!-- Left: Info + Map -->
+    <div>
+      <div class="contact-items">
+
+        <div class="c-item">
+          <div class="c-icon">📍</div>
+          <div>
+            <div class="c-title en">Our Location</div>
+            <div class="c-title ar">موقعنا</div>
+            <div class="c-detail en">Salikh, 600 Street, Baghdad<br>Open 7 days a week</div>
+            <div class="c-detail ar">سالخ، شارع ٦٠٠، بغداد<br>مفتوح ٧ أيام في الأسبوع</div>
+          </div>
+        </div>
+
+        <div class="c-item">
+          <div class="c-icon">🕒</div>
+          <div>
+            <div class="c-title en">Opening Hours</div>
+            <div class="c-title ar">ساعات العمل</div>
+            <div class="c-detail en">Mon – Sun: 7:00 AM – 1:00 AM</div>
+            <div class="c-detail ar">الاثنين – الأحد: ٧ ص – ١ ص</div>
+          </div>
+        </div>
+
+        <div class="c-item">
+          <div class="c-icon">📞</div>
+          <div>
+            <div class="c-title en">Call Us</div>
+            <div class="c-title ar">اتصل بنا</div>
+            <div class="c-detail">
+              <a href="tel:+9640775006011" class="c-link">+964 0775 006 0011</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="c-item">
+          <div class="c-icon">🔗</div>
+          <div>
+            <div class="c-title en">Follow Us</div>
+            <div class="c-title ar">تابعنا على</div>
+            <div class="c-detail">
+              <a href="https://www.instagram.com/mr.kims_cafe"
+                 target="_blank" rel="noopener noreferrer"
+                 class="c-link" style="display:block; margin-bottom:6px;">
+                📷 Instagram: @mr.kims_cafe
+              </a>
+              <a href="https://www.facebook.com/share/1CY95PAHFj/?mibextid=wwXIfr"
+                 target="_blank" rel="noopener noreferrer"
+                 class="c-link">
+                👥 <span class="en">Facebook: Mr. Kim's CAFE.iq</span>
+                    <span class="ar">فيسبوك: مقهى مستر كيم</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /contact-items -->
+
+      <!-- Map -->
+      <div class="map-box">
+        <iframe
+          src="https://maps.google.com/maps?q=Mr+Kim%27s+Cafe,+Salikh,+600+Street,+Baghdad&output=embed"
+          width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+
+    <!-- Right: Contact Form -->
+    <div class="contact-form-wrap">
+      <h3 class="form-title">
+        <span class="en">Send a Message ✉️</span>
+        <span class="ar">أرسل رسالة ✉️</span>
+      </h3>
+      <form name="contact" method="POST" data-netlify="true" onsubmit="handleForm(event)">
+        <input type="hidden" name="form-name" value="contact" />
+        <div class="form-group">
+          <label class="form-label">
+            <span class="en">Your Name</span>
+            <span class="ar">اسمك</span>
+          </label>
+          <input type="text" class="form-input"
+                 id="f-name"
+                 data-ph-en="John Doe"
+                 data-ph-ar="محمد علي"
+                 required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <span class="en">Email Address</span>
+            <span class="ar">البريد الإلكتروني</span>
+          </label>
+          <input type="email" class="form-input"
+                 id="f-email"
+                 data-ph-en="you@example.com"
+                 data-ph-ar="you@example.com"
+                 required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <span class="en">Message</span>
+            <span class="ar">رسالتك</span>
+          </label>
+          <textarea class="form-input"
+                    id="f-msg"
+                    rows="4"
+                    data-ph-en="How can we help you?"
+                    data-ph-ar="كيف يمكننا مساعدتك؟"
+                    required></textarea>
+        </div>
+        <button type="submit" class="form-submit">
+          <span class="en">Send Message</span>
+          <span class="ar">إرسال الرسالة</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer>
+  <div class="footer-inner">
+
+    <div class="footer-top">
+
+      <!-- Brand column -->
+      <div>
+        <p class="footer-bio">
+          <span class="en">Your favorite neighborhood cafe. Good coffee, good vibes, always.</span>
+          <span class="ar">مقهاك المفضل في الحي. قهوة جيدة، أجواء رائعة، دائماً.</span>
+        </p>
+        <div class="social-row">
+          <a href="https://www.instagram.com/mr.kims_cafe"
+             target="_blank" rel="noopener noreferrer"
+             class="social-btn" aria-label="Instagram">📷</a>
+          <!-- REPLACE_FACEBOOK -->
+          <a href="https://www.facebook.com/REPLACE_FACEBOOK"
+             target="_blank" rel="noopener noreferrer"
+             class="social-btn" aria-label="Facebook">👥</a>
+          <!-- REPLACE_WHATSAPP -->
+          <a href="https://wa.me/REPLACE_WHATSAPP"
+             target="_blank" rel="noopener noreferrer"
+             class="social-btn" aria-label="WhatsApp">💬</a>
+        </div>
+      </div>
+
+      <!-- Explore -->
+      <div>
+        <h4 class="footer-col-head">
+          <span class="en">Explore</span><span class="ar">استكشف</span>
+        </h4>
+        <ul class="footer-links">
+          <li><a href="#menu">    <span class="en">Menu</span>      <span class="ar">القائمة</span></a></li>
+          <li><a href="#order">   <span class="en">Order Now</span> <span class="ar">اطلب الآن</span></a></li>
+          <li><a href="#about">   <span class="en">About Us</span>  <span class="ar">من نحن</span></a></li>
+          <li><a href="#ratings"> <span class="en">Reviews</span>   <span class="ar">التقييمات</span></a></li>
+        </ul>
+      </div>
+
+      <!-- Visit -->
+      <div>
+        <h4 class="footer-col-head">
+          <span class="en">Visit</span><span class="ar">زيارة</span>
+        </h4>
+        <ul class="footer-links">
+          <li><a href="#contact"><span class="en">📍 Location</span>      <span class="ar">📍 الموقع</span></a></li>
+          <li><a href="#contact"><span class="en">🕒 Opening Hours</span> <span class="ar">🕒 ساعات العمل</span></a></li>
+          <li><a href="tel:+971XXXXXXXXX"><span class="en">📞 Call Us</span> <span class="ar">📞 اتصل بنا</span></a></li>
+          <li><a href="#contact"><span class="en">✉️ Contact</span>       <span class="ar">✉️ تواصل</span></a></li>
+        </ul>
+      </div>
+
+      <!-- Follow -->
+      <div>
+        <h4 class="footer-col-head">
+          <span class="en">Follow Us</span><span class="ar">تابعنا</span>
+        </h4>
+        <ul class="footer-links">
+          <li><a href="https://www.instagram.com/mr.kims_cafe"          target="_blank" rel="noopener noreferrer">Instagram</a></li>
+          <li><a href="https://www.facebook.com/REPLACE_FACEBOOK"       target="_blank" rel="noopener noreferrer">Facebook</a></li>
+          <li><a href="https://wa.me/REPLACE_WHATSAPP"                  target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
+        </ul>
+      </div>
+
+    </div><!-- /footer-top -->
+
+    <div class="footer-bottom">
+      <span>
+        © 2026 Mr. Kim's CAFE.
+        <span class="en">All rights reserved.</span>
+        <span class="ar">جميع الحقوق محفوظة.</span>
+      </span>
+      <span>
+        <span class="en">Made with ☕</span>
+        <span class="ar">صُنع بـ ☕</span>
+      </span>
+    </div>
+
+  </div>
+</footer>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+  /* ─── Language Toggle ─── */
+  function setLang(lang) {
+    const html = document.getElementById('html-root');
+    html.setAttribute('lang', lang);
+    html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
+
+    // Update form placeholders
+    document.querySelectorAll('[data-ph-en]').forEach(el => {
+      el.placeholder = lang === 'ar'
+        ? el.getAttribute('data-ph-ar')
+        : el.getAttribute('data-ph-en');
+    });
+
+    localStorage.setItem('kims-lang', lang);
+  }
+
+  /* ─── Mobile Nav ─── */
+  function toggleNav() {
+    document.getElementById('nav-links').classList.toggle('open');
+  }
+
+  /* ─── Menu Filter ─── */
+  function filterMenu(cat, btn) {
+    document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.menu-card').forEach(card => {
+      card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+    });
+  }
+
+  /* ─── Contact Form ─── */
+  function handleForm(e) {
+    e.preventDefault();
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    alert(lang === 'ar'
+      ? '✅ شكراً! سنتواصل معك قريباً.'
+      : '✅ Thank you! We\'ll be in touch soon.');
+    e.target.reset();
+  }
+
+  /* ─── Init ─── */
+  document.addEventListener('DOMContentLoaded', () => {
+    // Detect language
+    const saved = localStorage.getItem('kims-lang');
+    const browserAr = (navigator.language || '').startsWith('ar');
+    setLang(saved || (browserAr ? 'ar' : 'en'));
+
+    // Close mobile nav on link click
+    document.querySelectorAll('#nav-links a').forEach(a =>
+      a.addEventListener('click', () =>
+        document.getElementById('nav-links').classList.remove('open')
+      )
+    );
+  });
+</script>
+
+</body>
+</html>

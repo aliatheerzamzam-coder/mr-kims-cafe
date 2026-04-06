@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git clone:*)",
+      "Read(//Users/alli/.claude/anthropics-skills/**)",
+      "Read(//Users/alli/.claude/anthropics-skills/skills/**)",
+      "Bash(mkdir -p /Users/alli/.claude/skills)",
+      "Bash(cp -r /Users/alli/.claude/anthropics-skills/skills/* /Users/alli/.claude/skills/)",
+      "Read(//Users/alli/.claude/**)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
