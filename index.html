@@ -368,6 +368,31 @@
     .menu-head { text-align: center; margin-bottom: 44px; }
     .menu-head .section-desc { margin: 0 auto; }
 
+    /* Group tabs (Drinks / Dessert / Food / More) */
+    .group-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .group-tab {
+      padding: 8px 26px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      background: var(--white);
+      color: var(--text-mid);
+      border: 2px solid #d4e8d8;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all var(--speed) var(--ease);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      letter-spacing: 0.01em;
+    }
+    .group-tab:hover { border-color: var(--green); color: var(--green); }
+    .group-tab.active { background: var(--green); color: var(--white); border-color: var(--green); }
+
     /* Category tiles */
     .cat-grid {
       display: grid;
@@ -1058,56 +1083,74 @@
   </div>
 
   <!-- Category Grid -->
+  <!-- Group Tabs -->
+  <div class="group-tabs" id="group-tabs">
+    <button class="group-tab active" data-group="drinks"  onclick="filterGroup('drinks',this)"><span class="en">Drinks</span><span class="ar">مشروبات</span></button>
+    <button class="group-tab"        data-group="dessert" onclick="filterGroup('dessert',this)"><span class="en">Dessert</span><span class="ar">حلويات</span></button>
+    <button class="group-tab"        data-group="food"    onclick="filterGroup('food',this)"><span class="en">Food</span><span class="ar">مأكولات</span></button>
+    <button class="group-tab"        data-group="all"     onclick="filterGroup('all',this)"><span class="en">More</span><span class="ar">الكل</span></button>
+  </div>
+
   <div class="cat-grid" id="cat-grid">
-    <div class="cat-tile" onclick="showCategory('hot-coffee', this)">
+    <div class="cat-tile" data-cat="hot-coffee" onclick="showCategory('hot-coffee', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#f5e6d3,#e8c9a0);">☕</div>
       <span class="cat-label en">Hot Coffee</span>
       <span class="cat-label ar">قهوة ساخنة</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('cold-coffee', this)">
+    <div class="cat-tile" data-cat="cold-coffee" onclick="showCategory('cold-coffee', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#d3eaf5,#a0c9e8);">🧊</div>
       <span class="cat-label en">Cold Coffee</span>
       <span class="cat-label ar">قهوة باردة</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('matcha', this)">
+    <div class="cat-tile" data-cat="matcha" onclick="showCategory('matcha', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#d3f5dc,#a0e8b0);">🍵</div>
       <span class="cat-label en">Matcha</span>
       <span class="cat-label ar">ماتشا</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('hot-tea', this)">
+    <div class="cat-tile" data-cat="hot-tea" onclick="showCategory('hot-tea', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#f5f0d3,#e8d8a0);">🫖</div>
       <span class="cat-label en">Hot Tea</span>
       <span class="cat-label ar">شاي ساخن</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('smoothie', this)">
+    <div class="cat-tile" data-cat="smoothie" onclick="showCategory('smoothie', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#f5d3e8,#e8a0c9);">🥤</div>
       <span class="cat-label en">Smoothie</span>
       <span class="cat-label ar">سموثي</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('frappe', this)">
+    <div class="cat-tile" data-cat="frappe" onclick="showCategory('frappe', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#fde8c8,#f5c97a);">🧋</div>
       <span class="cat-label en">Frappé</span>
       <span class="cat-label ar">فرابيه</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('milkshake', this)">
+    <div class="cat-tile" data-cat="milkshake" onclick="showCategory('milkshake', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#ffd6e0,#ffadc5);">🥛</div>
       <span class="cat-label en">Milkshake</span>
       <span class="cat-label ar">ميلك شيك</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('yogurt', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#fff4cc,#ffe066);">🍦</div>
-      <span class="cat-label en">Yogurt</span>
-      <span class="cat-label ar">يوغرت</span>
-    </div>
-    <div class="cat-tile" onclick="showCategory('mojito', this)">
+    <div class="cat-tile" data-cat="mojito" onclick="showCategory('mojito', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#ccf5e0,#7ae8b0);">🌿</div>
       <span class="cat-label en">Mojito</span>
       <span class="cat-label ar">موهيتو</span>
     </div>
-    <div class="cat-tile" onclick="showCategory('more', this)">
+    <div class="cat-tile" data-cat="yogurt" onclick="showCategory('yogurt', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#fff4cc,#ffe066);">🍦</div>
+      <span class="cat-label en">Yogurt</span>
+      <span class="cat-label ar">يوغرت</span>
+    </div>
+    <div class="cat-tile" data-cat="pastry" onclick="showCategory('pastry', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#faecd5,#f0c88a);">🥐</div>
+      <span class="cat-label en">Pastry</span>
+      <span class="cat-label ar">معجنات</span>
+    </div>
+    <div class="cat-tile" data-cat="dessert" onclick="showCategory('dessert', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#f5d3f5,#e8a0e8);">🍰</div>
+      <span class="cat-label en">Dessert</span>
+      <span class="cat-label ar">حلويات</span>
+    </div>
+    <div class="cat-tile" data-cat="food" onclick="showCategory('food', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#f0f0f0,#d8d8d8);">🍽️</div>
-      <span class="cat-label en">More</span>
-      <span class="cat-label ar">المزيد</span>
+      <span class="cat-label en">Food</span>
+      <span class="cat-label ar">مأكولات</span>
     </div>
   </div>
 
@@ -1632,15 +1675,54 @@
         { emoji:'🍋', en:'Mint Lemonade',      ar:'ليمون بالنعناع',  descEn:'Zesty lemon with fresh mint',          descAr:'ليمون منعش مع نعناع طازج',          price:'16' },
       ]
     },
-    'more': {
-      en: 'More', ar: 'المزيد',
+    'pastry': {
+      en: 'Pastry', ar: 'معجنات',
       items: [
-        { emoji:'🥐', en:'Butter Croissant', ar:'كرواسون بالزبدة',   descEn:'Flaky, freshly baked daily',          descAr:'مقرمش ومخبوز يومياً',              price:'12' },
-        { emoji:'🥪', en:'Club Sandwich',    ar:'ساندويش كلوب',       descEn:'Toasted with fresh fillings',          descAr:'محمص مع حشوة طازجة',              price:'25' },
-        { emoji:'🍫', en:'Chocolate Cake',   ar:'كيك الشوكولاتة',     descEn:'Rich dark chocolate slice',            descAr:'شريحة شوكولاتة داكنة',            price:'18' },
+        { emoji:'🥐', en:'Butter Croissant', ar:'كرواسون بالزبدة',   descEn:'Flaky, freshly baked daily',           descAr:'مقرمش ومخبوز يومياً',             price:'12' },
+        { emoji:'🫐', en:'Blueberry Muffin', ar:'مافن توت أزرق',     descEn:'Soft muffin with juicy blueberries',   descAr:'مافن طري بالتوت الأزرق',          price:'12' },
+        { emoji:'🌀', en:'Cinnamon Roll',    ar:'لفة القرفة',          descEn:'Warm, sweet & soft baked roll',        descAr:'لفة مخبوزة دافئة وحلوة',          price:'14' },
+        { emoji:'🥮', en:'Almond Danish',    ar:'دنيش باللوز',         descEn:'Buttery pastry with almond cream',     descAr:'معجنات زبدية بكريمة اللوز',       price:'14' },
+      ]
+    },
+    'dessert': {
+      en: 'Dessert', ar: 'حلويات',
+      items: [
+        { emoji:'🍫', en:'Chocolate Cake',  ar:'كيك الشوكولاتة',  descEn:'Rich dark chocolate slice',            descAr:'شريحة شوكولاتة داكنة غنية',       price:'18' },
+        { emoji:'🍰', en:'Cheesecake',      ar:'تشيز كيك',         descEn:'Creamy New York style cheesecake',      descAr:'تشيز كيك نيويورك كريمي',           price:'20' },
+        { emoji:'☕', en:'Tiramisu',        ar:'تيراميسو',          descEn:'Classic Italian coffee dessert',        descAr:'ديسرت إيطالي كلاسيكي بالقهوة',   price:'22' },
+        { emoji:'🟫', en:'Chocolate Brownie',ar:'براوني شوكولاتة', descEn:'Fudgy & warm from the oven',           descAr:'براوني طري ودافئ من الفرن',        price:'14' },
+      ]
+    },
+    'food': {
+      en: 'Food', ar: 'مأكولات',
+      items: [
+        { emoji:'🥪', en:'Club Sandwich',   ar:'ساندويش كلوب',    descEn:'Toasted with fresh fillings',           descAr:'محمص مع حشوة طازجة',              price:'25' },
+        { emoji:'🥗', en:'Caesar Salad',    ar:'سلطة سيزر',        descEn:'Crispy romaine with classic dressing',  descAr:'خس مقرمش بصوص كلاسيكي',           price:'22' },
+        { emoji:'🌯', en:'Chicken Wrap',    ar:'راب الدجاج',        descEn:'Grilled chicken with fresh veggies',    descAr:'دجاج مشوي مع خضار طازجة',         price:'25' },
+        { emoji:'🥑', en:'Avocado Toast',   ar:'توست الأفوكادو',   descEn:'Toasted bread with fresh avocado',      descAr:'خبز محمص مع أفوكادو طازج',        price:'20' },
       ]
     }
   };
+
+  const groupMap = {
+    drinks:  ['hot-coffee','cold-coffee','matcha','hot-tea','smoothie','frappe','milkshake','mojito'],
+    dessert: ['yogurt','pastry','dessert'],
+    food:    ['food'],
+    all:     ['hot-coffee','cold-coffee','matcha','hot-tea','smoothie','frappe','milkshake','mojito','yogurt','pastry','dessert','food']
+  };
+
+  function filterGroup(group, btn) {
+    document.querySelectorAll('.group-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const visible = groupMap[group];
+    document.querySelectorAll('.cat-tile').forEach(tile => {
+      tile.style.display = visible.includes(tile.dataset.cat) ? '' : 'none';
+    });
+    // return to cat-grid view
+    document.getElementById('cat-grid').style.display = 'grid';
+    document.getElementById('items-panel').style.display = 'none';
+    document.getElementById('menu-cta').style.display = 'block';
+  }
 
   function showCategory(cat, tile) {
     const data = menuData[cat];
@@ -1686,6 +1768,9 @@
     const saved = localStorage.getItem('kims-lang');
     const browserAr = (navigator.language || '').startsWith('ar');
     setLang(saved || (browserAr ? 'ar' : 'en'));
+
+    // Default to Drinks group on load
+    filterGroup('drinks', document.querySelector('.group-tab[data-group="drinks"]'));
 
     // Close mobile nav on link click
     document.querySelectorAll('#nav-links a').forEach(a =>
