@@ -413,7 +413,7 @@
     }
 
     /* Items panel */
-    .items-panel { display: none; }
+    .items-panel { display: none; max-width: 1200px; margin: 0 auto; }
     .back-btn {
       display: inline-flex;
       align-items: center;
@@ -1101,7 +1101,7 @@
     <div class="menu-grid" id="menu-grid"></div>
   </div>
 
-  <div class="menu-cta">
+  <div class="menu-cta" id="menu-cta">
     <a href="https://www.instagram.com/mr.kims_cafe"
        target="_blank" rel="noopener noreferrer"
        class="btn-outline-green">
@@ -1604,14 +1604,14 @@
         </div>
       </div>`).join('');
     document.getElementById('cat-grid').style.display = 'none';
-    document.getElementById('items-panel').style.display = '';
+    document.getElementById('items-panel').style.display = 'block';
     document.getElementById('menu-cta').style.display = 'none';
   }
 
   function showCategories() {
-    document.getElementById('cat-grid').style.display = '';
+    document.getElementById('cat-grid').style.display = 'grid';
     document.getElementById('items-panel').style.display = 'none';
-    document.getElementById('menu-cta').style.display = '';
+    document.getElementById('menu-cta').style.display = 'block';
   }
 
   /* ─── Contact Form ─── */
