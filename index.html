@@ -368,26 +368,75 @@
     .menu-head { text-align: center; margin-bottom: 44px; }
     .menu-head .section-desc { margin: 0 auto; }
 
-    .menu-tabs {
+    /* Category tiles */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 24px;
+      max-width: 860px;
+      margin: 0 auto 48px;
+    }
+    @media (max-width: 700px) {
+      .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    }
+    .cat-tile {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 40px;
+      cursor: pointer;
     }
-    .menu-tab {
-      padding: 9px 22px;
-      border-radius: var(--radius-pill);
+    .cat-circle {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      border: 3px solid transparent;
+      transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s;
+    }
+    @media (max-width: 700px) { .cat-circle { width: 72px; height: 72px; font-size: 28px; } }
+    .cat-tile:hover .cat-circle,
+    .cat-tile.active .cat-circle {
+      transform: scale(1.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+      border-color: var(--green);
+    }
+    .cat-label {
       font-weight: 700;
-      font-size: 14px;
-      background: var(--white);
-      color: var(--text-mid);
-      border: 2px solid transparent;
-      transition: all var(--speed) var(--ease);
-      font-family: inherit;
+      font-size: 0.8rem;
+      text-align: center;
+      color: var(--text-dark);
+      line-height: 1.3;
     }
-    .menu-tab.active,
-    .menu-tab:hover { background: var(--green); color: var(--white); }
+
+    /* Items panel */
+    .items-panel { display: none; }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 2px solid var(--green);
+      color: var(--green);
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 8px 20px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      margin-bottom: 28px;
+      font-family: inherit;
+      transition: all var(--speed) var(--ease);
+    }
+    .back-btn:hover { background: var(--green); color: var(--white); }
+    .cat-panel-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--text-dark);
+      margin-bottom: 24px;
+    }
 
     .menu-grid {
       display: grid;
@@ -1008,117 +1057,49 @@
     </p>
   </div>
 
-  <!-- Category Tabs -->
-  <div class="menu-tabs" role="tablist">
-    <button class="menu-tab active" onclick="filterMenu('all',this)"     role="tab"><span class="en">All</span>          <span class="ar">الكل</span></button>
-    <button class="menu-tab"        onclick="filterMenu('coffee',this)"  role="tab"><span class="en">Coffee</span>       <span class="ar">قهوة</span></button>
-    <button class="menu-tab"        onclick="filterMenu('cold',this)"    role="tab"><span class="en">Cold Drinks</span>  <span class="ar">مشروبات باردة</span></button>
-    <button class="menu-tab"        onclick="filterMenu('food',this)"    role="tab"><span class="en">Food</span>         <span class="ar">مأكولات</span></button>
-    <button class="menu-tab"        onclick="filterMenu('special',this)" role="tab"><span class="en">Specials</span>     <span class="ar">العروض</span></button>
+  <!-- Category Grid -->
+  <div class="cat-grid" id="cat-grid">
+    <div class="cat-tile" onclick="showCategory('hot-coffee', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#f5e6d3,#e8c9a0);">☕</div>
+      <span class="cat-label en">Hot Coffee</span>
+      <span class="cat-label ar">قهوة ساخنة</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('cold-coffee', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#d3eaf5,#a0c9e8);">🧊</div>
+      <span class="cat-label en">Cold Coffee</span>
+      <span class="cat-label ar">قهوة باردة</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('matcha', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#d3f5dc,#a0e8b0);">🍵</div>
+      <span class="cat-label en">Matcha</span>
+      <span class="cat-label ar">ماتشا</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('hot-tea', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#f5f0d3,#e8d8a0);">🫖</div>
+      <span class="cat-label en">Hot Tea</span>
+      <span class="cat-label ar">شاي ساخن</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('smoothie', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#f5d3e8,#e8a0c9);">🥤</div>
+      <span class="cat-label en">Smoothie</span>
+      <span class="cat-label ar">سموثي</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('more', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#f0f0f0,#d8d8d8);">🍽️</div>
+      <span class="cat-label en">More</span>
+      <span class="cat-label ar">المزيد</span>
+    </div>
   </div>
 
-  <!-- Menu Cards -->
-  <div class="menu-grid max-w" id="menu-grid">
-
-    <!-- REPLACE: Update names, descriptions, prices & add real images -->
-
-    <div class="menu-card" data-cat="coffee">
-      <div class="card-thumb-placeholder">☕</div>
-      <div class="card-body">
-        <div class="card-name en">Classic Americano</div>
-        <div class="card-name ar">أمريكانو كلاسيك</div>
-        <div class="card-desc en">Bold espresso with hot water</div>
-        <div class="card-desc ar">إسبريسو قوي مع الماء الساخن</div>
-        <div class="card-price en"><!-- REPLACE_PRICES --> 15 AED</div>
-        <div class="card-price ar">١٥ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="coffee">
-      <div class="card-thumb-placeholder">🥛</div>
-      <div class="card-body">
-        <div class="card-name en">Creamy Latte</div>
-        <div class="card-name ar">لاتيه كريمي</div>
-        <div class="card-desc en">Smooth espresso with steamed milk</div>
-        <div class="card-desc ar">إسبريسو ناعم مع الحليب المبخر</div>
-        <div class="card-price en">18 AED</div>
-        <div class="card-price ar">١٨ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="coffee">
-      <div class="card-thumb-placeholder">☁️</div>
-      <div class="card-body">
-        <div class="card-name en">Cappuccino</div>
-        <div class="card-name ar">كابتشينو</div>
-        <div class="card-desc en">Espresso with velvety milk foam</div>
-        <div class="card-desc ar">إسبريسو مع رغوة حليب مخملية</div>
-        <div class="card-price en">18 AED</div>
-        <div class="card-price ar">١٨ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="special">
-      <div class="card-thumb-placeholder">🟢</div>
-      <div class="card-body">
-        <div class="card-name en">Matcha Latte</div>
-        <div class="card-name ar">ماتشا لاتيه</div>
-        <div class="card-desc en">Premium Japanese matcha with milk</div>
-        <div class="card-desc ar">ماتشا ياباني فاخر مع الحليب</div>
-        <div class="card-price en">22 AED</div>
-        <div class="card-price ar">٢٢ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="cold">
-      <div class="card-thumb-placeholder">🧊</div>
-      <div class="card-body">
-        <div class="card-name en">Iced Americano</div>
-        <div class="card-name ar">آيسد أمريكانو</div>
-        <div class="card-desc en">Cold brew over crystal ice</div>
-        <div class="card-desc ar">قهوة باردة على الثلج</div>
-        <div class="card-price en">16 AED</div>
-        <div class="card-price ar">١٦ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="cold">
-      <div class="card-thumb-placeholder">🥤</div>
-      <div class="card-body">
-        <div class="card-name en">Fresh Juice</div>
-        <div class="card-name ar">عصير طازج</div>
-        <div class="card-desc en">Seasonal fruits, daily pressed</div>
-        <div class="card-desc ar">فواكه موسمية، معصورة يومياً</div>
-        <div class="card-price en">20 AED</div>
-        <div class="card-price ar">٢٠ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="food">
-      <div class="card-thumb-placeholder">🥐</div>
-      <div class="card-body">
-        <div class="card-name en">Butter Croissant</div>
-        <div class="card-name ar">كرواسون بالزبدة</div>
-        <div class="card-desc en">Flaky and freshly baked daily</div>
-        <div class="card-desc ar">مقرمش ومخبوز طازج يومياً</div>
-        <div class="card-price en">12 AED</div>
-        <div class="card-price ar">١٢ درهم</div>
-      </div>
-    </div>
-
-    <div class="menu-card" data-cat="food">
-      <div class="card-thumb-placeholder">🥪</div>
-      <div class="card-body">
-        <div class="card-name en">Club Sandwich</div>
-        <div class="card-name ar">ساندويش كلوب</div>
-        <div class="card-desc en">Toasted with fresh fillings</div>
-        <div class="card-desc ar">محمص مع حشوة طازجة</div>
-        <div class="card-price en">25 AED</div>
-        <div class="card-price ar">٢٥ درهم</div>
-      </div>
-    </div>
-
-  </div><!-- /menu-grid -->
+  <!-- Items Panel -->
+  <div class="items-panel max-w" id="items-panel">
+    <button class="back-btn" onclick="showCategories()">
+      <span class="en">← Back</span>
+      <span class="ar">→ رجوع</span>
+    </button>
+    <div class="cat-panel-title" id="cat-panel-title"></div>
+    <div class="menu-grid" id="menu-grid"></div>
+  </div>
 
   <div class="menu-cta">
     <a href="https://www.instagram.com/mr.kims_cafe"
@@ -1552,12 +1533,85 @@
   }
 
   /* ─── Menu Filter ─── */
-  function filterMenu(cat, btn) {
-    document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.menu-card').forEach(card => {
-      card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
-    });
+  const menuData = {
+    'hot-coffee': {
+      en: 'Hot Coffee', ar: 'قهوة ساخنة',
+      items: [
+        { emoji:'☕', en:'Hot Americano',  ar:'أمريكانو ساخن',    descEn:'Bold espresso with hot water',          descAr:'إسبريسو قوي مع الماء الساخن',        price:'15' },
+        { emoji:'🥛', en:'Hot Latte',      ar:'لاتيه ساخن',        descEn:'Smooth espresso with steamed milk',     descAr:'إسبريسو ناعم مع الحليب المبخر',      price:'18' },
+        { emoji:'☁️', en:'Cappuccino',     ar:'كابتشينو',           descEn:'Espresso with velvety milk foam',       descAr:'إسبريسو مع رغوة حليب مخملية',        price:'18' },
+        { emoji:'🤍', en:'Flat White',     ar:'فلات وايت',          descEn:'Velvety microfoam over espresso',       descAr:'رغوة ناعمة فوق الإسبريسو',           price:'20' },
+      ]
+    },
+    'cold-coffee': {
+      en: 'Cold Coffee', ar: 'قهوة باردة',
+      items: [
+        { emoji:'🧊', en:'Iced Americano',        ar:'آيسد أمريكانو',      descEn:'Cold brew over crystal ice',          descAr:'قهوة باردة على الثلج',              price:'16' },
+        { emoji:'🥛', en:'Iced Latte',            ar:'آيسد لاتيه',          descEn:'Espresso over cold milk & ice',        descAr:'إسبريسو مع حليب بارد وثلج',        price:'18' },
+        { emoji:'🫙', en:'Cold Brew',             ar:'كولد برو',             descEn:'Slow-steeped for 12 hours',            descAr:'مستخلص ببطء لمدة ١٢ ساعة',         price:'20' },
+        { emoji:'🍮', en:'Caramel Frappuccino',   ar:'فرابتشينو كراميل',    descEn:'Blended coffee with caramel',          descAr:'قهوة مثلجة بالكراميل',             price:'22' },
+      ]
+    },
+    'matcha': {
+      en: 'Matcha', ar: 'ماتشا',
+      items: [
+        { emoji:'🍵', en:'Matcha Latte',        ar:'ماتشا لاتيه',        descEn:'Premium Japanese matcha with milk',    descAr:'ماتشا ياباني فاخر مع الحليب',      price:'22' },
+        { emoji:'🧊', en:'Iced Matcha',         ar:'آيسد ماتشا',          descEn:'Chilled matcha over ice',              descAr:'ماتشا باردة على الثلج',             price:'22' },
+        { emoji:'💚', en:'Matcha Frappuccino',  ar:'ماتشا فرابتشينو',     descEn:'Blended matcha with cream',            descAr:'ماتشا مثلجة بالكريمة',             price:'24' },
+      ]
+    },
+    'hot-tea': {
+      en: 'Hot Tea', ar: 'شاي ساخن',
+      items: [
+        { emoji:'🫖', en:'English Breakfast', ar:'إنجليش بريكفاست', descEn:'Classic strong black tea',             descAr:'شاي أسود كلاسيكي قوي',             price:'12' },
+        { emoji:'🍃', en:'Green Tea',          ar:'شاي أخضر',         descEn:'Light & antioxidant-rich',             descAr:'خفيف وغني بمضادات الأكسدة',        price:'12' },
+        { emoji:'🌼', en:'Chamomile',          ar:'كاموميل',           descEn:'Calming herbal blend',                 descAr:'مزيج عشبي مهدئ',                   price:'14' },
+      ]
+    },
+    'smoothie': {
+      en: 'Smoothie', ar: 'سموثي',
+      items: [
+        { emoji:'🥭', en:'Mango Smoothie', ar:'سموثي المانجو',    descEn:'Fresh mango blended smooth',          descAr:'مانجو طازجة مخلوطة',               price:'22' },
+        { emoji:'🫐', en:'Berry Blast',    ar:'سموثي التوت',       descEn:'Mixed berries & yogurt',               descAr:'توت مشكل مع الزبادي',              price:'22' },
+        { emoji:'🍍', en:'Tropical Mix',   ar:'مزيج استوائي',      descEn:'Pineapple, mango & coconut',           descAr:'أناناس ومانجو وجوز الهند',         price:'24' },
+      ]
+    },
+    'more': {
+      en: 'More', ar: 'المزيد',
+      items: [
+        { emoji:'🥐', en:'Butter Croissant', ar:'كرواسون بالزبدة',   descEn:'Flaky, freshly baked daily',          descAr:'مقرمش ومخبوز يومياً',              price:'12' },
+        { emoji:'🥪', en:'Club Sandwich',    ar:'ساندويش كلوب',       descEn:'Toasted with fresh fillings',          descAr:'محمص مع حشوة طازجة',              price:'25' },
+        { emoji:'🍫', en:'Chocolate Cake',   ar:'كيك الشوكولاتة',     descEn:'Rich dark chocolate slice',            descAr:'شريحة شوكولاتة داكنة',            price:'18' },
+      ]
+    }
+  };
+
+  function showCategory(cat, tile) {
+    const data = menuData[cat];
+    const grid = document.getElementById('menu-grid');
+    document.getElementById('cat-panel-title').innerHTML =
+      `<span class="en">${data.en}</span><span class="ar">${data.ar}</span>`;
+    grid.innerHTML = data.items.map(item => `
+      <div class="menu-card">
+        <div class="card-thumb-placeholder">${item.emoji}</div>
+        <div class="card-body">
+          <div class="card-name en">${item.en}</div>
+          <div class="card-name ar">${item.ar}</div>
+          <div class="card-desc en">${item.descEn}</div>
+          <div class="card-desc ar">${item.descAr}</div>
+          <div class="card-price en">${item.price} AED</div>
+          <div class="card-price ar">${item.price} درهم</div>
+        </div>
+      </div>`).join('');
+    document.getElementById('cat-grid').style.display = 'none';
+    document.getElementById('items-panel').style.display = '';
+    document.getElementById('menu-cta').style.display = 'none';
+  }
+
+  function showCategories() {
+    document.getElementById('cat-grid').style.display = '';
+    document.getElementById('items-panel').style.display = 'none';
+    document.getElementById('menu-cta').style.display = '';
   }
 
   /* ─── Contact Form ─── */
