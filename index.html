@@ -371,12 +371,12 @@
     /* Category tiles */
     .cat-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
       gap: 24px;
-      max-width: 860px;
+      max-width: 980px;
       margin: 0 auto 48px;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 600px) {
       .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
     }
     .cat-tile {
@@ -1084,6 +1084,26 @@
       <span class="cat-label en">Smoothie</span>
       <span class="cat-label ar">سموثي</span>
     </div>
+    <div class="cat-tile" onclick="showCategory('frappe', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#fde8c8,#f5c97a);">🧋</div>
+      <span class="cat-label en">Frappé</span>
+      <span class="cat-label ar">فرابيه</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('milkshake', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#ffd6e0,#ffadc5);">🥛</div>
+      <span class="cat-label en">Milkshake</span>
+      <span class="cat-label ar">ميلك شيك</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('yogurt', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#fff4cc,#ffe066);">🍦</div>
+      <span class="cat-label en">Yogurt</span>
+      <span class="cat-label ar">يوغرت</span>
+    </div>
+    <div class="cat-tile" onclick="showCategory('mojito', this)">
+      <div class="cat-circle" style="background: linear-gradient(135deg,#ccf5e0,#7ae8b0);">🌿</div>
+      <span class="cat-label en">Mojito</span>
+      <span class="cat-label ar">موهيتو</span>
+    </div>
     <div class="cat-tile" onclick="showCategory('more', this)">
       <div class="cat-circle" style="background: linear-gradient(135deg,#f0f0f0,#d8d8d8);">🍽️</div>
       <span class="cat-label en">More</span>
@@ -1574,6 +1594,42 @@
         { emoji:'🥭', en:'Mango Smoothie', ar:'سموثي المانجو',    descEn:'Fresh mango blended smooth',          descAr:'مانجو طازجة مخلوطة',               price:'22' },
         { emoji:'🫐', en:'Berry Blast',    ar:'سموثي التوت',       descEn:'Mixed berries & yogurt',               descAr:'توت مشكل مع الزبادي',              price:'22' },
         { emoji:'🍍', en:'Tropical Mix',   ar:'مزيج استوائي',      descEn:'Pineapple, mango & coconut',           descAr:'أناناس ومانجو وجوز الهند',         price:'24' },
+      ]
+    },
+    'frappe': {
+      en: 'Frappé', ar: 'فرابيه',
+      items: [
+        { emoji:'🧋', en:'Caramel Frappé',  ar:'فرابيه كراميل',  descEn:'Blended coffee with rich caramel',    descAr:'قهوة مثلجة بالكراميل الغني',        price:'22' },
+        { emoji:'🍫', en:'Mocha Frappé',    ar:'فرابيه موكا',    descEn:'Coffee & chocolate blended with ice', descAr:'قهوة وشوكولاتة مثلجة',              price:'22' },
+        { emoji:'🤍', en:'Vanilla Frappé',  ar:'فرابيه فانيليا', descEn:'Smooth vanilla blended with cream',   descAr:'فانيليا ناعمة مع الكريمة',          price:'20' },
+        { emoji:'💚', en:'Matcha Frappé',   ar:'فرابيه ماتشا',   descEn:'Premium matcha blended with ice',     descAr:'ماتشا فاخرة مثلجة',                 price:'24' },
+      ]
+    },
+    'milkshake': {
+      en: 'Milkshake', ar: 'ميلك شيك',
+      items: [
+        { emoji:'🍫', en:'Chocolate Milkshake',   ar:'ميلك شيك شوكولاتة', descEn:'Rich dark chocolate shake',          descAr:'شيك شوكولاتة داكنة غني',            price:'20' },
+        { emoji:'🤍', en:'Vanilla Milkshake',     ar:'ميلك شيك فانيليا',  descEn:'Classic creamy vanilla shake',        descAr:'شيك فانيليا كريمي كلاسيكي',         price:'20' },
+        { emoji:'🍓', en:'Strawberry Milkshake',  ar:'ميلك شيك فراولة',   descEn:'Fresh strawberry blended shake',      descAr:'شيك فراولة طازجة',                  price:'20' },
+        { emoji:'🥭', en:'Mango Milkshake',       ar:'ميلك شيك مانجو',    descEn:'Tropical mango cream shake',          descAr:'شيك مانجو استوائي كريمي',            price:'22' },
+      ]
+    },
+    'yogurt': {
+      en: 'Yogurt', ar: 'يوغرت',
+      items: [
+        { emoji:'🍓', en:'Strawberry Yogurt',   ar:'يوغرت فراولة',      descEn:'Creamy yogurt with fresh strawberry', descAr:'يوغرت كريمي بالفراولة الطازجة',     price:'16' },
+        { emoji:'🫐', en:'Mixed Berry Yogurt',  ar:'يوغرت توت مشكل',    descEn:'Yogurt with assorted berries',         descAr:'يوغرت مع توت مشكل',                 price:'16' },
+        { emoji:'🥭', en:'Mango Yogurt',        ar:'يوغرت مانجو',       descEn:'Smooth yogurt with mango chunks',      descAr:'يوغرت ناعم مع قطع المانجو',         price:'16' },
+        { emoji:'🤍', en:'Plain Yogurt',        ar:'يوغرت سادة',        descEn:'Fresh natural yogurt with honey',      descAr:'يوغرت طبيعي طازج مع العسل',        price:'14' },
+      ]
+    },
+    'mojito': {
+      en: 'Mojito', ar: 'موهيتو',
+      items: [
+        { emoji:'🌿', en:'Classic Mojito',     ar:'موهيتو كلاسيك',   descEn:'Mint, lime & sparkling water',        descAr:'نعناع وليمون وماء فوار',             price:'18' },
+        { emoji:'🍓', en:'Strawberry Mojito',  ar:'موهيتو فراولة',   descEn:'Fresh strawberry with mint & lime',    descAr:'فراولة طازجة مع نعناع وليمون',      price:'20' },
+        { emoji:'🥭', en:'Mango Mojito',       ar:'موهيتو مانجو',    descEn:'Tropical mango with mint & lime',      descAr:'مانجو استوائية مع نعناع وليمون',    price:'20' },
+        { emoji:'🍋', en:'Mint Lemonade',      ar:'ليمون بالنعناع',  descEn:'Zesty lemon with fresh mint',          descAr:'ليمون منعش مع نعناع طازج',          price:'16' },
       ]
     },
     'more': {
