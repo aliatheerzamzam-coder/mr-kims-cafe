@@ -27,7 +27,8 @@ body{font-family:'Nunito',sans-serif;background:var(--off);color:var(--text);min
 .login-box input{width:100%;padding:.8rem 1rem;border:2px solid #e2e8f0;border-radius:var(--r-sm);font-size:1rem;font-family:inherit;outline:none;transition:border var(--spd)}
 .login-box input:focus{border-color:var(--green)}
 .login-box button{margin-top:1rem;width:100%;padding:.85rem;background:var(--green);color:#fff;border:none;border-radius:var(--r-pill);font-size:1rem;font-weight:700;cursor:pointer;transition:background var(--spd)}
-.login-box button:hover{background:var(--green-dark)}
+.login-box button:hover:not(:disabled){background:var(--green-dark)}
+.login-box button:disabled{opacity:.6;cursor:not-allowed}
 .login-box .err{color:var(--red);font-size:.85rem;margin-top:.5rem;min-height:1.2rem}
 
 /* ── HEADER ── */
@@ -90,13 +91,14 @@ tr:hover td{background:#fafcfb}
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border:none;border-radius:var(--r-pill);font-size:.88rem;font-weight:700;cursor:pointer;transition:all var(--spd);white-space:nowrap}
 .btn-primary{background:var(--green);color:#fff}
-.btn-primary:hover{background:var(--green-dark)}
+.btn-primary:hover:not(:disabled){background:var(--green-dark)}
 .btn-danger{background:var(--red);color:#fff}
-.btn-danger:hover{background:#c53030}
+.btn-danger:hover:not(:disabled){background:#c53030}
 .btn-outline{background:transparent;border:2px solid var(--green);color:var(--green)}
-.btn-outline:hover{background:var(--green-pale)}
+.btn-outline:hover:not(:disabled){background:var(--green-pale)}
 .btn-sm{padding:.3rem .7rem;font-size:.78rem}
 .btn-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem}
+.btn:disabled{opacity:.6;cursor:not-allowed}
 
 /* ── RECIPE ITEM ROW ── */
 .recipe-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.4rem 0;border-bottom:1px solid #f0f4f2}
@@ -123,7 +125,6 @@ tr:hover td{background:#fafcfb}
 
 /* ── HISTORY ── */
 .hist-date{font-size:.75rem;color:var(--soft)}
-.hist-reason{font-size:.78rem;color:var(--soft);margin-top:.1rem}
 
 /* ── SECTION HEADER ── */
 .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
@@ -151,8 +152,8 @@ tr:hover td{background:#fafcfb}
   <div class="login-box">
     <h2>🔐 관리자 로그인</h2>
     <p class="ar">تسجيل دخول المدير</p>
-    <input type="password" id="loginPw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
-    <button onclick="doLogin()">로그인 / دخول</button>
+    <input type="password" id="loginPw" placeholder="비밀번호 입력">
+    <button id="loginBtn" onclick="doLogin()">로그인 / دخول</button>
     <div class="err" id="loginErr"></div>
   </div>
 </div>
@@ -236,7 +237,7 @@ tr:hover td{background:#fafcfb}
         <label>메뉴 선택</label>
         <select id="costMenuSel"><option value="">— 메뉴 선택 —</option></select>
       </div>
-      <button class="btn btn-primary" onclick="calcCost()">계산하기</button>
+      <button id="calcCostBtn" class="btn btn-primary" onclick="calcCost()">계산하기</button>
     </div>
     <div id="costResult" class="hidden cost-box" style="margin-top:1rem"></div>
   </div>
@@ -270,7 +271,7 @@ tr:hover td{background:#fafcfb}
     </div>
     <div id="adjMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-primary" onclick="submitAdjust()">✅ 적용</button>
+      <button id="adjBtn" class="btn btn-primary" onclick="submitAdjust()">✅ 적용</button>
     </div>
   </div>
 </div>
@@ -286,10 +287,13 @@ tr:hover td{background:#fafcfb}
       </div>
     </div>
     <p style="font-size:.85rem;color:var(--soft);margin-bottom:1rem">판매 수량을 입력하면 레시피 기준으로 재고가 자동 차감됩니다. 0은 무시됩니다.</p>
+    <div id="salesEmpty" class="hidden" style="padding:1.5rem 0;color:var(--soft);font-size:.9rem">
+      ⚠️ 등록된 레시피가 없습니다. 먼저 레시피 탭에서 메뉴를 추가해주세요.
+    </div>
     <div class="sales-grid" id="salesGrid"></div>
     <div id="saleMsg" style="margin-top:.75rem"></div>
     <div class="btn-bar" style="margin-top:1rem">
-      <button class="btn btn-primary" onclick="submitSales()">✅ 판매 기록 저장 & 재고 차감</button>
+      <button id="saleBtn" class="btn btn-primary" onclick="submitSales()">✅ 판매 기록 저장 & 재고 차감</button>
     </div>
   </div>
 </div>
@@ -323,7 +327,7 @@ tr:hover td{background:#fafcfb}
     </div>
     <div id="pwMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-primary" onclick="changePw()">저장</button>
+      <button id="pwBtn" class="btn btn-primary" onclick="changePw()">저장</button>
     </div>
   </div>
 </div>
@@ -373,7 +377,7 @@ tr:hover td{background:#fafcfb}
     <div id="ingModalMsg"></div>
     <div class="btn-bar">
       <button class="btn btn-outline" onclick="closeModal('ingModal')">취소</button>
-      <button class="btn btn-primary" onclick="saveIngredient()">저장</button>
+      <button id="ingSaveBtn" class="btn btn-primary" onclick="saveIngredient()">저장</button>
     </div>
   </div>
 </div>
@@ -394,342 +398,726 @@ tr:hover td{background:#fafcfb}
     <div id="recipeModalMsg"></div>
     <div class="btn-bar">
       <button class="btn btn-outline" onclick="closeModal('recipeModal')">취소</button>
-      <button class="btn btn-primary" onclick="saveRecipe()">저장</button>
+      <button id="recipeSaveBtn" class="btn btn-primary" onclick="saveRecipe()">저장</button>
     </div>
   </div>
 </div>
 
 <script>
-const API = '';
 let token = sessionStorage.getItem('wh_token') || '';
 let ingredients = [];
 let recipes = [];
 
-const MENU_LIST = [
-  '아메리카노','라떼','카푸치노','플랫화이트',
-  '아이스 아메리카노','아이스 라떼','콜드브루','카라멜 프라푸치노',
-  '말차 라떼','아이스 말차','말차 프라푸치노',
-  '잉글리시 브렉퍼스트','그린티','캐모마일',
-  '망고 스무디','베리 스무디','트로피칼 스무디',
-  '카라멜 프라페','모카 프라페','바닐라 프라페','말차 프라페',
-  '초콜릿 밀크쉐이크','바닐라 밀크쉐이크','딸기 밀크쉐이크','망고 밀크쉐이크',
-  '딸기 요거트','믹스베리 요거트','망고 요거트','플레인 요거트',
-  '클래식 모히또','딸기 모히또','망고 모히또','민트 레모네이드',
-  '크루아상','머핀','시나몬롤','아몬드 다니쉬',
-  '초콜릿케이크','치즈케이크','티라미수','브라우니',
-  '클럽샌드위치','시저샐러드','치킨랩','아보카도 토스트'
-];
+// ══════════════════════════════════════════════
+// 1. XSS 방지 유틸리티
+// ══════════════════════════════════════════════
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
-// ── 인증 ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// 2. 바그다드 타임존(UTC+3) 안전 날짜 유틸리티
+// ══════════════════════════════════════════════
+function localDateStr() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset(); // 분 단위 (UTC - local)
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 10);
+}
+
+// ══════════════════════════════════════════════
+// 3. Race Condition 방지: 버튼 잠금/해제
+// ══════════════════════════════════════════════
+function lockBtn(id, text = '처리 중...') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.disabled = true;
+  el._origText = el.textContent;
+  el.textContent = text;
+}
+function unlockBtn(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.disabled = false;
+  if (el._origText) el.textContent = el._origText;
+}
+
+// ══════════════════════════════════════════════
+// 인증
+// ══════════════════════════════════════════════
 async function doLogin() {
-  const pw = document.getElementById('loginPw').value;
-  const r = await fetch('/api/auth/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
-  const d = await r.json();
-  if (d.success) {
-    token = d.token;
-    sessionStorage.setItem('wh_token', token);
-    document.getElementById('loginOverlay').style.display = 'none';
-    init();
-  } else {
-    document.getElementById('loginErr').textContent = d.error || '로그인 실패';
+  lockBtn('loginBtn', '로그인 중...');
+  document.getElementById('loginErr').textContent = '';
+  try {
+    const pw = document.getElementById('loginPw').value;
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    const d = await r.json();
+    if (d.success) {
+      token = d.token;
+      sessionStorage.setItem('wh_token', token);
+      document.getElementById('loginOverlay').style.display = 'none';
+      init();
+    } else {
+      document.getElementById('loginErr').textContent = d.error || '로그인 실패';
+    }
+  } catch (e) {
+    document.getElementById('loginErr').textContent = '서버에 연결할 수 없습니다';
+  } finally {
+    unlockBtn('loginBtn');
   }
 }
+
 async function doLogout() {
-  await fetch('/api/auth/logout',{method:'POST',headers:{'x-auth-token':token}});
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-auth-token': token } });
+  } catch (_) {}
   sessionStorage.removeItem('wh_token');
   location.reload();
 }
-function hdr(){return {'Content-Type':'application/json','x-auth-token':token}}
 
-// ── 탭 ────────────────────────────────────────────────────
+function hdr() { return { 'Content-Type': 'application/json', 'x-auth-token': token }; }
+
+// ── Enter 키 전역 처리 ─────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginPw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('adjReason').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAdjust();
+  });
+  document.getElementById('adjQty').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAdjust();
+  });
+  document.getElementById('newPw2').addEventListener('keydown', e => {
+    if (e.key === 'Enter') changePw();
+  });
+  document.getElementById('recipeMenuName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveRecipe();
+  });
+  document.getElementById('ingNameKo').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveIngredient();
+  });
+});
+
+// ══════════════════════════════════════════════
+// 탭
+// ══════════════════════════════════════════════
 function showTab(id, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
-  if(id==='dashboard') loadDashboard();
-  if(id==='ingredients') loadIngredients();
-  if(id==='recipes') loadRecipes();
-  if(id==='adjust') loadAdjust();
-  if(id==='daily') loadDaily();
-  if(id==='history') loadHistory();
+  if (id === 'dashboard')   loadDashboard();
+  if (id === 'ingredients') loadIngredients();
+  if (id === 'recipes')     loadRecipes();
+  if (id === 'adjust')      loadAdjust();
+  if (id === 'daily')       loadDaily();
+  if (id === 'history')     loadHistory();
 }
 
-// ── 초기화 ────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// 초기화
+// ══════════════════════════════════════════════
 async function init() {
   await loadIngredients(false);
   loadDashboard();
 }
 
-// ── 대시보드 ──────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// 대시보드
+// ══════════════════════════════════════════════
 async function loadDashboard() {
-  const d = await fetch('/api/dashboard').then(r=>r.json());
-  ingredients = d.ingredients;
-  const sg = document.getElementById('statGrid');
-  const total = d.ingredients.length;
-  const low = d.low_stock.length;
-  sg.innerHTML = `
-    <div class="stat"><div class="num">${total}</div><div class="lbl">총 재료 종류</div></div>
-    <div class="stat ${low>0?'danger':''}"><div class="num">${low}</div><div class="lbl">재고 부족 재료 ⚠️</div></div>
-  `;
-  const ls = document.getElementById('lowStockSection');
-  if(low>0){
-    ls.classList.remove('hidden');
-    document.getElementById('lowList').innerHTML = d.low_stock.map(i=>`
-      <div class="low-item">
-        <div><div class="name">${i.name_ko}</div><div style="font-size:.75rem;color:var(--soft)">${i.name_ar}</div></div>
-        <div class="qty">현재 ${i.current_qty}${i.unit} / 최소 ${i.min_qty}${i.unit}</div>
-      </div>`).join('');
-  } else { ls.classList.add('hidden'); }
-  document.getElementById('recentHistTb').innerHTML = d.recent_history.map(h=>histRow(h)).join('');
-}
+  try {
+    const d = await fetch('/api/dashboard').then(r => r.json());
+    ingredients = d.ingredients;
 
-function histRow(h){
-  const badge = h.change_type==='in'?'<span class="badge badge-in">📥 입고</span>':'<span class="badge badge-out">📤 출고</span>';
-  const dt = new Date(h.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-  return `<tr><td>${h.ingredient_name}</td><td>${badge}</td><td><b>${h.quantity}</b></td><td style="font-size:.8rem;color:var(--soft)">${h.reason||'-'}</td><td class="hist-date">${dt}</td></tr>`;
-}
+    const total = d.ingredients.length;
+    const low = d.low_stock.length;
+    const sg = document.getElementById('statGrid');
+    sg.innerHTML = `
+      <div class="stat"><div class="num">${esc(String(total))}</div><div class="lbl">총 재료 종류</div></div>
+      <div class="stat ${low > 0 ? 'danger' : ''}"><div class="num">${esc(String(low))}</div><div class="lbl">재고 부족 재료 ⚠️</div></div>
+    `;
 
-// ── 재료 관리 ─────────────────────────────────────────────
-async function loadIngredients(render=true) {
-  const d = await fetch('/api/ingredients').then(r=>r.json());
-  ingredients = d;
-  if(!render) return;
-  document.getElementById('ingTb').innerHTML = d.map(i=>{
-    const status = i.current_qty <= i.min_qty
-      ? (i.current_qty===0?'<span class="badge badge-danger">재고없음</span>':'<span class="badge badge-warn">부족</span>')
-      : '<span class="badge badge-ok">정상</span>';
-    const cls = i.current_qty===0?'qty-danger':i.current_qty<=i.min_qty?'qty-warn':'qty-ok';
-    return `<tr>
-      <td><b>${i.name_ko}</b></td>
-      <td class="ar">${i.name_ar||'-'}</td>
-      <td>${i.unit}</td>
-      <td class="${cls}">${i.current_qty} ${i.unit}</td>
-      <td>${i.min_qty} ${i.unit}</td>
-      <td>${i.cost_per_unit.toLocaleString()} IQD</td>
-      <td>${status}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick='editIng(${JSON.stringify(i)})'>수정</button>
-        <button class="btn btn-danger btn-sm" onclick="delIng(${i.id},'${i.name_ko}')">삭제</button>
-      </td></tr>`;
-  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--soft);padding:1.5rem">재료 없음. 재료를 추가해주세요.</td></tr>';
-}
-
-function openIngModal(){
-  document.getElementById('ingModalTitle').textContent='재료 추가';
-  document.getElementById('ingId').value='';
-  ['ingNameKo','ingNameAr','ingCurQty','ingMinQty','ingCost'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('ingUnit').value='병';
-  document.getElementById('ingModalMsg').innerHTML='';
-  document.getElementById('ingModal').classList.remove('hidden');
-}
-function editIng(i){
-  document.getElementById('ingModalTitle').textContent='재료 수정';
-  document.getElementById('ingId').value=i.id;
-  document.getElementById('ingNameKo').value=i.name_ko;
-  document.getElementById('ingNameAr').value=i.name_ar;
-  document.getElementById('ingUnit').value=i.unit;
-  document.getElementById('ingCurQty').value=i.current_qty;
-  document.getElementById('ingMinQty').value=i.min_qty;
-  document.getElementById('ingCost').value=i.cost_per_unit;
-  document.getElementById('ingModalMsg').innerHTML='';
-  document.getElementById('ingModal').classList.remove('hidden');
-}
-async function saveIngredient(){
-  const id=document.getElementById('ingId').value;
-  const body={
-    name_ko:document.getElementById('ingNameKo').value.trim(),
-    name_ar:document.getElementById('ingNameAr').value.trim(),
-    unit:document.getElementById('ingUnit').value,
-    current_qty:parseFloat(document.getElementById('ingCurQty').value)||0,
-    min_qty:parseFloat(document.getElementById('ingMinQty').value)||1,
-    cost_per_unit:parseFloat(document.getElementById('ingCost').value)||0
-  };
-  if(!body.name_ko){document.getElementById('ingModalMsg').innerHTML='<div class="alert alert-danger">재료명을 입력하세요</div>';return;}
-  const url=id?`/api/ingredients/${id}`:'/api/ingredients';
-  const method=id?'PUT':'POST';
-  const r=await fetch(url,{method,headers:hdr(),body:JSON.stringify(body)}).then(r=>r.json());
-  if(r.success){closeModal('ingModal');loadIngredients();}
-  else document.getElementById('ingModalMsg').innerHTML=`<div class="alert alert-danger">${r.error}</div>`;
-}
-async function delIng(id,name){
-  if(!confirm(`"${name}" 재료를 삭제할까요?\n(해당 재료가 포함된 레시피도 삭제됩니다)`))return;
-  await fetch(`/api/ingredients/${id}`,{method:'DELETE',headers:hdr()});
-  loadIngredients();
-}
-
-// ── 레시피 & 원가 ─────────────────────────────────────────
-async function loadRecipes(){
-  const d=await fetch('/api/recipes').then(r=>r.json());
-  recipes=d;
-  // Group by menu_item
-  const grouped={};
-  d.forEach(r=>{
-    if(!grouped[r.menu_item])grouped[r.menu_item]=[];
-    grouped[r.menu_item].push(r);
-  });
-  let rows='';
-  for(const [menu,items] of Object.entries(grouped)){
-    const totalCost=items.reduce((s,i)=>s+i.quantity*i.cost_per_unit,0);
-    items.forEach((item,idx)=>{
-      rows+=`<tr>
-        ${idx===0?`<td rowspan="${items.length}"><b>${menu}</b></td>`:''}
-        <td>${item.name_ko}</td>
-        <td>${item.quantity} ${item.unit}</td>
-        <td>${item.unit}</td>
-        <td>${Math.round(item.quantity*item.cost_per_unit).toLocaleString()} IQD</td>
-        ${idx===0?`<td rowspan="${items.length}" style="text-align:center">
-          <div style="font-weight:800;color:var(--green)">${Math.round(totalCost).toLocaleString()} IQD</div>
-          <div style="display:flex;gap:.3rem;justify-content:center;margin-top:.4rem">
-            <button class="btn btn-outline btn-sm" onclick="editRecipe('${encodeURIComponent(menu)}')">수정</button>
-            <button class="btn btn-danger btn-sm" onclick="delRecipe('${encodeURIComponent(menu)}')">삭제</button>
+    const ls = document.getElementById('lowStockSection');
+    if (low > 0) {
+      ls.classList.remove('hidden');
+      const ll = document.getElementById('lowList');
+      ll.innerHTML = '';
+      d.low_stock.forEach(i => {
+        const div = document.createElement('div');
+        div.className = 'low-item';
+        div.innerHTML = `
+          <div>
+            <div class="name">${esc(i.name_ko)}</div>
+            <div style="font-size:.75rem;color:var(--soft)">${esc(i.name_ar)}</div>
           </div>
-        </td>`:''}
-      </tr>`;
-    });
+          <div class="qty">현재 ${esc(String(i.current_qty))}${esc(i.unit)} / 최소 ${esc(String(i.min_qty))}${esc(i.unit)}</div>
+        `;
+        ll.appendChild(div);
+      });
+    } else {
+      ls.classList.add('hidden');
+    }
+
+    const tb = document.getElementById('recentHistTb');
+    tb.innerHTML = '';
+    d.recent_history.forEach(h => tb.appendChild(buildHistRow(h)));
+  } catch (e) {
+    document.getElementById('statGrid').innerHTML = '<div class="alert alert-danger">데이터를 불러오지 못했습니다</div>';
   }
-  document.getElementById('recipeTb').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">레시피 없음</td></tr>';
-  // cost calculator select
-  const sel=document.getElementById('costMenuSel');
-  sel.innerHTML='<option value="">— 메뉴 선택 —</option>'+Object.keys(grouped).map(m=>`<option>${m}</option>`).join('');
 }
 
-function openRecipeModal(){
-  document.getElementById('recipeMenuName').value='';
-  document.getElementById('recipeRows').innerHTML='';
-  document.getElementById('recipeModalMsg').innerHTML='';
+function buildHistRow(h) {
+  const tr = document.createElement('tr');
+  const badge = h.change_type === 'in'
+    ? '<span class="badge badge-in">📥 입고</span>'
+    : '<span class="badge badge-out">📤 출고</span>';
+  const dt = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'))
+    .toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  tr.innerHTML = `
+    <td>${esc(h.ingredient_name)}</td>
+    <td>${badge}</td>
+    <td><b>${esc(String(h.quantity))}</b></td>
+    <td style="font-size:.8rem;color:var(--soft)">${esc(h.reason || '-')}</td>
+    <td class="hist-date">${esc(dt)}</td>
+  `;
+  return tr;
+}
+
+// ══════════════════════════════════════════════
+// 재료 관리
+// ══════════════════════════════════════════════
+async function loadIngredients(render = true) {
+  try {
+    const d = await fetch('/api/ingredients').then(r => r.json());
+    ingredients = d;
+    if (!render) return;
+
+    const tb = document.getElementById('ingTb');
+    if (!d.length) {
+      tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--soft);padding:1.5rem">재료 없음. 재료를 추가해주세요.</td></tr>';
+      return;
+    }
+    tb.innerHTML = '';
+    d.forEach(i => {
+      const status = i.current_qty === 0
+        ? '<span class="badge badge-danger">재고없음</span>'
+        : i.current_qty <= i.min_qty
+          ? '<span class="badge badge-warn">부족</span>'
+          : '<span class="badge badge-ok">정상</span>';
+      const cls = i.current_qty === 0 ? 'qty-danger' : i.current_qty <= i.min_qty ? 'qty-warn' : 'qty-ok';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${esc(i.name_ko)}</b></td>
+        <td class="ar">${esc(i.name_ar || '-')}</td>
+        <td>${esc(i.unit)}</td>
+        <td class="${cls}">${esc(String(i.current_qty))} ${esc(i.unit)}</td>
+        <td>${esc(String(i.min_qty))} ${esc(i.unit)}</td>
+        <td>${i.cost_per_unit.toLocaleString()} IQD</td>
+        <td>${status}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" data-ing-id="${i.id}">수정</button>
+          <button class="btn btn-danger btn-sm" data-del-id="${i.id}" data-del-name="${esc(i.name_ko)}">삭제</button>
+        </td>
+      `;
+      tr.querySelector('[data-ing-id]').addEventListener('click', () => editIng(i));
+      tr.querySelector('[data-del-id]').addEventListener('click', () => delIng(i.id, i.name_ko));
+      tb.appendChild(tr);
+    });
+  } catch (e) {
+    document.getElementById('ingTb').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--red);padding:1.5rem">불러오기 실패. 새로고침 해주세요.</td></tr>';
+  }
+}
+
+function openIngModal() {
+  document.getElementById('ingModalTitle').textContent = '재료 추가';
+  document.getElementById('ingId').value = '';
+  ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ingUnit').value = '병';
+  document.getElementById('ingModalMsg').innerHTML = '';
+  document.getElementById('ingModal').classList.remove('hidden');
+}
+
+function editIng(i) {
+  document.getElementById('ingModalTitle').textContent = '재료 수정';
+  document.getElementById('ingId').value = i.id;
+  document.getElementById('ingNameKo').value = i.name_ko;
+  document.getElementById('ingNameAr').value = i.name_ar;
+  document.getElementById('ingUnit').value = i.unit;
+  document.getElementById('ingCurQty').value = i.current_qty;
+  document.getElementById('ingMinQty').value = i.min_qty;
+  document.getElementById('ingCost').value = i.cost_per_unit;
+  document.getElementById('ingModalMsg').innerHTML = '';
+  document.getElementById('ingModal').classList.remove('hidden');
+}
+
+async function saveIngredient() {
+  const id = document.getElementById('ingId').value;
+  const body = {
+    name_ko: document.getElementById('ingNameKo').value.trim(),
+    name_ar: document.getElementById('ingNameAr').value.trim(),
+    unit: document.getElementById('ingUnit').value,
+    current_qty: parseFloat(document.getElementById('ingCurQty').value) || 0,
+    min_qty: parseFloat(document.getElementById('ingMinQty').value) || 1,
+    cost_per_unit: parseFloat(document.getElementById('ingCost').value) || 0
+  };
+  if (!body.name_ko) {
+    document.getElementById('ingModalMsg').innerHTML = '<div class="alert alert-danger">재료명을 입력하세요</div>';
+    return;
+  }
+  lockBtn('ingSaveBtn');
+  try {
+    const url = id ? `/api/ingredients/${id}` : '/api/ingredients';
+    const method = id ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: hdr(), body: JSON.stringify(body) }).then(r => r.json());
+    if (r.success) { closeModal('ingModal'); loadIngredients(); }
+    else document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
+  } catch (e) {
+    document.getElementById('ingModalMsg').innerHTML = '<div class="alert alert-danger">저장 실패. 네트워크를 확인하세요.</div>';
+  } finally {
+    unlockBtn('ingSaveBtn');
+  }
+}
+
+async function delIng(id, name) {
+  if (!confirm(`"${name}" 재료를 삭제할까요?\n(해당 재료가 포함된 레시피도 삭제됩니다)`)) return;
+  try {
+    await fetch(`/api/ingredients/${id}`, { method: 'DELETE', headers: hdr() });
+    loadIngredients();
+  } catch (e) {
+    alert('삭제 실패. 다시 시도해주세요.');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 레시피 & 원가
+// ══════════════════════════════════════════════
+async function loadRecipes() {
+  try {
+    const d = await fetch('/api/recipes').then(r => r.json());
+    recipes = d;
+
+    const grouped = {};
+    d.forEach(r => {
+      if (!grouped[r.menu_item]) grouped[r.menu_item] = [];
+      grouped[r.menu_item].push(r);
+    });
+
+    const tb = document.getElementById('recipeTb');
+    tb.innerHTML = '';
+    const menuNames = Object.keys(grouped);
+
+    if (!menuNames.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">레시피 없음</td></tr>';
+    } else {
+      menuNames.forEach(menu => {
+        const items = grouped[menu];
+        const totalCost = items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0);
+        items.forEach((item, idx) => {
+          const tr = document.createElement('tr');
+          let html = '';
+          if (idx === 0) {
+            html += `<td rowspan="${items.length}"><b>${esc(menu)}</b></td>`;
+          }
+          html += `
+            <td>${esc(item.name_ko)}</td>
+            <td>${esc(String(item.quantity))} ${esc(item.unit)}</td>
+            <td>${esc(item.unit)}</td>
+            <td>${Math.round(item.quantity * item.cost_per_unit).toLocaleString()} IQD</td>
+          `;
+          if (idx === 0) {
+            html += `
+              <td rowspan="${items.length}" style="text-align:center">
+                <div style="font-weight:800;color:var(--green)">${Math.round(totalCost).toLocaleString()} IQD</div>
+                <div style="display:flex;gap:.3rem;justify-content:center;margin-top:.4rem">
+                  <button class="btn btn-outline btn-sm" data-edit-menu="${esc(menu)}">수정</button>
+                  <button class="btn btn-danger btn-sm" data-del-menu="${esc(menu)}">삭제</button>
+                </div>
+              </td>
+            `;
+          }
+          tr.innerHTML = html;
+          if (idx === 0) {
+            tr.querySelector('[data-edit-menu]').addEventListener('click', () => editRecipe(menu));
+            tr.querySelector('[data-del-menu]').addEventListener('click', () => delRecipe(menu));
+          }
+          tb.appendChild(tr);
+        });
+      });
+    }
+
+    // 원가 계산기 select 업데이트
+    const sel = document.getElementById('costMenuSel');
+    sel.innerHTML = '<option value="">— 메뉴 선택 —</option>';
+    menuNames.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    document.getElementById('recipeTb').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">불러오기 실패</td></tr>';
+  }
+}
+
+function openRecipeModal() {
+  document.getElementById('recipeMenuName').value = '';
+  document.getElementById('recipeRows').innerHTML = '';
+  document.getElementById('recipeModalMsg').innerHTML = '';
   addRecipeRow();
   document.getElementById('recipeModal').classList.remove('hidden');
 }
-async function editRecipe(encoded){
-  const menu=decodeURIComponent(encoded);
-  document.getElementById('recipeMenuName').value=menu;
-  document.getElementById('recipeRows').innerHTML='';
-  document.getElementById('recipeModalMsg').innerHTML='';
-  const items=recipes.filter(r=>r.menu_item===menu);
-  items.forEach(item=>addRecipeRow(item.ingredient_id,item.quantity));
+
+function editRecipe(menu) {
+  document.getElementById('recipeMenuName').value = menu;
+  document.getElementById('recipeRows').innerHTML = '';
+  document.getElementById('recipeModalMsg').innerHTML = '';
+  recipes.filter(r => r.menu_item === menu).forEach(item => addRecipeRow(item.ingredient_id, item.quantity));
   document.getElementById('recipeModal').classList.remove('hidden');
 }
-function addRecipeRow(ingId='',qty=''){
-  const div=document.createElement('div');
-  div.className='recipe-row';
-  div.innerHTML=`
-    <select class="rec-ing" style="padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none">
-      <option value="">— 재료 선택 —</option>
-      ${ingredients.map(i=>`<option value="${i.id}" ${i.id==ingId?'selected':''}>${i.name_ko} (${i.unit})</option>`).join('')}
-    </select>
-    <input type="number" class="rec-qty" value="${qty}" min="0" step="0.01" placeholder="수량" style="width:90px;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;text-align:center;outline:none">
-    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+
+function addRecipeRow(ingId = '', qty = '') {
+  const div = document.createElement('div');
+  div.className = 'recipe-row';
+
+  const sel = document.createElement('select');
+  sel.className = 'rec-ing';
+  sel.style.cssText = 'padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = '— 재료 선택 —';
+  sel.appendChild(defaultOpt);
+  ingredients.forEach(i => {
+    const opt = document.createElement('option');
+    opt.value = i.id;
+    opt.textContent = `${i.name_ko} (${i.unit})`;
+    if (i.id == ingId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  const qtyInput = document.createElement('input');
+  qtyInput.type = 'number';
+  qtyInput.className = 'rec-qty';
+  qtyInput.value = qty;
+  qtyInput.min = 0;
+  qtyInput.step = 0.01;
+  qtyInput.placeholder = '수량';
+  qtyInput.style.cssText = 'width:90px;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;text-align:center;outline:none';
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn btn-danger btn-sm';
+  delBtn.textContent = '✕';
+  delBtn.addEventListener('click', () => div.remove());
+
+  div.appendChild(sel);
+  div.appendChild(qtyInput);
+  div.appendChild(delBtn);
   document.getElementById('recipeRows').appendChild(div);
 }
-async function saveRecipe(){
-  const menu=document.getElementById('recipeMenuName').value.trim();
-  if(!menu){document.getElementById('recipeModalMsg').innerHTML='<div class="alert alert-danger">메뉴명을 입력하세요</div>';return;}
-  const rows=[...document.querySelectorAll('#recipeRows .recipe-row')];
-  const items=rows.map(r=>({ingredient_id:parseInt(r.querySelector('.rec-ing').value),quantity:parseFloat(r.querySelector('.rec-qty').value)||0})).filter(i=>i.ingredient_id&&i.quantity>0);
-  if(!items.length){document.getElementById('recipeModalMsg').innerHTML='<div class="alert alert-danger">재료를 하나 이상 추가하세요</div>';return;}
-  const r=await fetch('/api/recipes',{method:'POST',headers:hdr(),body:JSON.stringify({menu_item:menu,items})}).then(r=>r.json());
-  if(r.success){closeModal('recipeModal');loadRecipes();}
-  else document.getElementById('recipeModalMsg').innerHTML=`<div class="alert alert-danger">${r.error}</div>`;
-}
-async function delRecipe(encoded){
-  const menu=decodeURIComponent(encoded);
-  if(!confirm(`"${menu}" 레시피를 삭제할까요?`))return;
-  await fetch(`/api/recipes/menu/${encodeURIComponent(menu)}`,{method:'DELETE',headers:hdr()});
-  loadRecipes();
-}
-async function calcCost(){
-  const menu=document.getElementById('costMenuSel').value;
-  if(!menu)return;
-  const d=await fetch(`/api/cost/${encodeURIComponent(menu)}`).then(r=>r.json());
-  const box=document.getElementById('costResult');
-  box.classList.remove('hidden');
-  box.innerHTML=`<div class="lbl">메뉴: <b>${d.menu_item}</b></div>
-    ${d.items.map(i=>`<div style="font-size:.85rem;color:var(--mid);margin:.2rem 0">• ${i.name_ko}: ${i.quantity}${i.unit} × ${i.cost_per_unit.toLocaleString()} = ${Math.round(i.quantity*i.cost_per_unit).toLocaleString()} IQD</div>`).join('')}
-    <div class="total" style="margin-top:.5rem">원가 합계: ${d.total_cost.toLocaleString()} IQD</div>`;
-}
 
-// ── 입출고 ────────────────────────────────────────────────
-function loadAdjust(){
-  const sel=document.getElementById('adjIng');
-  sel.innerHTML='<option value="">— 재료 선택 —</option>'+ingredients.map(i=>`<option value="${i.id}">${i.name_ko} (현재: ${i.current_qty}${i.unit})</option>`).join('');
-}
-async function submitAdjust(){
-  const ingredient_id=parseInt(document.getElementById('adjIng').value);
-  const change_type=document.getElementById('adjType').value;
-  const quantity=parseFloat(document.getElementById('adjQty').value);
-  const reason=document.getElementById('adjReason').value.trim();
-  const msg=document.getElementById('adjMsg');
-  if(!ingredient_id||!quantity||quantity<=0){msg.innerHTML='<div class="alert alert-danger">재료와 수량을 올바르게 입력하세요</div>';return;}
-  const r=await fetch('/api/inventory/adjust',{method:'POST',headers:hdr(),body:JSON.stringify({ingredient_id,change_type,quantity,reason})}).then(r=>r.json());
-  if(r.success){
-    msg.innerHTML=`<div class="alert alert-success">✅ 완료! 현재 재고: <b>${r.new_qty}</b></div>`;
-    document.getElementById('adjQty').value='';
-    document.getElementById('adjReason').value='';
-    await loadIngredients(false);
-    loadAdjust();
-  } else {
-    msg.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+async function saveRecipe() {
+  const menu = document.getElementById('recipeMenuName').value.trim();
+  const msgEl = document.getElementById('recipeModalMsg');
+  if (!menu) { msgEl.innerHTML = '<div class="alert alert-danger">메뉴명을 입력하세요</div>'; return; }
+
+  const rows = [...document.querySelectorAll('#recipeRows .recipe-row')];
+  const rawItems = rows
+    .map(r => ({
+      ingredient_id: parseInt(r.querySelector('.rec-ing').value),
+      quantity: parseFloat(r.querySelector('.rec-qty').value) || 0
+    }))
+    .filter(i => i.ingredient_id && i.quantity > 0);
+
+  if (!rawItems.length) { msgEl.innerHTML = '<div class="alert alert-danger">재료를 하나 이상 추가하세요</div>'; return; }
+
+  // ── 4. 중복 재료 검증 ──────────────────────────
+  const idSet = new Set();
+  const duplicates = [];
+  rawItems.forEach(i => {
+    if (idSet.has(i.ingredient_id)) {
+      const ing = ingredients.find(x => x.id === i.ingredient_id);
+      duplicates.push(ing ? ing.name_ko : `ID ${i.ingredient_id}`);
+    }
+    idSet.add(i.ingredient_id);
+  });
+  if (duplicates.length) {
+    msgEl.innerHTML = `<div class="alert alert-danger">중복 재료가 있습니다: <b>${esc(duplicates.join(', '))}</b><br>같은 재료는 하나만 등록하고 수량을 합쳐서 입력해주세요.</div>`;
+    return;
+  }
+
+  lockBtn('recipeSaveBtn');
+  try {
+    const r = await fetch('/api/recipes', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ menu_item: menu, items: rawItems })
+    }).then(r => r.json());
+    if (r.success) { closeModal('recipeModal'); loadRecipes(); }
+    else msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
+  } catch (e) {
+    msgEl.innerHTML = '<div class="alert alert-danger">저장 실패. 네트워크를 확인하세요.</div>';
+  } finally {
+    unlockBtn('recipeSaveBtn');
   }
 }
 
-// ── 일일 판매 ─────────────────────────────────────────────
-function loadDaily(){
-  if(!document.getElementById('saleDate').value){
-    document.getElementById('saleDate').value=new Date().toISOString().slice(0,10);
-  }
-  document.getElementById('salesGrid').innerHTML=MENU_LIST.map(m=>`
-    <div class="sales-item">
-      <label>${m}</label>
-      <input type="number" min="0" step="1" placeholder="0" data-menu="${m}" value="0">
-    </div>`).join('');
-}
-async function submitSales(){
-  const date=document.getElementById('saleDate').value;
-  if(!date){document.getElementById('saleMsg').innerHTML='<div class="alert alert-danger">날짜를 선택하세요</div>';return;}
-  const inputs=[...document.querySelectorAll('#salesGrid input[data-menu]')];
-  const sales=inputs.filter(i=>parseInt(i.value)>0).map(i=>({menu_item:i.dataset.menu,quantity:parseInt(i.value)}));
-  if(!sales.length){document.getElementById('saleMsg').innerHTML='<div class="alert alert-warn">⚠️ 판매 수량을 하나 이상 입력하세요</div>';return;}
-  const r=await fetch('/api/daily-sales',{method:'POST',headers:hdr(),body:JSON.stringify({sale_date:date,sales})}).then(r=>r.json());
-  const msg=document.getElementById('saleMsg');
-  if(r.success){
-    let html=`<div class="alert alert-success">✅ ${sales.length}개 메뉴 판매 기록 완료. 재고 차감 완료.</div>`;
-    if(r.warnings?.length) html+=r.warnings.map(w=>`<div class="alert alert-warn">⚠️ ${w}</div>`).join('');
-    msg.innerHTML=html;
-    inputs.forEach(i=>i.value='0');
-    await loadIngredients(false);
-  } else {
-    msg.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+async function delRecipe(menu) {
+  if (!confirm(`"${menu}" 레시피를 삭제할까요?`)) return;
+  try {
+    await fetch(`/api/recipes/menu/${encodeURIComponent(menu)}`, { method: 'DELETE', headers: hdr() });
+    loadRecipes();
+  } catch (e) {
+    alert('삭제 실패. 다시 시도해주세요.');
   }
 }
 
-// ── 기록 ──────────────────────────────────────────────────
-async function loadHistory(){
-  const d=await fetch('/api/inventory/history?limit=200').then(r=>r.json());
-  document.getElementById('histTb').innerHTML=d.map(h=>histRow(h)).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--soft);padding:1.5rem">기록 없음</td></tr>';
+async function calcCost() {
+  const menu = document.getElementById('costMenuSel').value;
+  if (!menu) return;
+  lockBtn('calcCostBtn', '계산 중...');
+  try {
+    // ── 6. 항상 최신 데이터로 계산 ──
+    const d = await fetch(`/api/cost/${encodeURIComponent(menu)}`).then(r => r.json());
+    const box = document.getElementById('costResult');
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'lbl';
+    lbl.innerHTML = `메뉴: <b>${esc(d.menu_item)}</b>`;
+    box.appendChild(lbl);
+
+    d.items.forEach(i => {
+      const line = document.createElement('div');
+      line.style.cssText = 'font-size:.85rem;color:var(--mid);margin:.2rem 0';
+      line.textContent = `• ${i.name_ko}: ${i.quantity}${i.unit} × ${i.cost_per_unit.toLocaleString()} = ${Math.round(i.quantity * i.cost_per_unit).toLocaleString()} IQD`;
+      box.appendChild(line);
+    });
+
+    const total = document.createElement('div');
+    total.className = 'total';
+    total.style.marginTop = '.5rem';
+    total.textContent = `원가 합계: ${d.total_cost.toLocaleString()} IQD`;
+    box.appendChild(total);
+  } catch (e) {
+    document.getElementById('costResult').classList.remove('hidden');
+    document.getElementById('costResult').innerHTML = '<div class="alert alert-danger">계산 실패. 다시 시도해주세요.</div>';
+  } finally {
+    unlockBtn('calcCostBtn');
+  }
 }
 
-// ── 설정 ──────────────────────────────────────────────────
-async function changePw(){
-  const pw=document.getElementById('newPw').value;
-  const pw2=document.getElementById('newPw2').value;
-  const msg=document.getElementById('pwMsg');
-  if(pw!==pw2){msg.innerHTML='<div class="alert alert-danger">비밀번호가 일치하지 않습니다</div>';return;}
-  if(pw.length<4){msg.innerHTML='<div class="alert alert-danger">4자 이상 입력하세요</div>';return;}
-  const r=await fetch('/api/auth/change-password',{method:'POST',headers:hdr(),body:JSON.stringify({newPassword:pw})}).then(r=>r.json());
-  if(r.success){msg.innerHTML='<div class="alert alert-success">✅ 비밀번호 변경 완료</div>';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';}
-  else msg.innerHTML=`<div class="alert alert-danger">${r.error}</div>`;
+// ══════════════════════════════════════════════
+// 입출고
+// ══════════════════════════════════════════════
+function loadAdjust() {
+  const sel = document.getElementById('adjIng');
+  sel.innerHTML = '<option value="">— 선택 —</option>';
+  ingredients.forEach(i => {
+    const opt = document.createElement('option');
+    opt.value = i.id;
+    opt.textContent = `${i.name_ko} (현재: ${i.current_qty}${i.unit})`;
+    sel.appendChild(opt);
+  });
 }
 
-// ── 모달 닫기 ─────────────────────────────────────────────
-function closeModal(id){document.getElementById(id).classList.add('hidden');}
-document.querySelectorAll('.modal-overlay').forEach(el=>{
-  el.addEventListener('click',e=>{if(e.target===el)el.classList.add('hidden');});
+async function submitAdjust() {
+  const ingredient_id = parseInt(document.getElementById('adjIng').value);
+  const change_type = document.getElementById('adjType').value;
+  const quantity = parseFloat(document.getElementById('adjQty').value);
+  const reason = document.getElementById('adjReason').value.trim();
+  const msgEl = document.getElementById('adjMsg');
+
+  if (!ingredient_id || !quantity || quantity <= 0) {
+    msgEl.innerHTML = '<div class="alert alert-danger">재료와 수량을 올바르게 입력하세요</div>';
+    return;
+  }
+  lockBtn('adjBtn');
+  try {
+    const r = await fetch('/api/inventory/adjust', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ ingredient_id, change_type, quantity, reason })
+    }).then(r => r.json());
+
+    if (r.success) {
+      msgEl.innerHTML = `<div class="alert alert-success">✅ 완료! 현재 재고: <b>${esc(String(r.new_qty))}</b></div>`;
+      document.getElementById('adjQty').value = '';
+      document.getElementById('adjReason').value = '';
+      await loadIngredients(false);
+      loadAdjust();
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
+    }
+  } catch (e) {
+    msgEl.innerHTML = '<div class="alert alert-danger">요청 실패. 네트워크를 확인하세요.</div>';
+  } finally {
+    unlockBtn('adjBtn');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 일일 판매 — 레시피 기반 동적 메뉴 로딩
+// ══════════════════════════════════════════════
+async function loadDaily() {
+  if (!document.getElementById('saleDate').value) {
+    // ── 2. 바그다드 타임존 적용 날짜 ──
+    document.getElementById('saleDate').value = localDateStr();
+  }
+
+  try {
+    // ── 1. 레시피에서 메뉴 동적 추출 ──
+    const d = await fetch('/api/recipes').then(r => r.json());
+    recipes = d;
+    const menuNames = [...new Set(d.map(r => r.menu_item))].sort();
+
+    const grid = document.getElementById('salesGrid');
+    const empty = document.getElementById('salesEmpty');
+    grid.innerHTML = '';
+
+    if (!menuNames.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    menuNames.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'sales-item';
+
+      const label = document.createElement('label');
+      label.textContent = m;
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = 0;
+      input.step = 1;
+      input.placeholder = '0';
+      input.value = '0';
+      input.dataset.menu = m;
+
+      item.appendChild(label);
+      item.appendChild(input);
+      grid.appendChild(item);
+    });
+  } catch (e) {
+    document.getElementById('salesGrid').innerHTML = '<div class="alert alert-danger">메뉴 목록을 불러오지 못했습니다</div>';
+  }
+}
+
+async function submitSales() {
+  const date = document.getElementById('saleDate').value;
+  const msgEl = document.getElementById('saleMsg');
+
+  if (!date) { msgEl.innerHTML = '<div class="alert alert-danger">날짜를 선택하세요</div>'; return; }
+
+  const inputs = [...document.querySelectorAll('#salesGrid input[data-menu]')];
+  const sales = inputs
+    .filter(i => parseInt(i.value) > 0)
+    .map(i => ({ menu_item: i.dataset.menu, quantity: parseInt(i.value) }));
+
+  if (!sales.length) { msgEl.innerHTML = '<div class="alert alert-warn">⚠️ 판매 수량을 하나 이상 입력하세요</div>'; return; }
+
+  lockBtn('saleBtn');
+  try {
+    const r = await fetch('/api/daily-sales', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ sale_date: date, sales })
+    }).then(r => r.json());
+
+    if (r.success) {
+      let html = `<div class="alert alert-success">✅ ${sales.length}개 메뉴 판매 기록 완료. 재고 차감 완료.</div>`;
+      if (r.warnings?.length) {
+        html += r.warnings.map(w => `<div class="alert alert-warn">⚠️ ${esc(w)}</div>`).join('');
+      }
+      msgEl.innerHTML = html;
+      inputs.forEach(i => i.value = '0');
+      await loadIngredients(false);
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
+    }
+  } catch (e) {
+    msgEl.innerHTML = '<div class="alert alert-danger">저장 실패. 네트워크를 확인하세요.</div>';
+  } finally {
+    unlockBtn('saleBtn');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 기록
+// ══════════════════════════════════════════════
+async function loadHistory() {
+  try {
+    const d = await fetch('/api/inventory/history?limit=200').then(r => r.json());
+    const tb = document.getElementById('histTb');
+    tb.innerHTML = '';
+    if (!d.length) {
+      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--soft);padding:1.5rem">기록 없음</td></tr>';
+      return;
+    }
+    d.forEach(h => tb.appendChild(buildHistRow(h)));
+  } catch (e) {
+    document.getElementById('histTb').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--red);padding:1.5rem">불러오기 실패</td></tr>';
+  }
+}
+
+// ══════════════════════════════════════════════
+// 설정
+// ══════════════════════════════════════════════
+async function changePw() {
+  const pw = document.getElementById('newPw').value;
+  const pw2 = document.getElementById('newPw2').value;
+  const msgEl = document.getElementById('pwMsg');
+
+  if (pw !== pw2) { msgEl.innerHTML = '<div class="alert alert-danger">비밀번호가 일치하지 않습니다</div>'; return; }
+  if (pw.length < 4) { msgEl.innerHTML = '<div class="alert alert-danger">4자 이상 입력하세요</div>'; return; }
+
+  lockBtn('pwBtn');
+  try {
+    const r = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ newPassword: pw })
+    }).then(r => r.json());
+    if (r.success) {
+      msgEl.innerHTML = '<div class="alert alert-success">✅ 비밀번호 변경 완료</div>';
+      document.getElementById('newPw').value = '';
+      document.getElementById('newPw2').value = '';
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
+    }
+  } catch (e) {
+    msgEl.innerHTML = '<div class="alert alert-danger">변경 실패. 네트워크를 확인하세요.</div>';
+  } finally {
+    unlockBtn('pwBtn');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 모달
+// ══════════════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
 });
 
-// ── 시작 ──────────────────────────────────────────────────
-if(token){
-  document.getElementById('loginOverlay').style.display='none';
+// ══════════════════════════════════════════════
+// 시작
+// ══════════════════════════════════════════════
+if (token) {
+  document.getElementById('loginOverlay').style.display = 'none';
   init();
 }
 </script>
