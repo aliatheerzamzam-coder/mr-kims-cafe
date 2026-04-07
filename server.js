@@ -192,7 +192,7 @@ app.get('/api/orders', (req, res) => {
 // 주문 상태 변경 (캐셔 → 서버)
 app.put('/api/orders/:id/status', (req, res) => {
   const { status } = req.body;
-  if (!['new', 'making', 'done'].includes(status))
+  if (!['new', 'making', 'done', 'cancelled'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태' });
   db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
   const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);

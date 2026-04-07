@@ -208,6 +208,21 @@
       padding: 10px 14px;
     }
     .btn-print:hover { background: var(--green-pale); }
+    .btn-cancel {
+      background: none;
+      border: 2px solid #fed7d7 !important;
+      color: var(--red);
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      border-radius: var(--radius-pill);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover { background: #fff0f0; }
+    .order-card.status-cancelled { border-right-color: #ccc; opacity: 0.5; }
 
     /* Empty state */
     .empty-state {
@@ -373,7 +388,13 @@
         ? `<button class="btn-action btn-making" onclick="setStatus('${order.id}','making')">✓ بدء التحضير</button>`
         : order.status === 'making'
         ? `<button class="btn-action btn-done" onclick="setStatus('${order.id}','done')">✅ تم التسليم</button>`
+        : order.status === 'cancelled'
+        ? `<span style="color:#e53e3e;font-size:0.85rem;font-weight:700;">❌ ملغي</span>`
         : `<span style="color:#aaa;font-size:0.85rem;font-weight:700;">✅ مكتمل</span>`;
+
+      const cancelBtn = (order.status === 'new' || order.status === 'making')
+        ? `<button class="btn-cancel" onclick="cancelOrder('${order.id}')" title="إلغاء الطلب">✕</button>`
+        : '';
 
       return `<div class="order-card status-${order.status}" id="card-${order.id}">
         <div class="order-card-header">
@@ -392,11 +413,24 @@
         <div class="order-actions">
           ${actionBtns}
           <button class="btn-action btn-print" onclick="printReceipt('${order.id}')" title="طباعة">🖨️</button>
+          ${cancelBtn}
         </div>
       </div>`;
     }).join('');
 
     updateStats();
+  }
+
+  /* ─── API: 주문 취소 ─── */
+  async function cancelOrder(id) {
+    if (!confirm('이 주문을 취소할까요؟\nهل تريد إلغاء هذا الطلب؟')) return;
+    await fetch(`/api/orders/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled' })
+    });
+    const order = orders.find(o => o.id === id);
+    if (order) { order.status = 'cancelled'; renderOrders(); }
   }
 
   /* ─── API: 주문 상태 변경 ─── */
