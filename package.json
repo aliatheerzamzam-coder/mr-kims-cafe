@@ -1,0 +1,12 @@
+{
+  "name": "mrkims-cafe-warehouse",
+  "version": "1.0.0",
+  "description": "Mr. Kim's Cafe - 창고 관리 시스템",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

@@ -2229,16 +2229,17 @@
 
   function renderCartItems() {
     const container = document.getElementById('cart-items');
-    const empty = document.getElementById('cart-empty');
     const lang = document.getElementById('html-root').getAttribute('lang');
+    const emptyHtml = `<div class="cart-empty" id="cart-empty">
+      <div class="empty-icon">🛒</div>
+      <span class="en">Your cart is empty</span>
+      <span class="ar">سلتك فارغة</span>
+    </div>`;
     if (cart.length === 0) {
-      container.innerHTML = '';
-      container.appendChild(empty);
-      empty.style.display = '';
+      container.innerHTML = emptyHtml;
       document.getElementById('cart-total').textContent = '0 IQD';
       return;
     }
-    empty.style.display = 'none';
     let html = '';
     cart.forEach((c, i) => {
       const name = lang === 'ar' ? c.nameAr : c.name;
@@ -2337,12 +2338,12 @@
     openCheckout();
   }
 
-  function placeOrder() {
-    const lang = document.getElementById('html-root').getAttribute('lang');
+  async function placeOrder() {
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
+
+    // WhatsApp 알림 메시지 구성
     let msg = '🛒 *New Order — Mr. Kim\'s CAFE*\n';
     msg += '━━━━━━━━━━━━━━━━\n';
-
     if (selectedType === 'dine') {
       msg += `📍 *Dine-in* — Table ${document.getElementById('input-table').value}\n`;
     } else {
@@ -2357,26 +2358,27 @@
     msg += '━━━━━━━━━━━━━━━━\n';
     msg += `💰 *Total: ${total.toLocaleString()} IQD*`;
 
-    // Send to WhatsApp
-    const url = `https://wa.me/${CASHIER_WA}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    // WhatsApp 전송
+    const waUrl = `https://wa.me/${CASHIER_WA}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
 
-    // Send to cashier page via localStorage
-    const orderCounter = parseInt(localStorage.getItem('kims-counter') || '1');
-    const order = {
-      id: Date.now().toString(),
-      num: orderCounter,
-      timestamp: Date.now(),
-      status: 'new',
-      type: selectedType,
-      tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
-      customerName: selectedType === 'pickup' ? document.getElementById('input-name').value : null,
-      customerPhone: selectedType === 'pickup' ? document.getElementById('input-phone').value : null,
-      items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
-      total
-    };
-    localStorage.setItem('kims-counter', orderCounter + 1);
-    localStorage.setItem('kims-new-order', JSON.stringify(order));
+    // 서버 API로 주문 저장 (캐셔 실시간 연동)
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: selectedType,
+          tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
+          customerName: selectedType === 'pickup' ? document.getElementById('input-name').value : null,
+          customerPhone: selectedType === 'pickup' ? document.getElementById('input-phone').value : null,
+          items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
+          total
+        })
+      });
+    } catch (e) {
+      console.warn('Order API unavailable, WhatsApp only mode');
+    }
 
     cart = [];
     updateCartBadge();

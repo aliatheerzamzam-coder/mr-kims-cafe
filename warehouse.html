@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mr. Kim's Cafe — 창고 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#367d4d;--green-dark:#285f3b;--green-light:#4a9962;--green-pale:#e8f5ee;
+  --white:#fff;--off:#f7f9f7;--text:#1a1a1a;--mid:#4a4a4a;--soft:#888;
+  --red:#e53e3e;--orange:#d97706;--star:#f5a623;--blue:#3b82f6;
+  --r-sm:12px;--r-md:20px;--r-lg:32px;--r-pill:9999px;
+  --sh-xs:0 2px 8px rgba(0,0,0,.07);--sh-sm:0 4px 16px rgba(0,0,0,.09);--sh-md:0 8px 32px rgba(0,0,0,.13);
+  --ease:cubic-bezier(.16,1,.3,1);--spd:.3s;
+}
+body{font-family:'Nunito',sans-serif;background:var(--off);color:var(--text);min-height:100vh}
+[dir="rtl"]{font-family:'Cairo',sans-serif}
+.ar{font-family:'Cairo',sans-serif;direction:rtl}
+
+/* ── OVERLAY LOGIN ── */
+#loginOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.login-box{background:var(--white);border-radius:var(--r-lg);padding:2.5rem 2rem;width:min(360px,90vw);box-shadow:var(--sh-md);text-align:center}
+.login-box h2{color:var(--green);font-size:1.5rem;font-weight:900;margin-bottom:.25rem}
+.login-box p{color:var(--soft);font-size:.9rem;margin-bottom:1.5rem}
+.login-box input{width:100%;padding:.8rem 1rem;border:2px solid #e2e8f0;border-radius:var(--r-sm);font-size:1rem;font-family:inherit;outline:none;transition:border var(--spd)}
+.login-box input:focus{border-color:var(--green)}
+.login-box button{margin-top:1rem;width:100%;padding:.85rem;background:var(--green);color:#fff;border:none;border-radius:var(--r-pill);font-size:1rem;font-weight:700;cursor:pointer;transition:background var(--spd)}
+.login-box button:hover{background:var(--green-dark)}
+.login-box .err{color:var(--red);font-size:.85rem;margin-top:.5rem;min-height:1.2rem}
+
+/* ── HEADER ── */
+header{background:var(--green);color:#fff;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh-sm);position:sticky;top:0;z-index:100}
+.brand{font-weight:900;font-size:1.2rem;display:flex;align-items:center;gap:.5rem}
+.brand span{font-size:.85rem;opacity:.75;font-weight:600}
+.header-right{display:flex;align-items:center;gap:1rem}
+.badge-admin{background:rgba(255,255,255,.2);border-radius:var(--r-pill);padding:.25rem .75rem;font-size:.8rem;font-weight:700}
+.btn-logout{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:var(--r-pill);padding:.35rem .9rem;cursor:pointer;font-size:.85rem;font-weight:700;transition:background var(--spd)}
+.btn-logout:hover{background:rgba(255,255,255,.3)}
+
+/* ── TABS ── */
+nav{background:var(--white);border-bottom:2px solid #e8f0eb;display:flex;overflow-x:auto;gap:.25rem;padding:.5rem 1rem}
+nav button{border:none;background:none;padding:.6rem 1.1rem;border-radius:var(--r-pill);font-size:.9rem;font-weight:700;color:var(--soft);cursor:pointer;white-space:nowrap;transition:all var(--spd)}
+nav button.active{background:var(--green-pale);color:var(--green)}
+nav button:hover:not(.active){background:#f0f0f0}
+
+/* ── MAIN ── */
+main{padding:1.5rem;max-width:1100px;margin:0 auto}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:var(--r-md);padding:1.5rem;box-shadow:var(--sh-xs);margin-bottom:1rem}
+.card h3{font-size:1rem;font-weight:800;color:var(--green);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem}
+.stat{background:var(--white);border-radius:var(--r-md);padding:1.2rem 1.5rem;box-shadow:var(--sh-xs)}
+.stat .num{font-size:2rem;font-weight:900;color:var(--green);line-height:1}
+.stat .lbl{font-size:.8rem;color:var(--soft);margin-top:.25rem}
+.stat.warn .num{color:var(--orange)}
+.stat.danger .num{color:var(--red)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{background:var(--green-pale);color:var(--green);font-weight:800;padding:.6rem .75rem;text-align:left;white-space:nowrap}
+td{padding:.6rem .75rem;border-bottom:1px solid #f0f4f2;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafcfb}
+.qty-ok{color:var(--green);font-weight:700}
+.qty-warn{color:var(--orange);font-weight:700}
+.qty-danger{color:var(--red);font-weight:700}
+.badge{display:inline-block;border-radius:var(--r-pill);padding:.2rem .65rem;font-size:.75rem;font-weight:700}
+.badge-ok{background:#e8f5ee;color:var(--green)}
+.badge-warn{background:#fff7ed;color:var(--orange)}
+.badge-danger{background:#fff0f0;color:var(--red)}
+.badge-in{background:#e8f5ee;color:var(--green)}
+.badge-out{background:#fff0f0;color:var(--red)}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:1rem}
+.form-group{display:flex;flex-direction:column;gap:.3rem}
+.form-group label{font-size:.8rem;font-weight:700;color:var(--mid)}
+.form-group input,.form-group select,.form-group textarea{padding:.65rem .85rem;border:2px solid #e2e8f0;border-radius:var(--r-sm);font-size:.9rem;font-family:inherit;outline:none;transition:border var(--spd);background:#fff}
+.form-group input:focus,.form-group select:focus{border-color:var(--green)}
+.form-group textarea{resize:vertical;min-height:70px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border:none;border-radius:var(--r-pill);font-size:.88rem;font-weight:700;cursor:pointer;transition:all var(--spd);white-space:nowrap}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:var(--green-dark)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#c53030}
+.btn-outline{background:transparent;border:2px solid var(--green);color:var(--green)}
+.btn-outline:hover{background:var(--green-pale)}
+.btn-sm{padding:.3rem .7rem;font-size:.78rem}
+.btn-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem}
+
+/* ── RECIPE ITEM ROW ── */
+.recipe-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.4rem 0;border-bottom:1px solid #f0f4f2}
+.recipe-row:last-child{border-bottom:none}
+
+/* ── DAILY SALES ── */
+.sales-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem}
+.sales-item{display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:var(--off);border-radius:var(--r-sm)}
+.sales-item label{flex:1;font-size:.88rem;font-weight:600;cursor:pointer}
+.sales-item input[type=number]{width:70px;padding:.35rem .5rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;outline:none;font-family:inherit}
+.sales-item input:focus{border-color:var(--green)}
+
+/* ── ALERT ── */
+.alert{padding:.75rem 1rem;border-radius:var(--r-sm);font-size:.88rem;font-weight:600;margin-bottom:.75rem}
+.alert-warn{background:#fff7ed;color:var(--orange);border:1px solid #fed7aa}
+.alert-success{background:#e8f5ee;color:var(--green);border:1px solid #86efac}
+.alert-danger{background:#fff0f0;color:var(--red);border:1px solid #fca5a5}
+
+/* ── LOW STOCK LIST ── */
+.low-list{display:flex;flex-direction:column;gap:.5rem}
+.low-item{display:flex;align-items:center;justify-content:space-between;padding:.6rem .9rem;background:var(--off);border-radius:var(--r-sm);border-left:3px solid var(--red)}
+.low-item .name{font-weight:700;font-size:.9rem}
+.low-item .qty{font-size:.85rem;color:var(--red);font-weight:700}
+
+/* ── HISTORY ── */
+.hist-date{font-size:.75rem;color:var(--soft)}
+.hist-reason{font-size:.78rem;color:var(--soft);margin-top:.1rem}
+
+/* ── SECTION HEADER ── */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.sec-head h2{font-size:1.15rem;font-weight:900;color:var(--text)}
+
+/* ── COST BOX ── */
+.cost-box{background:var(--green-pale);border-radius:var(--r-md);padding:1rem 1.25rem;margin-top:1rem}
+.cost-box .total{font-size:1.4rem;font-weight:900;color:var(--green)}
+.cost-box .lbl{font-size:.8rem;color:var(--mid);margin-bottom:.25rem}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal{background:#fff;border-radius:var(--r-lg);padding:2rem;width:min(500px,94vw);max-height:90vh;overflow-y:auto;box-shadow:var(--sh-md)}
+.modal h3{font-size:1.1rem;font-weight:900;color:var(--green);margin-bottom:1.25rem}
+.modal .btn-bar{margin-top:1.25rem;justify-content:flex-end}
+.hidden{display:none!important}
+
+@media(max-width:600px){main{padding:1rem}.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN OVERLAY ── -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <h2>🔐 관리자 로그인</h2>
+    <p class="ar">تسجيل دخول المدير</p>
+    <input type="password" id="loginPw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">로그인 / دخول</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="brand">
+    ☕ Mr. Kim's <span>창고 관리 | إدارة المخزن</span>
+  </div>
+  <div class="header-right">
+    <span class="badge-admin">🔑 관리자</span>
+    <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+  </div>
+</header>
+
+<!-- ── NAV TABS ── -->
+<nav id="mainNav">
+  <button class="active" onclick="showTab('dashboard',this)">📊 대시보드</button>
+  <button onclick="showTab('ingredients',this)">🧪 재료 관리</button>
+  <button onclick="showTab('recipes',this)">📋 레시피 & 원가</button>
+  <button onclick="showTab('adjust',this)">📦 입출고</button>
+  <button onclick="showTab('daily',this)">🛒 일일 판매</button>
+  <button onclick="showTab('history',this)">📜 기록</button>
+  <button onclick="showTab('settings',this)">⚙️ 설정</button>
+</nav>
+
+<main>
+
+<!-- ───────────── 1. 대시보드 ───────────── -->
+<div class="tab-panel active" id="tab-dashboard">
+  <div class="sec-head">
+    <h2>📊 창고 현황 / لوحة التحكم</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadDashboard()">🔄 새로고침</button>
+  </div>
+  <div class="stat-grid" id="statGrid"></div>
+  <div id="lowStockSection" class="hidden">
+    <div class="card">
+      <h3>⚠️ 재고 부족 경고 / تحذير نقص المخزون</h3>
+      <div class="low-list" id="lowList"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🕐 최근 입출고 기록</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>재료</th><th>구분</th><th>수량</th><th>사유</th><th>일시</th></tr></thead>
+      <tbody id="recentHistTb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ───────────── 2. 재료 관리 ───────────── -->
+<div class="tab-panel" id="tab-ingredients">
+  <div class="sec-head">
+    <h2>🧪 재료 관리 / إدارة المواد</h2>
+    <button class="btn btn-primary btn-sm" onclick="openIngModal()">+ 재료 추가</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>재료명 (KO)</th><th>아랍어 (AR)</th><th>단위</th><th>현재 재고</th><th>최소 재고</th><th>단위 원가 (IQD)</th><th>상태</th><th>관리</th></tr></thead>
+      <tbody id="ingTb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ───────────── 3. 레시피 & 원가 ───────────── -->
+<div class="tab-panel" id="tab-recipes">
+  <div class="sec-head">
+    <h2>📋 레시피 & 원가 / الوصفات والتكلفة</h2>
+    <button class="btn btn-primary btn-sm" onclick="openRecipeModal()">+ 레시피 추가/수정</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>메뉴</th><th>재료</th><th>수량</th><th>단위</th><th>비용</th><th>관리</th></tr></thead>
+      <tbody id="recipeTb"></tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <h3>💰 원가 계산기 / حساب التكلفة</h3>
+    <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:200px">
+        <label>메뉴 선택</label>
+        <select id="costMenuSel"><option value="">— 메뉴 선택 —</option></select>
+      </div>
+      <button class="btn btn-primary" onclick="calcCost()">계산하기</button>
+    </div>
+    <div id="costResult" class="hidden cost-box" style="margin-top:1rem"></div>
+  </div>
+</div>
+
+<!-- ───────────── 4. 입출고 ───────────── -->
+<div class="tab-panel" id="tab-adjust">
+  <div class="sec-head"><h2>📦 입출고 / الجرد</h2></div>
+  <div class="card">
+    <h3>재고 수량 조정</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>재료 선택</label>
+        <select id="adjIng"><option value="">— 선택 —</option></select>
+      </div>
+      <div class="form-group">
+        <label>구분</label>
+        <select id="adjType">
+          <option value="in">📥 입고 (추가)</option>
+          <option value="out">📤 출고 (차감)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>수량</label>
+        <input type="number" id="adjQty" min="0" step="0.01" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>사유 (선택)</label>
+        <input type="text" id="adjReason" placeholder="예: 납품 입고, 폐기 등">
+      </div>
+    </div>
+    <div id="adjMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="submitAdjust()">✅ 적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── 5. 일일 판매 ───────────── -->
+<div class="tab-panel" id="tab-daily">
+  <div class="sec-head"><h2>🛒 일일 판매 입력 / مبيعات اليوم</h2></div>
+  <div class="card">
+    <div class="form-grid" style="max-width:300px">
+      <div class="form-group">
+        <label>📅 판매 날짜</label>
+        <input type="date" id="saleDate">
+      </div>
+    </div>
+    <p style="font-size:.85rem;color:var(--soft);margin-bottom:1rem">판매 수량을 입력하면 레시피 기준으로 재고가 자동 차감됩니다. 0은 무시됩니다.</p>
+    <div class="sales-grid" id="salesGrid"></div>
+    <div id="saleMsg" style="margin-top:.75rem"></div>
+    <div class="btn-bar" style="margin-top:1rem">
+      <button class="btn btn-primary" onclick="submitSales()">✅ 판매 기록 저장 & 재고 차감</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── 6. 기록 ───────────── -->
+<div class="tab-panel" id="tab-history">
+  <div class="sec-head">
+    <h2>📜 입출고 기록 / السجل</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadHistory()">🔄 새로고침</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>재료</th><th>구분</th><th>수량</th><th>사유</th><th>일시</th></tr></thead>
+      <tbody id="histTb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ───────────── 7. 설정 ───────────── -->
+<div class="tab-panel" id="tab-settings">
+  <div class="sec-head"><h2>⚙️ 설정 / الإعدادات</h2></div>
+  <div class="card" style="max-width:420px">
+    <h3>🔑 비밀번호 변경</h3>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label>새 비밀번호</label>
+      <input type="password" id="newPw" placeholder="4자 이상">
+    </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label>새 비밀번호 확인</label>
+      <input type="password" id="newPw2" placeholder="동일하게 입력">
+    </div>
+    <div id="pwMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="changePw()">저장</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ── 재료 추가/수정 모달 ── -->
+<div class="modal-overlay hidden" id="ingModal">
+  <div class="modal">
+    <h3 id="ingModalTitle">재료 추가</h3>
+    <input type="hidden" id="ingId">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>재료명 (한국어) *</label>
+        <input id="ingNameKo" placeholder="예: 바닐라 시럽">
+      </div>
+      <div class="form-group">
+        <label>재료명 (아랍어)</label>
+        <input id="ingNameAr" class="ar" placeholder="مثال: شراب الفانيليا" dir="rtl">
+      </div>
+      <div class="form-group">
+        <label>단위 *</label>
+        <select id="ingUnit">
+          <option value="병">병 (시럽류)</option>
+          <option value="kg">kg (파우더류)</option>
+          <option value="봉">봉 (파우더류)</option>
+          <option value="상자">상자 (컵류)</option>
+          <option value="개">개</option>
+          <option value="L">L</option>
+          <option value="g">g</option>
+          <option value="ml">ml</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>현재 재고</label>
+        <input type="number" id="ingCurQty" min="0" step="0.01" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>최소 재고 (경고 기준)</label>
+        <input type="number" id="ingMinQty" min="0" step="0.01" placeholder="1">
+      </div>
+      <div class="form-group">
+        <label>단위당 원가 (IQD)</label>
+        <input type="number" id="ingCost" min="0" step="1" placeholder="0">
+      </div>
+    </div>
+    <div id="ingModalMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('ingModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveIngredient()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 레시피 추가/수정 모달 ── -->
+<div class="modal-overlay hidden" id="recipeModal">
+  <div class="modal">
+    <h3>레시피 추가 / 수정</h3>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>메뉴명 *</label>
+      <input id="recipeMenuName" placeholder="예: 아이스 라떼">
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)">재료 목록</label>
+      <button class="btn btn-outline btn-sm" onclick="addRecipeRow()">+ 재료 추가</button>
+    </div>
+    <div id="recipeRows" style="margin-bottom:.75rem"></div>
+    <div id="recipeModalMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('recipeModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveRecipe()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let token = sessionStorage.getItem('wh_token') || '';
+let ingredients = [];
+let recipes = [];
+
+const MENU_LIST = [
+  '아메리카노','라떼','카푸치노','플랫화이트',
+  '아이스 아메리카노','아이스 라떼','콜드브루','카라멜 프라푸치노',
+  '말차 라떼','아이스 말차','말차 프라푸치노',
+  '잉글리시 브렉퍼스트','그린티','캐모마일',
+  '망고 스무디','베리 스무디','트로피칼 스무디',
+  '카라멜 프라페','모카 프라페','바닐라 프라페','말차 프라페',
+  '초콜릿 밀크쉐이크','바닐라 밀크쉐이크','딸기 밀크쉐이크','망고 밀크쉐이크',
+  '딸기 요거트','믹스베리 요거트','망고 요거트','플레인 요거트',
+  '클래식 모히또','딸기 모히또','망고 모히또','민트 레모네이드',
+  '크루아상','머핀','시나몬롤','아몬드 다니쉬',
+  '초콜릿케이크','치즈케이크','티라미수','브라우니',
+  '클럽샌드위치','시저샐러드','치킨랩','아보카도 토스트'
+];
+
+// ── 인증 ──────────────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('loginPw').value;
+  const r = await fetch('/api/auth/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+  const d = await r.json();
+  if (d.success) {
+    token = d.token;
+    sessionStorage.setItem('wh_token', token);
+    document.getElementById('loginOverlay').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('loginErr').textContent = d.error || '로그인 실패';
+  }
+}
+async function doLogout() {
+  await fetch('/api/auth/logout',{method:'POST',headers:{'x-auth-token':token}});
+  sessionStorage.removeItem('wh_token');
+  location.reload();
+}
+function hdr(){return {'Content-Type':'application/json','x-auth-token':token}}
+
+// ── 탭 ────────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='dashboard') loadDashboard();
+  if(id==='ingredients') loadIngredients();
+  if(id==='recipes') loadRecipes();
+  if(id==='adjust') loadAdjust();
+  if(id==='daily') loadDaily();
+  if(id==='history') loadHistory();
+}
+
+// ── 초기화 ────────────────────────────────────────────────
+async function init() {
+  await loadIngredients(false);
+  loadDashboard();
+}
+
+// ── 대시보드 ──────────────────────────────────────────────
+async function loadDashboard() {
+  const d = await fetch('/api/dashboard').then(r=>r.json());
+  ingredients = d.ingredients;
+  const sg = document.getElementById('statGrid');
+  const total = d.ingredients.length;
+  const low = d.low_stock.length;
+  sg.innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="lbl">총 재료 종류</div></div>
+    <div class="stat ${low>0?'danger':''}"><div class="num">${low}</div><div class="lbl">재고 부족 재료 ⚠️</div></div>
+  `;
+  const ls = document.getElementById('lowStockSection');
+  if(low>0){
+    ls.classList.remove('hidden');
+    document.getElementById('lowList').innerHTML = d.low_stock.map(i=>`
+      <div class="low-item">
+        <div><div class="name">${i.name_ko}</div><div style="font-size:.75rem;color:var(--soft)">${i.name_ar}</div></div>
+        <div class="qty">현재 ${i.current_qty}${i.unit} / 최소 ${i.min_qty}${i.unit}</div>
+      </div>`).join('');
+  } else { ls.classList.add('hidden'); }
+  document.getElementById('recentHistTb').innerHTML = d.recent_history.map(h=>histRow(h)).join('');
+}
+
+function histRow(h){
+  const badge = h.change_type==='in'?'<span class="badge badge-in">📥 입고</span>':'<span class="badge badge-out">📤 출고</span>';
+  const dt = new Date(h.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  return `<tr><td>${h.ingredient_name}</td><td>${badge}</td><td><b>${h.quantity}</b></td><td style="font-size:.8rem;color:var(--soft)">${h.reason||'-'}</td><td class="hist-date">${dt}</td></tr>`;
+}
+
+// ── 재료 관리 ─────────────────────────────────────────────
+async function loadIngredients(render=true) {
+  const d = await fetch('/api/ingredients').then(r=>r.json());
+  ingredients = d;
+  if(!render) return;
+  document.getElementById('ingTb').innerHTML = d.map(i=>{
+    const status = i.current_qty <= i.min_qty
+      ? (i.current_qty===0?'<span class="badge badge-danger">재고없음</span>':'<span class="badge badge-warn">부족</span>')
+      : '<span class="badge badge-ok">정상</span>';
+    const cls = i.current_qty===0?'qty-danger':i.current_qty<=i.min_qty?'qty-warn':'qty-ok';
+    return `<tr>
+      <td><b>${i.name_ko}</b></td>
+      <td class="ar">${i.name_ar||'-'}</td>
+      <td>${i.unit}</td>
+      <td class="${cls}">${i.current_qty} ${i.unit}</td>
+      <td>${i.min_qty} ${i.unit}</td>
+      <td>${i.cost_per_unit.toLocaleString()} IQD</td>
+      <td>${status}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick='editIng(${JSON.stringify(i)})'>수정</button>
+        <button class="btn btn-danger btn-sm" onclick="delIng(${i.id},'${i.name_ko}')">삭제</button>
+      </td></tr>`;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--soft);padding:1.5rem">재료 없음. 재료를 추가해주세요.</td></tr>';
+}
+
+function openIngModal(){
+  document.getElementById('ingModalTitle').textContent='재료 추가';
+  document.getElementById('ingId').value='';
+  ['ingNameKo','ingNameAr','ingCurQty','ingMinQty','ingCost'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ingUnit').value='병';
+  document.getElementById('ingModalMsg').innerHTML='';
+  document.getElementById('ingModal').classList.remove('hidden');
+}
+function editIng(i){
+  document.getElementById('ingModalTitle').textContent='재료 수정';
+  document.getElementById('ingId').value=i.id;
+  document.getElementById('ingNameKo').value=i.name_ko;
+  document.getElementById('ingNameAr').value=i.name_ar;
+  document.getElementById('ingUnit').value=i.unit;
+  document.getElementById('ingCurQty').value=i.current_qty;
+  document.getElementById('ingMinQty').value=i.min_qty;
+  document.getElementById('ingCost').value=i.cost_per_unit;
+  document.getElementById('ingModalMsg').innerHTML='';
+  document.getElementById('ingModal').classList.remove('hidden');
+}
+async function saveIngredient(){
+  const id=document.getElementById('ingId').value;
+  const body={
+    name_ko:document.getElementById('ingNameKo').value.trim(),
+    name_ar:document.getElementById('ingNameAr').value.trim(),
+    unit:document.getElementById('ingUnit').value,
+    current_qty:parseFloat(document.getElementById('ingCurQty').value)||0,
+    min_qty:parseFloat(document.getElementById('ingMinQty').value)||1,
+    cost_per_unit:parseFloat(document.getElementById('ingCost').value)||0
+  };
+  if(!body.name_ko){document.getElementById('ingModalMsg').innerHTML='<div class="alert alert-danger">재료명을 입력하세요</div>';return;}
+  const url=id?`/api/ingredients/${id}`:'/api/ingredients';
+  const method=id?'PUT':'POST';
+  const r=await fetch(url,{method,headers:hdr(),body:JSON.stringify(body)}).then(r=>r.json());
+  if(r.success){closeModal('ingModal');loadIngredients();}
+  else document.getElementById('ingModalMsg').innerHTML=`<div class="alert alert-danger">${r.error}</div>`;
+}
+async function delIng(id,name){
+  if(!confirm(`"${name}" 재료를 삭제할까요?\n(해당 재료가 포함된 레시피도 삭제됩니다)`))return;
+  await fetch(`/api/ingredients/${id}`,{method:'DELETE',headers:hdr()});
+  loadIngredients();
+}
+
+// ── 레시피 & 원가 ─────────────────────────────────────────
+async function loadRecipes(){
+  const d=await fetch('/api/recipes').then(r=>r.json());
+  recipes=d;
+  // Group by menu_item
+  const grouped={};
+  d.forEach(r=>{
+    if(!grouped[r.menu_item])grouped[r.menu_item]=[];
+    grouped[r.menu_item].push(r);
+  });
+  let rows='';
+  for(const [menu,items] of Object.entries(grouped)){
+    const totalCost=items.reduce((s,i)=>s+i.quantity*i.cost_per_unit,0);
+    items.forEach((item,idx)=>{
+      rows+=`<tr>
+        ${idx===0?`<td rowspan="${items.length}"><b>${menu}</b></td>`:''}
+        <td>${item.name_ko}</td>
+        <td>${item.quantity} ${item.unit}</td>
+        <td>${item.unit}</td>
+        <td>${Math.round(item.quantity*item.cost_per_unit).toLocaleString()} IQD</td>
+        ${idx===0?`<td rowspan="${items.length}" style="text-align:center">
+          <div style="font-weight:800;color:var(--green)">${Math.round(totalCost).toLocaleString()} IQD</div>
+          <div style="display:flex;gap:.3rem;justify-content:center;margin-top:.4rem">
+            <button class="btn btn-outline btn-sm" onclick="editRecipe('${encodeURIComponent(menu)}')">수정</button>
+            <button class="btn btn-danger btn-sm" onclick="delRecipe('${encodeURIComponent(menu)}')">삭제</button>
+          </div>
+        </td>`:''}
+      </tr>`;
+    });
+  }
+  document.getElementById('recipeTb').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">레시피 없음</td></tr>';
+  // cost calculator select
+  const sel=document.getElementById('costMenuSel');
+  sel.innerHTML='<option value="">— 메뉴 선택 —</option>'+Object.keys(grouped).map(m=>`<option>${m}</option>`).join('');
+}
+
+function openRecipeModal(){
+  document.getElementById('recipeMenuName').value='';
+  document.getElementById('recipeRows').innerHTML='';
+  document.getElementById('recipeModalMsg').innerHTML='';
+  addRecipeRow();
+  document.getElementById('recipeModal').classList.remove('hidden');
+}
+async function editRecipe(encoded){
+  const menu=decodeURIComponent(encoded);
+  document.getElementById('recipeMenuName').value=menu;
+  document.getElementById('recipeRows').innerHTML='';
+  document.getElementById('recipeModalMsg').innerHTML='';
+  const items=recipes.filter(r=>r.menu_item===menu);
+  items.forEach(item=>addRecipeRow(item.ingredient_id,item.quantity));
+  document.getElementById('recipeModal').classList.remove('hidden');
+}
+function addRecipeRow(ingId='',qty=''){
+  const div=document.createElement('div');
+  div.className='recipe-row';
+  div.innerHTML=`
+    <select class="rec-ing" style="padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none">
+      <option value="">— 재료 선택 —</option>
+      ${ingredients.map(i=>`<option value="${i.id}" ${i.id==ingId?'selected':''}>${i.name_ko} (${i.unit})</option>`).join('')}
+    </select>
+    <input type="number" class="rec-qty" value="${qty}" min="0" step="0.01" placeholder="수량" style="width:90px;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;text-align:center;outline:none">
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('recipeRows').appendChild(div);
+}
+async function saveRecipe(){
+  const menu=document.getElementById('recipeMenuName').value.trim();
+  if(!menu){document.getElementById('recipeModalMsg').innerHTML='<div class="alert alert-danger">메뉴명을 입력하세요</div>';return;}
+  const rows=[...document.querySelectorAll('#recipeRows .recipe-row')];
+  const items=rows.map(r=>({ingredient_id:parseInt(r.querySelector('.rec-ing').value),quantity:parseFloat(r.querySelector('.rec-qty').value)||0})).filter(i=>i.ingredient_id&&i.quantity>0);
+  if(!items.length){document.getElementById('recipeModalMsg').innerHTML='<div class="alert alert-danger">재료를 하나 이상 추가하세요</div>';return;}
+  const r=await fetch('/api/recipes',{method:'POST',headers:hdr(),body:JSON.stringify({menu_item:menu,items})}).then(r=>r.json());
+  if(r.success){closeModal('recipeModal');loadRecipes();}
+  else document.getElementById('recipeModalMsg').innerHTML=`<div class="alert alert-danger">${r.error}</div>`;
+}
+async function delRecipe(encoded){
+  const menu=decodeURIComponent(encoded);
+  if(!confirm(`"${menu}" 레시피를 삭제할까요?`))return;
+  await fetch(`/api/recipes/menu/${encodeURIComponent(menu)}`,{method:'DELETE',headers:hdr()});
+  loadRecipes();
+}
+async function calcCost(){
+  const menu=document.getElementById('costMenuSel').value;
+  if(!menu)return;
+  const d=await fetch(`/api/cost/${encodeURIComponent(menu)}`).then(r=>r.json());
+  const box=document.getElementById('costResult');
+  box.classList.remove('hidden');
+  box.innerHTML=`<div class="lbl">메뉴: <b>${d.menu_item}</b></div>
+    ${d.items.map(i=>`<div style="font-size:.85rem;color:var(--mid);margin:.2rem 0">• ${i.name_ko}: ${i.quantity}${i.unit} × ${i.cost_per_unit.toLocaleString()} = ${Math.round(i.quantity*i.cost_per_unit).toLocaleString()} IQD</div>`).join('')}
+    <div class="total" style="margin-top:.5rem">원가 합계: ${d.total_cost.toLocaleString()} IQD</div>`;
+}
+
+// ── 입출고 ────────────────────────────────────────────────
+function loadAdjust(){
+  const sel=document.getElementById('adjIng');
+  sel.innerHTML='<option value="">— 재료 선택 —</option>'+ingredients.map(i=>`<option value="${i.id}">${i.name_ko} (현재: ${i.current_qty}${i.unit})</option>`).join('');
+}
+async function submitAdjust(){
+  const ingredient_id=parseInt(document.getElementById('adjIng').value);
+  const change_type=document.getElementById('adjType').value;
+  const quantity=parseFloat(document.getElementById('adjQty').value);
+  const reason=document.getElementById('adjReason').value.trim();
+  const msg=document.getElementById('adjMsg');
+  if(!ingredient_id||!quantity||quantity<=0){msg.innerHTML='<div class="alert alert-danger">재료와 수량을 올바르게 입력하세요</div>';return;}
+  const r=await fetch('/api/inventory/adjust',{method:'POST',headers:hdr(),body:JSON.stringify({ingredient_id,change_type,quantity,reason})}).then(r=>r.json());
+  if(r.success){
+    msg.innerHTML=`<div class="alert alert-success">✅ 완료! 현재 재고: <b>${r.new_qty}</b></div>`;
+    document.getElementById('adjQty').value='';
+    document.getElementById('adjReason').value='';
+    await loadIngredients(false);
+    loadAdjust();
+  } else {
+    msg.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  }
+}
+
+// ── 일일 판매 ─────────────────────────────────────────────
+function loadDaily(){
+  if(!document.getElementById('saleDate').value){
+    document.getElementById('saleDate').value=new Date().toISOString().slice(0,10);
+  }
+  document.getElementById('salesGrid').innerHTML=MENU_LIST.map(m=>`
+    <div class="sales-item">
+      <label>${m}</label>
+      <input type="number" min="0" step="1" placeholder="0" data-menu="${m}" value="0">
+    </div>`).join('');
+}
+async function submitSales(){
+  const date=document.getElementById('saleDate').value;
+  if(!date){document.getElementById('saleMsg').innerHTML='<div class="alert alert-danger">날짜를 선택하세요</div>';return;}
+  const inputs=[...document.querySelectorAll('#salesGrid input[data-menu]')];
+  const sales=inputs.filter(i=>parseInt(i.value)>0).map(i=>({menu_item:i.dataset.menu,quantity:parseInt(i.value)}));
+  if(!sales.length){document.getElementById('saleMsg').innerHTML='<div class="alert alert-warn">⚠️ 판매 수량을 하나 이상 입력하세요</div>';return;}
+  const r=await fetch('/api/daily-sales',{method:'POST',headers:hdr(),body:JSON.stringify({sale_date:date,sales})}).then(r=>r.json());
+  const msg=document.getElementById('saleMsg');
+  if(r.success){
+    let html=`<div class="alert alert-success">✅ ${sales.length}개 메뉴 판매 기록 완료. 재고 차감 완료.</div>`;
+    if(r.warnings?.length) html+=r.warnings.map(w=>`<div class="alert alert-warn">⚠️ ${w}</div>`).join('');
+    msg.innerHTML=html;
+    inputs.forEach(i=>i.value='0');
+    await loadIngredients(false);
+  } else {
+    msg.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  }
+}
+
+// ── 기록 ──────────────────────────────────────────────────
+async function loadHistory(){
+  const d=await fetch('/api/inventory/history?limit=200').then(r=>r.json());
+  document.getElementById('histTb').innerHTML=d.map(h=>histRow(h)).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--soft);padding:1.5rem">기록 없음</td></tr>';
+}
+
+// ── 설정 ──────────────────────────────────────────────────
+async function changePw(){
+  const pw=document.getElementById('newPw').value;
+  const pw2=document.getElementById('newPw2').value;
+  const msg=document.getElementById('pwMsg');
+  if(pw!==pw2){msg.innerHTML='<div class="alert alert-danger">비밀번호가 일치하지 않습니다</div>';return;}
+  if(pw.length<4){msg.innerHTML='<div class="alert alert-danger">4자 이상 입력하세요</div>';return;}
+  const r=await fetch('/api/auth/change-password',{method:'POST',headers:hdr(),body:JSON.stringify({newPassword:pw})}).then(r=>r.json());
+  if(r.success){msg.innerHTML='<div class="alert alert-success">✅ 비밀번호 변경 완료</div>';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';}
+  else msg.innerHTML=`<div class="alert alert-danger">${r.error}</div>`;
+}
+
+// ── 모달 닫기 ─────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)el.classList.add('hidden');});
+});
+
+// ── 시작 ──────────────────────────────────────────────────
+if(token){
+  document.getElementById('loginOverlay').style.display='none';
+  init();
+}
+</script>
+</body>
+</html>

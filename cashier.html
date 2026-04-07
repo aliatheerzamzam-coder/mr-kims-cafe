@@ -296,8 +296,7 @@
 
 <script>
   /* ─── State ─── */
-  let orders = JSON.parse(localStorage.getItem('kims-orders') || '[]');
-  let orderCounter = parseInt(localStorage.getItem('kims-counter') || '1');
+  let orders = [];
   let soundOn = true;
   let currentFilter = 'all';
 
@@ -354,16 +353,17 @@
         <div class="empty-icon">☕</div>
         <div>لا توجد طلبات حالياً</div>
       </div>`;
+      updateStats();
       return;
     }
 
     grid.innerHTML = sorted.map(order => {
       const time = new Date(order.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
       const typeBadge = order.type === 'dine'
-        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${order.tableNum}</span>`
+        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${order.table_num}</span>`
         : `<span class="order-type-badge badge-pickup">🏃 استلام</span>`;
       const info = order.type === 'pickup'
-        ? `<div class="order-info">👤 <strong>${order.customerName}</strong> &nbsp; 📞 ${order.customerPhone}</div>`
+        ? `<div class="order-info">👤 <strong>${order.customer_name}</strong> &nbsp; 📞 ${order.customer_phone}</div>`
         : '';
       const itemsHtml = order.items.map(i =>
         `<div class="order-item-row"><span>${i.emoji} <span class="item-name">${i.nameAr || i.name}</span></span><span class="item-qty">×${i.qty}</span></div>`
@@ -399,9 +399,15 @@
     updateStats();
   }
 
-  function setStatus(id, status) {
+  /* ─── API: 주문 상태 변경 ─── */
+  async function setStatus(id, status) {
+    await fetch(`/api/orders/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
     const order = orders.find(o => o.id === id);
-    if (order) { order.status = status; save(); renderOrders(); }
+    if (order) { order.status = status; renderOrders(); }
   }
 
   function setFilter(f, btn) {
@@ -429,7 +435,7 @@
 <div style="border-top:1px dashed #000;margin:8px 0;"></div>
 <div>رقم الطلب: #${o.num}</div>
 <div>الوقت: ${time}</div>
-<div>النوع: ${o.type === 'dine' ? 'داخل المحل — طاولة ' + o.tableNum : 'استلام — ' + o.customerName}</div>
+<div>النوع: ${o.type === 'dine' ? 'داخل المحل — طاولة ' + o.table_num : 'استلام — ' + o.customer_name}</div>
 <div style="border-top:1px dashed #000;margin:8px 0;"></div>`;
     o.items.forEach(i => {
       html += `<div style="display:flex;justify-content:space-between;"><span>${i.emoji} ${i.nameAr || i.name} ×${i.qty}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
@@ -441,54 +447,39 @@
     window.print();
   }
 
-  /* ─── Storage ─── */
-  function save() {
-    localStorage.setItem('kims-orders', JSON.stringify(orders));
-    localStorage.setItem('kims-counter', orderCounter);
+  /* ─── API: 오늘 주문 불러오기 ─── */
+  async function loadOrders() {
+    const today = new Date().toISOString().slice(0, 10);
+    const data = await fetch(`/api/orders?date=${today}`).then(r => r.json());
+    orders = data;
+    renderOrders();
   }
 
-  /* ─── Listen for new orders from main site (same browser / localStorage) ─── */
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'kims-new-order' && e.newValue) {
-      const order = JSON.parse(e.newValue);
-      orders.unshift(order);
-      save();
-      renderOrders();
-      showNewOrderFlash();
-    }
-  });
-
-  /* ─── Demo: add test order button ─── */
-  function addTestOrder() {
-    const order = {
-      id: Date.now().toString(),
-      num: orderCounter++,
-      timestamp: Date.now(),
-      status: 'new',
-      type: 'dine',
-      tableNum: Math.floor(Math.random()*10)+1,
-      items: [
-        { emoji:'☕', name:'Hot Americano', nameAr:'أمريكانو ساخن', qty:2, price:5000 },
-        { emoji:'🥐', name:'Croissant', nameAr:'كرواسون', qty:1, price:3000 }
-      ],
-      total: 13000
+  /* ─── SSE: 실시간 새 주문 수신 ─── */
+  function connectSSE() {
+    const es = new EventSource('/api/orders/stream');
+    es.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'new_order') {
+        orders.unshift(msg.order);
+        renderOrders();
+        showNewOrderFlash();
+      } else if (msg.type === 'order_updated') {
+        const idx = orders.findIndex(o => o.id === msg.order.id);
+        if (idx !== -1) { orders[idx] = msg.order; renderOrders(); }
+      }
     };
-    orders.unshift(order);
-    save();
-    renderOrders();
-    showNewOrderFlash();
+    es.onerror = () => {
+      // 연결 끊기면 3초 후 재연결
+      es.close();
+      setTimeout(connectSSE, 3000);
+    };
   }
 
   /* ─── Init ─── */
-  renderOrders();
+  loadOrders();
+  connectSSE();
 </script>
-
-<!-- Dev test button (remove in production) -->
-<div style="position:fixed;bottom:20px;left:20px;z-index:999;">
-  <button onclick="addTestOrder()" style="background:var(--orange);color:#fff;border:none;border-radius:9999px;padding:12px 20px;font-family:'Cairo',sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
-    + طلب تجريبي
-  </button>
-</div>
 
 </body>
 </html>
