@@ -1,5 +1,5 @@
 const express = require('express');
-const { DatabaseSync } = require('node:sqlite');
+const Database = require('better-sqlite3');
 const crypto = require('crypto');
 const path = require('path');
 
@@ -11,9 +11,9 @@ const DB_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH
   ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'cafe-warehouse.db')
   : path.join(__dirname, 'cafe-warehouse.db');
 
-const db = new DatabaseSync(DB_PATH);
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
+const db = new Database(DB_PATH);
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 // ─── 테이블 생성 ───────────────────────────────────────────────────────────────
 db.exec(`
