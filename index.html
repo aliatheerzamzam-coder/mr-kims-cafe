@@ -900,6 +900,161 @@
     /* =========================================
        ABOUT SECTION
     ========================================= */
+    /* =========================================
+       MEETING ROOM SECTION
+    ========================================= */
+    .meeting-section { background: var(--off-white); }
+
+    .meeting-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    @media (max-width: 768px) { .meeting-grid { grid-template-columns: 1fr; gap: 32px; } }
+
+    /* Room info card */
+    .room-info-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+    .room-title { font-size: 1.4rem; font-weight: 900; margin-bottom: 8px; }
+    .room-price {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 20px;
+    }
+    .room-price span { font-size: 0.95rem; font-weight: 600; color: var(--text-soft); }
+    .room-features { list-style: none; margin-bottom: 24px; }
+    .room-features li {
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .room-features li:last-child { border: none; }
+
+    /* Calendar */
+    .cal-wrap {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .cal-month-label { font-size: 1.1rem; font-weight: 900; }
+    .cal-nav-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 2px solid #e0e8e3;
+      background: none;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      color: var(--text-mid);
+    }
+    .cal-nav-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-dow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-soft);
+      padding: 6px 0;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      transition: all 0.18s;
+      font-family: inherit;
+    }
+    .cal-day:hover:not(.cal-day--outside):not(.cal-day--disabled) {
+      background: var(--green-pale);
+      color: var(--green);
+    }
+    .cal-day--today { background: var(--green-pale); color: var(--green); font-weight: 900; }
+    .cal-day--selected { background: var(--green) !important; color: #fff !important; font-weight: 900; }
+    .cal-day--outside { color: #ccc; cursor: default; }
+    .cal-day--disabled { color: #ddd; cursor: not-allowed; }
+
+    /* Time slots */
+    .timeslot-wrap { margin-top: 24px; }
+    .timeslot-label { font-size: 0.85rem; font-weight: 700; color: var(--text-mid); margin-bottom: 12px; }
+    .timeslot-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .timeslot-btn {
+      padding: 10px 6px;
+      border-radius: var(--radius-sm);
+      border: 2px solid #e0e8e3;
+      background: var(--white);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.18s;
+      text-align: center;
+      color: var(--text-mid);
+    }
+    .timeslot-btn:hover { border-color: var(--green); color: var(--green); }
+    .timeslot-btn.selected { background: var(--green); color: #fff; border-color: var(--green); }
+    .timeslot-btn.booked { background: #f5f5f5; color: #ccc; cursor: not-allowed; border-color: #eee; text-decoration: line-through; }
+
+    /* Booking form */
+    .booking-form-wrap { margin-top: 24px; }
+    .booking-selected-info {
+      background: var(--green-pale);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+    .btn-book {
+      width: 100%;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 15px;
+      font-size: 0.95rem;
+      font-weight: 900;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+    .btn-book:hover { background: var(--green-dark); }
+    .btn-book:disabled { background: #aaa; cursor: not-allowed; }
+
     .about-section { background: var(--white); }
 
     .about-grid {
@@ -1249,6 +1404,7 @@
   <ul class="nav-links" id="nav-links">
     <li><a href="#menu">      <span class="en">Menu</span><span class="ar">القائمة</span></a></li>
     <li><a href="#order">     <span class="en">Order</span><span class="ar">اطلب</span></a></li>
+    <li><a href="#meeting">   <span class="en">Meeting Room</span><span class="ar">غرفة الاجتماعات</span></a></li>
     <li><a href="#about">     <span class="en">About Us</span><span class="ar">من نحن</span></a></li>
     <li><a href="#contact">   <span class="en">Contact</span><span class="ar">تواصل معنا</span></a></li>
   </ul>
@@ -1524,6 +1680,95 @@
   </div>
 </section>
 
+
+<!-- ============================================================
+     MEETING ROOM
+============================================================ -->
+<section class="meeting-section section-pad" id="meeting">
+  <div class="section-head" style="text-align:center;margin-bottom:48px;">
+    <p class="section-eyebrow">
+      <span class="en">Book a Space</span>
+      <span class="ar">احجز مساحة</span>
+    </p>
+    <h2 class="section-title">
+      <span class="en">Meeting Room</span>
+      <span class="ar">غرفة الاجتماعات</span>
+    </h2>
+    <p class="section-desc">
+      <span class="en">Private, quiet, and fully equipped. Perfect for meetings, study sessions, and small teams.</span>
+      <span class="ar">خاصة وهادئة ومجهزة بالكامل. مثالية للاجتماعات والدراسة والفرق الصغيرة.</span>
+    </p>
+  </div>
+
+  <div class="meeting-grid max-w">
+
+    <!-- Room Info -->
+    <div class="room-info-card">
+      <div class="room-title">
+        <span class="en">Private Meeting Room</span>
+        <span class="ar">غرفة اجتماعات خاصة</span>
+      </div>
+      <div class="room-price">
+        25,000 IQD <span><span class="en">/ 2 hours</span><span class="ar">/ ساعتان</span></span>
+      </div>
+      <ul class="room-features">
+        <li>📶 <span><span class="en">High-speed WiFi</span><span class="ar">واي فاي عالي السرعة</span></span></li>
+        <li>❄️ <span><span class="en">Air conditioning</span><span class="ar">تكييف هواء</span></span></li>
+        <li>🪑 <span><span class="en">Comfortable seating</span><span class="ar">مقاعد مريحة</span></span></li>
+        <li>🔒 <span><span class="en">Private & quiet</span><span class="ar">خاصة وهادئة</span></span></li>
+        <li>☕ <span><span class="en">Drinks can be ordered separately</span><span class="ar">يمكن طلب المشروبات بشكل منفصل</span></span></li>
+        <li>📋 <span style="color:var(--text-soft)"><span class="en">Whiteboard & projector — coming soon</span><span class="ar">سبورة وبروجيكتور — قريباً</span></span></li>
+      </ul>
+      <div style="background:var(--green-pale);border-radius:var(--radius-sm);padding:14px 18px;font-size:0.85rem;color:var(--green);font-weight:700;">
+        💳 <span class="en">Payment on arrival · Reservation required</span>
+        <span class="ar">الدفع عند الوصول · الحجز مسبقاً</span>
+      </div>
+    </div>
+
+    <!-- Calendar + Booking -->
+    <div>
+      <div class="cal-wrap">
+        <!-- Calendar header -->
+        <div class="cal-header">
+          <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+          <span class="cal-month-label" id="cal-month-label"></span>
+          <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+        </div>
+        <!-- Days of week -->
+        <div class="cal-grid" id="cal-dow"></div>
+        <!-- Day grid -->
+        <div class="cal-grid" id="cal-days"></div>
+
+        <!-- Time slots (shown after date pick) -->
+        <div class="timeslot-wrap" id="timeslot-wrap" style="display:none;">
+          <div class="timeslot-label">
+            <span class="en">Available time slots</span>
+            <span class="ar">الأوقات المتاحة</span>
+          </div>
+          <div class="timeslot-grid" id="timeslot-grid"></div>
+        </div>
+
+        <!-- Booking form (shown after slot pick) -->
+        <div class="booking-form-wrap" id="booking-form-wrap" style="display:none;">
+          <div class="booking-selected-info" id="booking-selected-info"></div>
+          <div class="order-form-field">
+            <label><span class="en">Your Name</span><span class="ar">اسمك</span></label>
+            <input type="text" id="book-name" />
+          </div>
+          <div class="order-form-field">
+            <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
+            <input type="tel" id="book-phone" placeholder="+964 7xx xxx xxxx" />
+          </div>
+          <button class="btn-book" id="btn-book" onclick="submitBooking()">
+            <span class="en">📲 Book via WhatsApp</span>
+            <span class="ar">📲 احجز عبر واتساب</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
 
 <!-- ============================================================
      ABOUT US
@@ -2146,6 +2391,143 @@
     setTimeout(() => t.classList.remove('show'), 2500);
   }
 
+  /* ─── Meeting Room Calendar ─── */
+  const MEETING_WA = '9647750060011';
+  const DOW_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DOW_AR = ['أحد','اثن','ثلا','أرب','خمس','جمع','سبت'];
+  const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const TIME_SLOTS = ['09:00–11:00','11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:00–21:00'];
+
+  let calDate = new Date();
+  let calSelected = null;
+  let slotSelected = null;
+  // Simulate some booked slots (in real app these come from backend)
+  const bookedSlots = {};
+
+  function calNav(delta) {
+    calDate = new Date(calDate.getFullYear(), calDate.getMonth() + delta, 1);
+    renderCal();
+  }
+
+  function renderCal() {
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    const y = calDate.getFullYear();
+    const m = calDate.getMonth();
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Month label
+    document.getElementById('cal-month-label').textContent =
+      (lang === 'ar' ? MONTHS_AR[m] : MONTHS_EN[m]) + ' ' + y;
+
+    // Days of week
+    const dowEl = document.getElementById('cal-dow');
+    dowEl.innerHTML = (lang === 'ar' ? DOW_AR : DOW_EN)
+      .map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+    // Grid
+    const firstDay = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const prevDays = new Date(y, m, 0).getDate();
+    let html = '';
+
+    // Prev month fill
+    for (let i = firstDay - 1; i >= 0; i--) {
+      html += `<button class="cal-day cal-day--outside" disabled>${prevDays - i}</button>`;
+    }
+    // Current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(y, m, d);
+      const isPast = date < today;
+      const isToday = date.getTime() === today.getTime();
+      const isSel = calSelected &&
+        calSelected.getDate() === d && calSelected.getMonth() === m && calSelected.getFullYear() === y;
+      let cls = 'cal-day';
+      if (isPast) cls += ' cal-day--disabled';
+      else if (isSel) cls += ' cal-day--selected';
+      else if (isToday) cls += ' cal-day--today';
+      const disabled = isPast ? 'disabled' : '';
+      html += `<button class="${cls}" ${disabled} onclick="calSelectDay(${d},${m},${y})">${d}</button>`;
+    }
+    // Next month fill
+    const total = firstDay + daysInMonth;
+    const remain = total % 7 === 0 ? 0 : 7 - (total % 7);
+    for (let d = 1; d <= remain; d++) {
+      html += `<button class="cal-day cal-day--outside" disabled>${d}</button>`;
+    }
+    document.getElementById('cal-days').innerHTML = html;
+  }
+
+  function calSelectDay(d, m, y) {
+    calSelected = new Date(y, m, d);
+    slotSelected = null;
+    renderCal();
+    renderSlots();
+    document.getElementById('timeslot-wrap').style.display = '';
+    document.getElementById('booking-form-wrap').style.display = 'none';
+  }
+
+  function renderSlots() {
+    if (!calSelected) return;
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    const key = calSelected.toDateString();
+    const booked = bookedSlots[key] || [];
+    const grid = document.getElementById('timeslot-grid');
+    grid.innerHTML = TIME_SLOTS.map((slot, i) => {
+      const isBooked = booked.includes(i);
+      const isSel = slotSelected === i;
+      let cls = 'timeslot-btn';
+      if (isBooked) cls += ' booked';
+      else if (isSel) cls += ' selected';
+      const disabled = isBooked ? 'disabled' : '';
+      const label = isBooked
+        ? (lang === 'ar' ? slot + ' محجوز' : slot + ' Booked')
+        : slot;
+      return `<button class="${cls}" ${disabled} onclick="selectSlot(${i})">${label}</button>`;
+    }).join('');
+  }
+
+  function selectSlot(idx) {
+    slotSelected = idx;
+    renderSlots();
+    // Show booking form
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    const dateStr = calSelected.toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const info = document.getElementById('booking-selected-info');
+    info.innerHTML = lang === 'ar'
+      ? `📅 ${dateStr} &nbsp;·&nbsp; ⏰ ${TIME_SLOTS[idx]}`
+      : `📅 ${dateStr} &nbsp;·&nbsp; ⏰ ${TIME_SLOTS[idx]}`;
+    document.getElementById('booking-form-wrap').style.display = '';
+  }
+
+  function submitBooking() {
+    const name = document.getElementById('book-name').value.trim();
+    const phone = document.getElementById('book-phone').value.trim();
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    if (!name) { showToast(lang === 'ar' ? '⚠️ أدخل اسمك' : '⚠️ Please enter your name'); return; }
+    if (!phone) { showToast(lang === 'ar' ? '⚠️ أدخل رقم هاتفك' : '⚠️ Please enter your phone'); return; }
+
+    const dateStr = calSelected.toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    let msg = `📅 *Meeting Room Booking — Mr. Kim's CAFE*\n`;
+    msg += `━━━━━━━━━━━━━━━━\n`;
+    msg += `👤 ${name}\n📞 ${phone}\n`;
+    msg += `📅 ${dateStr}\n⏰ ${TIME_SLOTS[slotSelected]}\n`;
+    msg += `━━━━━━━━━━━━━━━━\n`;
+    msg += `💰 25,000 IQD (paid on arrival)`;
+
+    window.open(`https://wa.me/${MEETING_WA}?text=${encodeURIComponent(msg)}`, '_blank');
+    showToast(lang === 'ar' ? '✅ تم إرسال الحجز!' : '✅ Booking sent!');
+
+    // Reset
+    calSelected = null; slotSelected = null;
+    document.getElementById('book-name').value = '';
+    document.getElementById('book-phone').value = '';
+    document.getElementById('timeslot-wrap').style.display = 'none';
+    document.getElementById('booking-form-wrap').style.display = 'none';
+    renderCal();
+  }
+
+
   const groupMap = {
     drinks:  ['hot-coffee','cold-coffee','matcha','hot-tea','smoothie','frappe','milkshake','mojito','yogurt'],
     dessert: ['pastry','dessert'],
@@ -2220,6 +2602,9 @@
 
     // Default to Drinks group on load
     filterGroup('drinks', document.querySelector('.group-tab[data-group="drinks"]'));
+
+    // Init meeting room calendar
+    renderCal();
 
     // Close mobile nav on link click
     document.querySelectorAll('#nav-links a').forEach(a =>
