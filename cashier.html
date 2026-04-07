@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>كاشير — مستر كيمز</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #367d4d;
+      --green-dark: #285f3b;
+      --green-pale: #e8f5ee;
+      --red: #e53e3e;
+      --orange: #d97706;
+      --white: #fff;
+      --off-white: #f7f9f7;
+      --text-dark: #1a1a1a;
+      --text-mid: #4a4a4a;
+      --text-soft: #888;
+      --radius-sm: 12px;
+      --radius-md: 20px;
+      --radius-pill: 9999px;
+      --shadow-sm: 0 4px 16px rgba(0,0,0,0.09);
+      --shadow-md: 0 8px 32px rgba(0,0,0,0.13);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #f0f4f1;
+      color: var(--text-dark);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: var(--green);
+      color: #fff;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-title { font-size: 1.3rem; font-weight: 900; }
+    .header-meta { font-size: 0.85rem; opacity: 0.8; }
+    .header-sound {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      border-radius: var(--radius-pill);
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .header-sound:hover { background: rgba(255,255,255,0.3); }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      padding: 16px 28px;
+      background: var(--white);
+      border-bottom: 1px solid #e0e8e3;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--off-white);
+      border-radius: var(--radius-sm);
+      padding: 12px 20px;
+      text-align: center;
+      min-width: 100px;
+    }
+    .stat-num { font-size: 1.6rem; font-weight: 900; color: var(--green); }
+    .stat-label { font-size: 0.75rem; color: var(--text-soft); margin-top: 2px; }
+
+    /* Filter tabs */
+    .filter-bar {
+      padding: 16px 28px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 8px 20px;
+      border-radius: var(--radius-pill);
+      border: 2px solid #d4e8d8;
+      background: var(--white);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-mid);
+    }
+    .filter-btn:hover { border-color: var(--green); color: var(--green); }
+    .filter-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+    /* Orders grid */
+    .orders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+      padding: 20px 28px;
+    }
+
+    /* Order card */
+    .order-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      border-right: 5px solid var(--green);
+      transition: box-shadow 0.2s;
+      animation: slideIn 0.4s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .order-card.status-new    { border-right-color: var(--orange); }
+    .order-card.status-making { border-right-color: var(--green); }
+    .order-card.status-done   { border-right-color: #aaa; opacity: 0.6; }
+
+    .order-card-header {
+      padding: 14px 18px;
+      background: var(--off-white);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #eee;
+    }
+    .order-num { font-weight: 900; font-size: 1.1rem; }
+    .order-type-badge {
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+    .badge-dine    { background: #dbeafe; color: #1d4ed8; }
+    .badge-pickup  { background: #fef9c3; color: #854d0e; }
+    .order-time   { font-size: 0.78rem; color: var(--text-soft); }
+
+    .order-info {
+      padding: 12px 18px;
+      font-size: 0.85rem;
+      color: var(--text-mid);
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .order-info strong { color: var(--text-dark); }
+
+    .order-items { padding: 12px 18px; }
+    .order-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 0.9rem;
+      border-bottom: 1px dashed #f0f0f0;
+    }
+    .order-item-row:last-child { border: none; }
+    .item-name { font-weight: 700; }
+    .item-qty  { color: var(--green); font-weight: 900; }
+
+    .order-total-row {
+      padding: 10px 18px;
+      background: var(--green-pale);
+      display: flex;
+      justify-content: space-between;
+      font-weight: 900;
+      font-size: 0.95rem;
+    }
+    .order-total-amount { color: var(--green); }
+
+    .order-actions {
+      padding: 14px 18px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 10px;
+      border-radius: var(--radius-pill);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-making {
+      background: var(--green);
+      color: #fff;
+    }
+    .btn-making:hover { background: var(--green-dark); }
+    .btn-done {
+      background: #e2e8f0;
+      color: var(--text-mid);
+    }
+    .btn-done:hover { background: #cbd5e0; }
+    .btn-print {
+      background: none;
+      border: 2px solid #d4e8d8 !important;
+      color: var(--green);
+      flex: 0 0 auto;
+      padding: 10px 14px;
+    }
+    .btn-print:hover { background: var(--green-pale); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-soft);
+      grid-column: 1/-1;
+    }
+    .empty-icon { font-size: 4rem; margin-bottom: 16px; }
+
+    /* New order notification overlay */
+    .new-order-flash {
+      position: fixed;
+      top: 80px; left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--orange);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: var(--radius-pill);
+      font-weight: 900;
+      font-size: 1rem;
+      z-index: 999;
+      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+      box-shadow: var(--shadow-md);
+    }
+    .new-order-flash.show { transform: translateX(-50%) translateY(0); }
+
+    /* Print receipt styles */
+    @media print {
+      body > *:not(#print-area) { display: none !important; }
+      #print-area {
+        display: block !important;
+        font-family: monospace;
+        font-size: 12px;
+        width: 280px;
+        margin: 0 auto;
+      }
+    }
+    #print-area { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="print-area"></div>
+<div class="new-order-flash" id="new-flash">🔔 طلب جديد!</div>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="header-title">🏪 كاشير — مستر كيمز</div>
+    <div class="header-meta" id="header-time"></div>
+  </div>
+  <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 الصوت: تشغيل</button>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-num" id="stat-new">0</div>
+    <div class="stat-label">جديد</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-making">0</div>
+    <div class="stat-label">قيد التحضير</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-done">0</div>
+    <div class="stat-label">مكتمل اليوم</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-total">0</div>
+    <div class="stat-label">إجمالي اليوم (IQD)</div>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="setFilter('all',this)">الكل</button>
+  <button class="filter-btn" onclick="setFilter('new',this)">🟠 جديد</button>
+  <button class="filter-btn" onclick="setFilter('making',this)">🟢 قيد التحضير</button>
+  <button class="filter-btn" onclick="setFilter('done',this)">✅ مكتمل</button>
+</div>
+
+<!-- Orders -->
+<div class="orders-grid" id="orders-grid"></div>
+
+<script>
+  /* ─── State ─── */
+  let orders = JSON.parse(localStorage.getItem('kims-orders') || '[]');
+  let orderCounter = parseInt(localStorage.getItem('kims-counter') || '1');
+  let soundOn = true;
+  let currentFilter = 'all';
+
+  /* ─── Clock ─── */
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('header-time').textContent =
+      now.toLocaleDateString('ar-IQ') + '  ' + now.toLocaleTimeString('ar-IQ');
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  /* ─── Sound ─── */
+  function playSound() {
+    if (!soundOn) return;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1100, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.3);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.3);
+    });
+  }
+
+  function toggleSound() {
+    soundOn = !soundOn;
+    document.getElementById('sound-btn').textContent = soundOn ? '🔔 الصوت: تشغيل' : '🔕 الصوت: إيقاف';
+  }
+
+  /* ─── Stats ─── */
+  function updateStats() {
+    const today = new Date().toDateString();
+    const todayOrders = orders.filter(o => new Date(o.timestamp).toDateString() === today);
+    document.getElementById('stat-new').textContent    = todayOrders.filter(o => o.status === 'new').length;
+    document.getElementById('stat-making').textContent = todayOrders.filter(o => o.status === 'making').length;
+    document.getElementById('stat-done').textContent   = todayOrders.filter(o => o.status === 'done').length;
+    const totalRevenue = todayOrders.filter(o => o.status === 'done').reduce((s,o) => s + o.total, 0);
+    document.getElementById('stat-total').textContent  = totalRevenue.toLocaleString();
+  }
+
+  /* ─── Render ─── */
+  function renderOrders() {
+    const grid = document.getElementById('orders-grid');
+    const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
+    const sorted = [...filtered].sort((a,b) => b.timestamp - a.timestamp);
+
+    if (sorted.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">☕</div>
+        <div>لا توجد طلبات حالياً</div>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = sorted.map(order => {
+      const time = new Date(order.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
+      const typeBadge = order.type === 'dine'
+        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${order.tableNum}</span>`
+        : `<span class="order-type-badge badge-pickup">🏃 استلام</span>`;
+      const info = order.type === 'pickup'
+        ? `<div class="order-info">👤 <strong>${order.customerName}</strong> &nbsp; 📞 ${order.customerPhone}</div>`
+        : '';
+      const itemsHtml = order.items.map(i =>
+        `<div class="order-item-row"><span>${i.emoji} <span class="item-name">${i.nameAr || i.name}</span></span><span class="item-qty">×${i.qty}</span></div>`
+      ).join('');
+
+      const actionBtns = order.status === 'new'
+        ? `<button class="btn-action btn-making" onclick="setStatus('${order.id}','making')">✓ بدء التحضير</button>`
+        : order.status === 'making'
+        ? `<button class="btn-action btn-done" onclick="setStatus('${order.id}','done')">✅ تم التسليم</button>`
+        : `<span style="color:#aaa;font-size:0.85rem;font-weight:700;">✅ مكتمل</span>`;
+
+      return `<div class="order-card status-${order.status}" id="card-${order.id}">
+        <div class="order-card-header">
+          <span class="order-num">#${order.num}</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${typeBadge}
+            <span class="order-time">${time}</span>
+          </div>
+        </div>
+        ${info}
+        <div class="order-items">${itemsHtml}</div>
+        <div class="order-total-row">
+          <span>الإجمالي</span>
+          <span class="order-total-amount">${order.total.toLocaleString()} IQD</span>
+        </div>
+        <div class="order-actions">
+          ${actionBtns}
+          <button class="btn-action btn-print" onclick="printReceipt('${order.id}')" title="طباعة">🖨️</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    updateStats();
+  }
+
+  function setStatus(id, status) {
+    const order = orders.find(o => o.id === id);
+    if (order) { order.status = status; save(); renderOrders(); }
+  }
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrders();
+  }
+
+  /* ─── New order notification ─── */
+  function showNewOrderFlash() {
+    playSound();
+    const flash = document.getElementById('new-flash');
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 3000);
+  }
+
+  /* ─── Print receipt ─── */
+  function printReceipt(id) {
+    const o = orders.find(x => x.id === id);
+    if (!o) return;
+    const time = new Date(o.timestamp).toLocaleString('ar-IQ');
+    let html = `<div style="text-align:center;font-weight:bold;font-size:16px;">مستر كيمز</div>
+<div style="text-align:center;font-size:12px;">Mr. Kim's CAFE</div>
+<div style="border-top:1px dashed #000;margin:8px 0;"></div>
+<div>رقم الطلب: #${o.num}</div>
+<div>الوقت: ${time}</div>
+<div>النوع: ${o.type === 'dine' ? 'داخل المحل — طاولة ' + o.tableNum : 'استلام — ' + o.customerName}</div>
+<div style="border-top:1px dashed #000;margin:8px 0;"></div>`;
+    o.items.forEach(i => {
+      html += `<div style="display:flex;justify-content:space-between;"><span>${i.emoji} ${i.nameAr || i.name} ×${i.qty}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
+    });
+    html += `<div style="border-top:1px dashed #000;margin:8px 0;"></div>
+<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>الإجمالي</span><span>${o.total.toLocaleString()} IQD</span></div>
+<div style="text-align:center;margin-top:12px;font-size:11px;">شكراً لزيارتكم!</div>`;
+    document.getElementById('print-area').innerHTML = html;
+    window.print();
+  }
+
+  /* ─── Storage ─── */
+  function save() {
+    localStorage.setItem('kims-orders', JSON.stringify(orders));
+    localStorage.setItem('kims-counter', orderCounter);
+  }
+
+  /* ─── Listen for new orders from main site (same browser / localStorage) ─── */
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'kims-new-order' && e.newValue) {
+      const order = JSON.parse(e.newValue);
+      orders.unshift(order);
+      save();
+      renderOrders();
+      showNewOrderFlash();
+    }
+  });
+
+  /* ─── Demo: add test order button ─── */
+  function addTestOrder() {
+    const order = {
+      id: Date.now().toString(),
+      num: orderCounter++,
+      timestamp: Date.now(),
+      status: 'new',
+      type: 'dine',
+      tableNum: Math.floor(Math.random()*10)+1,
+      items: [
+        { emoji:'☕', name:'Hot Americano', nameAr:'أمريكانو ساخن', qty:2, price:5000 },
+        { emoji:'🥐', name:'Croissant', nameAr:'كرواسون', qty:1, price:3000 }
+      ],
+      total: 13000
+    };
+    orders.unshift(order);
+    save();
+    renderOrders();
+    showNewOrderFlash();
+  }
+
+  /* ─── Init ─── */
+  renderOrders();
+</script>
+
+<!-- Dev test button (remove in production) -->
+<div style="position:fixed;bottom:20px;left:20px;z-index:999;">
+  <button onclick="addTestOrder()" style="background:var(--orange);color:#fff;border:none;border-radius:9999px;padding:12px 20px;font-family:'Cairo',sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+    + طلب تجريبي
+  </button>
+</div>
+
+</body>
+</html>

@@ -529,6 +529,329 @@
     .btn-outline-green:hover { background: var(--green); color: var(--white); }
 
     /* =========================================
+       CART SYSTEM
+    ========================================= */
+    .cart-btn {
+      position: relative;
+      background: var(--green);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 10px 20px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background var(--speed) var(--ease);
+    }
+    .cart-btn:hover { background: var(--green-dark); }
+    .cart-badge {
+      background: #e53e3e;
+      color: #fff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      font-weight: 900;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .cart-badge.show { display: flex; }
+
+    /* Add to cart button on card */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .btn-add {
+      background: var(--green);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 7px 16px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--speed) var(--ease), transform 0.15s;
+    }
+    .btn-add:hover { background: var(--green-dark); transform: scale(1.05); }
+    .btn-add:active { transform: scale(0.97); }
+
+    /* Cart drawer */
+    .cart-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .cart-overlay.open { opacity: 1; pointer-events: all; }
+
+    .cart-drawer {
+      position: fixed;
+      top: 0; right: 0;
+      width: min(420px, 100vw);
+      height: 100vh;
+      background: var(--white);
+      z-index: 1200;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.35s var(--ease);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.15);
+    }
+    html[lang="ar"] .cart-drawer { right: auto; left: 0; transform: translateX(-100%); }
+    .cart-drawer.open { transform: translateX(0); }
+    html[lang="ar"] .cart-drawer.open { transform: translateX(0); }
+
+    .cart-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cart-title { font-size: 1.1rem; font-weight: 900; }
+    .cart-close {
+      background: none; border: none;
+      font-size: 1.5rem; cursor: pointer;
+      color: var(--text-mid);
+      line-height: 1;
+    }
+    .cart-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 24px;
+    }
+    .cart-empty {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-soft);
+    }
+    .cart-empty .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .cart-item-emoji { font-size: 2rem; min-width: 40px; text-align: center; }
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-weight: 800; font-size: 0.92rem; margin-bottom: 3px; }
+    .cart-item-price { color: var(--green); font-weight: 700; font-size: 0.85rem; }
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .qty-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--green);
+      background: none;
+      color: var(--green);
+      font-size: 1.1rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .qty-btn:hover { background: var(--green); color: #fff; }
+    .qty-num { font-weight: 900; font-size: 0.95rem; min-width: 20px; text-align: center; }
+
+    .cart-footer {
+      padding: 20px 24px;
+      border-top: 2px solid #eee;
+      background: var(--white);
+    }
+    .cart-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 900;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+    }
+    .cart-total-price { color: var(--green); }
+    .btn-checkout {
+      width: 100%;
+      background: var(--green);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 16px;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--speed) var(--ease);
+    }
+    .btn-checkout:hover { background: var(--green-dark); }
+    .btn-checkout:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* Checkout modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1300;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      width: min(480px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 32px;
+      transform: scale(0.92);
+      transition: transform 0.3s var(--ease);
+    }
+    .modal-overlay.open .modal-box { transform: scale(1); }
+    .modal-title { font-size: 1.3rem; font-weight: 900; margin-bottom: 24px; }
+
+    /* Order type selector */
+    .order-type-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .order-type-btn {
+      padding: 16px 8px;
+      border-radius: var(--radius-sm);
+      border: 2px solid #e0e8e3;
+      background: var(--white);
+      cursor: pointer;
+      text-align: center;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .order-type-btn .type-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; }
+    .order-type-btn .type-label { font-size: 0.8rem; font-weight: 800; color: var(--text-mid); }
+    .order-type-btn.selected { border-color: var(--green); background: var(--green-pale); }
+    .order-type-btn.selected .type-label { color: var(--green); }
+
+    .order-form-field { margin-bottom: 16px; }
+    .order-form-field label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-mid);
+    }
+    .order-form-field input, .order-form-field select {
+      width: 100%;
+      border: 2px solid #e0e8e3;
+      border-radius: var(--radius-xs);
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .order-form-field input:focus,
+    .order-form-field select:focus { border-color: var(--green); }
+
+    .coming-soon-badge {
+      background: #fff3cd;
+      color: #856404;
+      border-radius: var(--radius-xs);
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    /* Confirm modal */
+    .confirm-items {
+      background: var(--off-white);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .confirm-item-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      padding: 5px 0;
+      border-bottom: 1px dashed #ddd;
+    }
+    .confirm-item-row:last-child { border: none; }
+    .confirm-total {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 900;
+      font-size: 1.05rem;
+      margin-bottom: 24px;
+      color: var(--green);
+    }
+    .confirm-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .btn-confirm-yes {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 14px;
+      font-weight: 900;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .btn-confirm-yes:hover { background: var(--green-dark); }
+    .btn-confirm-no {
+      background: none;
+      color: var(--text-mid);
+      border: 2px solid #ddd;
+      border-radius: var(--radius-pill);
+      padding: 14px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-confirm-no:hover { border-color: var(--green); color: var(--green); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--text-dark);
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      font-size: 0.9rem;
+      z-index: 2000;
+      transition: transform 0.4s var(--ease);
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* =========================================
        ORDER SECTION
     ========================================= */
     .order-section {
@@ -936,10 +1259,10 @@
       <button class="lang-btn"        id="btn-ar" onclick="setLang('ar')">العربية</button>
     </div>
 
-    <a href="#menu" class="btn-nav-order">
-      <span class="en">Order Now</span>
-      <span class="ar">اطلب الآن</span>
-    </a>
+    <button class="cart-btn" onclick="openCart()">
+      🛒 <span class="en">Cart</span><span class="ar">السلة</span>
+      <span class="cart-badge" id="cart-badge">0</span>
+    </button>
 
     <button class="hamburger" id="hamburger"
             aria-label="Toggle menu" onclick="toggleNav()">
@@ -1634,6 +1957,195 @@
     }
   };
 
+  /* ─── Cart System ─── */
+  let cart = [];
+  const CASHIER_WA = '9647750060011';
+
+  function addToCart(catKey, idx) {
+    const item = menuData[catKey].items[idx];
+    const existing = cart.find(c => c.catKey === catKey && c.idx === idx);
+    if (existing) {
+      existing.qty++;
+    } else {
+      cart.push({ catKey, idx, qty: 1, name: item.en, nameAr: item.ar, price: parseInt(item.price), emoji: item.emoji });
+    }
+    updateCartBadge();
+    showToast('✓ ' + item.en);
+  }
+
+  function updateCartBadge() {
+    const total = cart.reduce((s, c) => s + c.qty, 0);
+    const badge = document.getElementById('cart-badge');
+    badge.textContent = total;
+    badge.classList.toggle('show', total > 0);
+    document.getElementById('btn-checkout').disabled = total === 0;
+    renderCartItems();
+  }
+
+  function renderCartItems() {
+    const container = document.getElementById('cart-items');
+    const empty = document.getElementById('cart-empty');
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    if (cart.length === 0) {
+      container.innerHTML = '';
+      container.appendChild(empty);
+      empty.style.display = '';
+      document.getElementById('cart-total').textContent = '0 IQD';
+      return;
+    }
+    empty.style.display = 'none';
+    let html = '';
+    cart.forEach((c, i) => {
+      const name = lang === 'ar' ? c.nameAr : c.name;
+      html += `<div class="cart-item">
+        <span class="cart-item-emoji">${c.emoji}</span>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${name}</div>
+          <div class="cart-item-price">${c.price * c.qty} IQD</div>
+        </div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+          <span class="qty-num">${c.qty}</span>
+          <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+        </div>
+      </div>`;
+    });
+    container.innerHTML = html;
+    const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
+    document.getElementById('cart-total').textContent = total.toLocaleString() + ' IQD';
+  }
+
+  function changeQty(i, delta) {
+    cart[i].qty += delta;
+    if (cart[i].qty <= 0) cart.splice(i, 1);
+    updateCartBadge();
+  }
+
+  function openCart() {
+    document.getElementById('cart-overlay').classList.add('open');
+    document.getElementById('cart-drawer').classList.add('open');
+    renderCartItems();
+  }
+
+  function closeCart() {
+    document.getElementById('cart-overlay').classList.remove('open');
+    document.getElementById('cart-drawer').classList.remove('open');
+  }
+
+  /* ─── Checkout ─── */
+  let selectedType = null;
+
+  function openCheckout() {
+    closeCart();
+    // populate table select
+    const sel = document.getElementById('input-table');
+    sel.innerHTML = '<option value="">-- Select table --</option>';
+    for (let t = 1; t <= 40; t++) sel.innerHTML += `<option value="${t}">Table ${t}</option>`;
+    document.getElementById('checkout-modal').classList.add('open');
+  }
+
+  function closeCheckout() {
+    document.getElementById('checkout-modal').classList.remove('open');
+    selectedType = null;
+    ['dine','pickup','delivery'].forEach(t => {
+      document.getElementById('type-'+t).classList.remove('selected');
+      document.getElementById('form-'+t).style.display = 'none';
+    });
+    document.getElementById('btn-next').disabled = true;
+  }
+
+  function selectType(type) {
+    selectedType = type;
+    ['dine','pickup','delivery'].forEach(t => {
+      document.getElementById('type-'+t).classList.toggle('selected', t === type);
+      document.getElementById('form-'+t).style.display = t === type ? '' : 'none';
+    });
+    document.getElementById('btn-next').disabled = (type === 'delivery');
+  }
+
+  function goConfirm() {
+    if (!selectedType || selectedType === 'delivery') return;
+    if (selectedType === 'dine' && !document.getElementById('input-table').value) {
+      showToast('⚠️ Please select a table');
+      return;
+    }
+    if (selectedType === 'pickup') {
+      if (!document.getElementById('input-name').value.trim()) { showToast('⚠️ Please enter your name'); return; }
+      if (!document.getElementById('input-phone').value.trim()) { showToast('⚠️ Please enter your phone'); return; }
+    }
+    closeCheckout();
+    // build confirm modal
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    let itemsHtml = '';
+    cart.forEach(c => {
+      const name = lang === 'ar' ? c.nameAr : c.name;
+      itemsHtml += `<div class="confirm-item-row"><span>${c.emoji} ${name} x${c.qty}</span><span>${(c.price*c.qty).toLocaleString()} IQD</span></div>`;
+    });
+    document.getElementById('confirm-items').innerHTML = itemsHtml;
+    const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
+    document.getElementById('confirm-total-price').textContent = total.toLocaleString() + ' IQD';
+    document.getElementById('confirm-modal').classList.add('open');
+  }
+
+  function closeConfirm() {
+    document.getElementById('confirm-modal').classList.remove('open');
+    openCheckout();
+  }
+
+  function placeOrder() {
+    const lang = document.getElementById('html-root').getAttribute('lang');
+    const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
+    let msg = '🛒 *New Order — Mr. Kim\'s CAFE*\n';
+    msg += '━━━━━━━━━━━━━━━━\n';
+
+    if (selectedType === 'dine') {
+      msg += `📍 *Dine-in* — Table ${document.getElementById('input-table').value}\n`;
+    } else {
+      msg += `🏃 *Pickup*\n`;
+      msg += `👤 ${document.getElementById('input-name').value}\n`;
+      msg += `📞 ${document.getElementById('input-phone').value}\n`;
+    }
+    msg += '━━━━━━━━━━━━━━━━\n';
+    cart.forEach(c => {
+      msg += `${c.emoji} ${c.name} x${c.qty} — ${(c.price*c.qty).toLocaleString()} IQD\n`;
+    });
+    msg += '━━━━━━━━━━━━━━━━\n';
+    msg += `💰 *Total: ${total.toLocaleString()} IQD*`;
+
+    // Send to WhatsApp
+    const url = `https://wa.me/${CASHIER_WA}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+
+    // Send to cashier page via localStorage
+    const orderCounter = parseInt(localStorage.getItem('kims-counter') || '1');
+    const order = {
+      id: Date.now().toString(),
+      num: orderCounter,
+      timestamp: Date.now(),
+      status: 'new',
+      type: selectedType,
+      tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
+      customerName: selectedType === 'pickup' ? document.getElementById('input-name').value : null,
+      customerPhone: selectedType === 'pickup' ? document.getElementById('input-phone').value : null,
+      items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
+      total
+    };
+    localStorage.setItem('kims-counter', orderCounter + 1);
+    localStorage.setItem('kims-new-order', JSON.stringify(order));
+
+    cart = [];
+    updateCartBadge();
+    document.getElementById('confirm-modal').classList.remove('open');
+    showToast('✅ Order placed!');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
   const groupMap = {
     drinks:  ['hot-coffee','cold-coffee','matcha','hot-tea','smoothie','frappe','milkshake','mojito','yogurt'],
     dessert: ['pastry','dessert'],
@@ -1659,7 +2171,7 @@
     const grid = document.getElementById('menu-grid');
     document.getElementById('cat-panel-title').innerHTML =
       `<span class="en">${data.en}</span><span class="ar">${data.ar}</span>`;
-    grid.innerHTML = data.items.map(item => `
+    grid.innerHTML = data.items.map((item, idx) => `
       <div class="menu-card">
         <div class="card-thumb-placeholder">${item.emoji}</div>
         <div class="card-body">
@@ -1667,8 +2179,15 @@
           <div class="card-name ar">${item.ar}</div>
           <div class="card-desc en">${item.descEn}</div>
           <div class="card-desc ar">${item.descAr}</div>
-          <div class="card-price en">${item.price} AED</div>
-          <div class="card-price ar">${item.price} درهم</div>
+          <div class="card-footer">
+            <div>
+              <div class="card-price en">${parseInt(item.price).toLocaleString()} IQD</div>
+              <div class="card-price ar">${parseInt(item.price).toLocaleString()} دينار</div>
+            </div>
+            <button class="btn-add" onclick="addToCart('${cat}', ${idx})">
+              <span class="en">+ Add</span><span class="ar">+ أضف</span>
+            </button>
+          </div>
         </div>
       </div>`).join('');
     document.getElementById('cat-grid').style.display = 'none';
@@ -1710,6 +2229,131 @@
     );
   });
 </script>
+
+<!-- ============================================================
+     CART DRAWER
+============================================================ -->
+<div class="cart-overlay" id="cart-overlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cart-drawer">
+  <div class="cart-header">
+    <span class="cart-title">
+      <span class="en">🛒 Your Order</span>
+      <span class="ar">🛒 طلبك</span>
+    </span>
+    <button class="cart-close" onclick="closeCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items">
+    <div class="cart-empty" id="cart-empty">
+      <div class="empty-icon">🛒</div>
+      <span class="en">Your cart is empty</span>
+      <span class="ar">سلتك فارغة</span>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total-row">
+      <span><span class="en">Total</span><span class="ar">الإجمالي</span></span>
+      <span class="cart-total-price" id="cart-total">0 IQD</span>
+    </div>
+    <button class="btn-checkout" id="btn-checkout" onclick="openCheckout()" disabled>
+      <span class="en">Proceed to Checkout</span>
+      <span class="ar">المتابعة للدفع</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     CHECKOUT MODAL
+============================================================ -->
+<div class="modal-overlay" id="checkout-modal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span class="en">How would you like your order?</span>
+      <span class="ar">كيف تريد طلبك؟</span>
+    </div>
+
+    <div class="order-type-grid">
+      <button class="order-type-btn" id="type-dine" onclick="selectType('dine')">
+        <span class="type-icon">🪑</span>
+        <span class="type-label en">Dine-in</span>
+        <span class="type-label ar">داخل المحل</span>
+      </button>
+      <button class="order-type-btn" id="type-pickup" onclick="selectType('pickup')">
+        <span class="type-icon">🏃</span>
+        <span class="type-label en">Pickup</span>
+        <span class="type-label ar">استلام</span>
+      </button>
+      <button class="order-type-btn" id="type-delivery" onclick="selectType('delivery')">
+        <span class="type-icon">🛵</span>
+        <span class="type-label en">Delivery</span>
+        <span class="type-label ar">توصيل</span>
+      </button>
+    </div>
+
+    <div id="form-dine" style="display:none">
+      <div class="order-form-field">
+        <label><span class="en">Table Number</span><span class="ar">رقم الطاولة</span></label>
+        <select id="input-table">
+          <option value=""><span class="en">Select table...</span></option>
+          <!-- generated by JS -->
+        </select>
+      </div>
+    </div>
+
+    <div id="form-pickup" style="display:none">
+      <div class="order-form-field">
+        <label><span class="en">Your Name</span><span class="ar">اسمك</span></label>
+        <input type="text" id="input-name" placeholder="e.g. Ahmed" />
+      </div>
+      <div class="order-form-field">
+        <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
+        <input type="tel" id="input-phone" placeholder="+964 7xx xxx xxxx" />
+      </div>
+    </div>
+
+    <div id="form-delivery" style="display:none">
+      <div class="coming-soon-badge">
+        🚧 <span class="en">Delivery coming soon!</span><span class="ar">التوصيل قريباً!</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:8px;">
+      <button class="btn-confirm-no" style="flex:1" onclick="closeCheckout()">
+        <span class="en">Cancel</span><span class="ar">إلغاء</span>
+      </button>
+      <button class="btn-confirm-yes" style="flex:2" id="btn-next" onclick="goConfirm()" disabled>
+        <span class="en">Review Order →</span><span class="ar">مراجعة الطلب ←</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRM MODAL
+============================================================ -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span class="en">Confirm your order?</span>
+      <span class="ar">تأكيد طلبك؟</span>
+    </div>
+    <div class="confirm-items" id="confirm-items"></div>
+    <div class="confirm-total">
+      <span><span class="en">Total</span><span class="ar">الإجمالي</span></span>
+      <span id="confirm-total-price"></span>
+    </div>
+    <div class="confirm-btns">
+      <button class="btn-confirm-no" onclick="closeConfirm()">
+        <span class="en">← Go Back</span><span class="ar">→ رجوع</span>
+      </button>
+      <button class="btn-confirm-yes" onclick="placeOrder()">
+        <span class="en">Yes, Order Now ✓</span><span class="ar">نعم، اطلب الآن ✓</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
 </body>
 </html>
