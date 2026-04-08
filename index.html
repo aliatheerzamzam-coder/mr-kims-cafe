@@ -2747,6 +2747,13 @@
       document.getElementById('form-'+t).style.display = t === type ? '' : 'none';
     });
     document.getElementById('btn-next').disabled = (type === 'delivery');
+
+    if (type === 'pickup' && authState.customer) {
+      const nameEl  = document.getElementById('input-name');
+      const phoneEl = document.getElementById('input-phone');
+      if (!nameEl.value)  nameEl.value  = authState.customer.name  || '';
+      if (!phoneEl.value) phoneEl.value = authState.customer.phone || '';
+    }
   }
 
   function goConfirm() {
