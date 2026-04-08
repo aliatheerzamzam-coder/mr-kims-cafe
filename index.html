@@ -2339,6 +2339,9 @@
   }
 
   async function placeOrder() {
+    const btn = document.getElementById('btn-place-order');
+    if (btn.disabled) return;
+    btn.disabled = true;
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
 
     // WhatsApp 알림 메시지 구성
@@ -2383,7 +2386,13 @@
     cart = [];
     updateCartBadge();
     document.getElementById('confirm-modal').classList.remove('open');
+    // 폼 필드 초기화
+    const nameEl = document.getElementById('input-name');
+    const phoneEl = document.getElementById('input-phone');
+    if (nameEl) nameEl.value = '';
+    if (phoneEl) phoneEl.value = '';
     showToast('✅ Order placed!');
+    btn.disabled = false;
   }
 
   function showToast(msg) {
@@ -2732,7 +2741,7 @@
       <button class="btn-confirm-no" onclick="closeConfirm()">
         <span class="en">← Go Back</span><span class="ar">→ رجوع</span>
       </button>
-      <button class="btn-confirm-yes" onclick="placeOrder()">
+      <button class="btn-confirm-yes" id="btn-place-order" onclick="placeOrder()">
         <span class="en">Yes, Order Now ✓</span><span class="ar">نعم، اطلب الآن ✓</span>
       </button>
     </div>

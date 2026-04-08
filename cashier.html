@@ -315,6 +315,19 @@
   let soundOn = true;
   let currentFilter = 'all';
 
+  /* ─── XSS 방지 ─── */
+  function esc(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  /* ─── Baghdad(UTC+3) 기준 오늘 날짜 ─── */
+  function localDateStr() {
+    const now = new Date();
+    const local = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+    return local.toISOString().slice(0, 10);
+  }
+
   /* ─── Clock ─── */
   function updateClock() {
     const now = new Date();
@@ -375,25 +388,26 @@
     grid.innerHTML = sorted.map(order => {
       const time = new Date(order.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
       const typeBadge = order.type === 'dine'
-        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${order.table_num}</span>`
+        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${esc(order.table_num)}</span>`
         : `<span class="order-type-badge badge-pickup">🏃 استلام</span>`;
       const info = order.type === 'pickup'
-        ? `<div class="order-info">👤 <strong>${order.customer_name}</strong> &nbsp; 📞 ${order.customer_phone}</div>`
+        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong> &nbsp; 📞 ${esc(order.customer_phone)}</div>`
         : '';
       const itemsHtml = order.items.map(i =>
-        `<div class="order-item-row"><span>${i.emoji} <span class="item-name">${i.nameAr || i.name}</span></span><span class="item-qty">×${i.qty}</span></div>`
+        `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span></span><span class="item-qty">×${esc(String(i.qty))}</span></div>`
       ).join('');
 
+      const safeId = esc(order.id);
       const actionBtns = order.status === 'new'
-        ? `<button class="btn-action btn-making" onclick="setStatus('${order.id}','making')">✓ بدء التحضير</button>`
+        ? `<button class="btn-action btn-making" id="btn-${safeId}" onclick="setStatus('${safeId}','making')">✓ بدء التحضير</button>`
         : order.status === 'making'
-        ? `<button class="btn-action btn-done" onclick="setStatus('${order.id}','done')">✅ تم التسليم</button>`
+        ? `<button class="btn-action btn-done" id="btn-${safeId}" onclick="setStatus('${safeId}','done')">✅ تم التسليم</button>`
         : order.status === 'cancelled'
         ? `<span style="color:#e53e3e;font-size:0.85rem;font-weight:700;">❌ ملغي</span>`
         : `<span style="color:#aaa;font-size:0.85rem;font-weight:700;">✅ مكتمل</span>`;
 
       const cancelBtn = (order.status === 'new' || order.status === 'making')
-        ? `<button class="btn-cancel" onclick="cancelOrder('${order.id}')" title="إلغاء الطلب">✕</button>`
+        ? `<button class="btn-cancel" id="cancel-${safeId}" onclick="cancelOrder('${safeId}')" title="إلغاء الطلب">✕</button>`
         : '';
 
       return `<div class="order-card status-${order.status}" id="card-${order.id}">
@@ -424,24 +438,42 @@
   /* ─── API: 주문 취소 ─── */
   async function cancelOrder(id) {
     if (!confirm('이 주문을 취소할까요؟\nهل تريد إلغاء هذا الطلب؟')) return;
-    await fetch(`/api/orders/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'cancelled' })
-    });
-    const order = orders.find(o => o.id === id);
-    if (order) { order.status = 'cancelled'; renderOrders(); }
+    const btn = document.getElementById(`cancel-${id}`);
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    try {
+      const res = await fetch(`/api/orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+      if (!res.ok) throw new Error('서버 오류');
+      const data = await res.json();
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) { orders[idx] = data.order; renderOrders(); }
+    } catch (e) {
+      alert('취소 실패. 다시 시도해주세요.');
+      if (btn) { btn.disabled = false; btn.textContent = '✕'; }
+    }
   }
 
   /* ─── API: 주문 상태 변경 ─── */
   async function setStatus(id, status) {
-    await fetch(`/api/orders/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    });
-    const order = orders.find(o => o.id === id);
-    if (order) { order.status = status; renderOrders(); }
+    const btn = document.getElementById(`btn-${id}`);
+    if (btn) { btn.disabled = true; }
+    try {
+      const res = await fetch(`/api/orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error('서버 오류');
+      const data = await res.json();
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) { orders[idx] = data.order; renderOrders(); }
+    } catch (e) {
+      alert('상태 변경 실패. 다시 시도해주세요.');
+      if (btn) { btn.disabled = false; }
+    }
   }
 
   function setFilter(f, btn) {
@@ -464,15 +496,18 @@
     const o = orders.find(x => x.id === id);
     if (!o) return;
     const time = new Date(o.timestamp).toLocaleString('ar-IQ');
+    const typeStr = o.type === 'dine'
+      ? `داخل المحل — طاولة ${esc(o.table_num)}`
+      : `استلام — ${esc(o.customer_name)}`;
     let html = `<div style="text-align:center;font-weight:bold;font-size:16px;">مستر كيمز</div>
-<div style="text-align:center;font-size:12px;">Mr. Kim's CAFE</div>
+<div style="text-align:center;font-size:12px;">Mr. Kim&#39;s CAFE</div>
 <div style="border-top:1px dashed #000;margin:8px 0;"></div>
-<div>رقم الطلب: #${o.num}</div>
-<div>الوقت: ${time}</div>
-<div>النوع: ${o.type === 'dine' ? 'داخل المحل — طاولة ' + o.table_num : 'استلام — ' + o.customer_name}</div>
+<div>رقم الطلب: #${esc(String(o.num))}</div>
+<div>الوقت: ${esc(time)}</div>
+<div>النوع: ${typeStr}</div>
 <div style="border-top:1px dashed #000;margin:8px 0;"></div>`;
     o.items.forEach(i => {
-      html += `<div style="display:flex;justify-content:space-between;"><span>${i.emoji} ${i.nameAr || i.name} ×${i.qty}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
+      html += `<div style="display:flex;justify-content:space-between;"><span>${esc(i.emoji)} ${esc(i.nameAr || i.name)} ×${esc(String(i.qty))}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
     });
     html += `<div style="border-top:1px dashed #000;margin:8px 0;"></div>
 <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>الإجمالي</span><span>${o.total.toLocaleString()} IQD</span></div>
@@ -483,10 +518,15 @@
 
   /* ─── API: 오늘 주문 불러오기 ─── */
   async function loadOrders() {
-    const today = new Date().toISOString().slice(0, 10);
-    const data = await fetch(`/api/orders?date=${today}`).then(r => r.json());
-    orders = data;
-    renderOrders();
+    const today = localDateStr(); // Baghdad(UTC+3) 기준
+    try {
+      const res = await fetch(`/api/orders?date=${today}`);
+      if (!res.ok) throw new Error('서버 오류');
+      orders = await res.json();
+      renderOrders();
+    } catch (e) {
+      console.error('주문 로드 실패:', e);
+    }
   }
 
   /* ─── SSE: 실시간 새 주문 수신 ─── */

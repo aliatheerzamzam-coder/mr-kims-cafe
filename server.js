@@ -88,8 +88,28 @@ if (!db.prepare("SELECT id FROM order_counter WHERE id=1").get()) {
   db.prepare("INSERT INTO order_counter (id, value) VALUES (1, 1)").run();
 }
 
-// ─── 세션 (메모리) ─────────────────────────────────────────────────────────────
+// ─── 세션 (메모리, 12시간 TTL) ────────────────────────────────────────────────
 const sessions = new Map();
+const SESSION_TTL = 12 * 60 * 60 * 1000; // 12시간
+
+function requireAuth(req, res, next) {
+  const token = req.headers['x-auth-token'];
+  if (!token || !sessions.has(token)) return res.status(401).json({ error: '관리자 로그인이 필요합니다' });
+  const created = sessions.get(token);
+  if (Date.now() - created > SESSION_TTL) {
+    sessions.delete(token);
+    return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인하세요' });
+  }
+  next();
+}
+
+// 만료된 세션 정리 (1시간마다)
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, created] of sessions) {
+    if (now - created > SESSION_TTL) sessions.delete(token);
+  }
+}, 60 * 60 * 1000);
 
 // ─── SSE 클라이언트 목록 (캐셔 실시간 알림용) ───────────────────────────────────
 const sseClients = new Set();
@@ -103,13 +123,6 @@ function broadcastSSE(data) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-function requireAuth(req, res, next) {
-  const token = req.headers['x-auth-token'];
-  if (!token || !sessions.has(token)) {
-    return res.status(401).json({ error: '관리자 로그인이 필요합니다' });
-  }
-  next();
-}
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
@@ -146,25 +159,28 @@ app.post('/api/orders', (req, res) => {
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
 
-  const counter = db.prepare("SELECT value FROM order_counter WHERE id=1").get();
-  const num = counter.value;
-  db.prepare("UPDATE order_counter SET value=value+1 WHERE id=1").run();
+  try {
+    const createOrder = db.transaction(() => {
+      const counter = db.prepare("SELECT value FROM order_counter WHERE id=1").get();
+      const num = counter.value;
+      db.prepare("UPDATE order_counter SET value=value+1 WHERE id=1").run();
+      const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+      db.prepare(`
+        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, items, total)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
+      `).run(id, num, Date.now(), 'new', type,
+        tableNum || null, customerName || null, customerPhone || null,
+        JSON.stringify(items), total);
+      return db.prepare("SELECT * FROM orders WHERE id=?").get(id);
+    });
 
-  const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
-  db.prepare(`
-    INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, items, total)
-    VALUES (?,?,?,?,?,?,?,?,?,?)
-  `).run(id, num, Date.now(), 'new', type,
-    tableNum || null, customerName || null, customerPhone || null,
-    JSON.stringify(items), total);
-
-  const order = db.prepare("SELECT * FROM orders WHERE id=?").get(id);
-  const parsed = parseOrder(order);
-
-  // SSE로 캐셔에 실시간 알림
-  broadcastSSE({ type: 'new_order', order: parsed });
-
-  res.json({ success: true, order: parsed });
+    const order = parseOrder(createOrder());
+    broadcastSSE({ type: 'new_order', order });
+    res.json({ success: true, order });
+  } catch (e) {
+    console.error('주문 생성 오류:', e);
+    res.status(500).json({ error: '주문 저장에 실패했습니다' });
+  }
 });
 
 // 주문 목록 조회
@@ -175,7 +191,8 @@ app.get('/api/orders', (req, res) => {
   const conditions = [];
 
   if (date) {
-    conditions.push("date(created_at) = ?");
+    // Baghdad(UTC+3) 기준 날짜 필터: timestamp 컬럼 사용 (integer ms)
+    conditions.push("date(datetime(timestamp/1000, 'unixepoch', '+3 hours')) = ?");
     params.push(date);
   }
   if (status) {
@@ -185,8 +202,13 @@ app.get('/api/orders', (req, res) => {
   if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
   sql += ' ORDER BY timestamp DESC';
 
-  const rows = db.prepare(sql).all(...params);
-  res.json(rows.map(parseOrder));
+  try {
+    const rows = db.prepare(sql).all(...params);
+    res.json(rows.map(parseOrder));
+  } catch (e) {
+    console.error('주문 조회 오류:', e);
+    res.status(500).json({ error: '주문 조회 실패' });
+  }
 });
 
 // 주문 상태 변경 (캐셔 → 서버)
@@ -194,12 +216,17 @@ app.put('/api/orders/:id/status', (req, res) => {
   const { status } = req.body;
   if (!['new', 'making', 'done', 'cancelled'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태' });
-  db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
-  const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
-  if (!order) return res.status(404).json({ error: '주문 없음' });
-  const parsed = parseOrder(order);
-  broadcastSSE({ type: 'order_updated', order: parsed });
-  res.json({ success: true, order: parsed });
+  try {
+    db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
+    const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+    if (!order) return res.status(404).json({ error: '주문 없음' });
+    const parsed = parseOrder(order);
+    broadcastSSE({ type: 'order_updated', order: parsed });
+    res.json({ success: true, order: parsed });
+  } catch (e) {
+    console.error('상태 변경 오류:', e);
+    res.status(500).json({ error: '상태 변경 실패' });
+  }
 });
 
 // SSE — 캐셔 실시간 스트림
@@ -324,30 +351,38 @@ app.post('/api/daily-sales', requireAuth, (req, res) => {
     return res.status(400).json({ error: '날짜와 판매 데이터를 입력하세요' });
 
   const errors = [];
-  for (const sale of sales) {
-    if (!sale.quantity || sale.quantity <= 0) continue;
-    const recipeItems = db.prepare(`
-      SELECT r.ingredient_id, r.quantity AS recipe_qty,
-             i.name_ko, i.current_qty, i.unit
-      FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
-      WHERE r.menu_item=?
-    `).all(sale.menu_item);
+  try {
+    const processSales = db.transaction(() => {
+      for (const sale of sales) {
+        if (!sale.quantity || sale.quantity <= 0) continue;
+        const recipeItems = db.prepare(`
+          SELECT r.ingredient_id, r.quantity AS recipe_qty,
+                 i.name_ko, i.current_qty, i.unit
+          FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
+          WHERE r.menu_item=?
+        `).all(sale.menu_item);
 
-    if (!recipeItems.length) {
-      errors.push(`"${sale.menu_item}" 레시피 없음 → 재고 차감 건너뜀`);
-    } else {
-      for (const item of recipeItems) {
-        const deduct = item.recipe_qty * sale.quantity;
-        const newQty = Math.max(0, item.current_qty - deduct);
-        db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, item.ingredient_id);
-        db.prepare(
-          'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
-        ).run(item.ingredient_id, item.name_ko, 'out', deduct, `${sale_date} | ${sale.menu_item} x${sale.quantity}`);
+        if (!recipeItems.length) {
+          errors.push(`"${sale.menu_item}" 레시피 없음 → 재고 차감 건너뜀`);
+        } else {
+          for (const item of recipeItems) {
+            const deduct = item.recipe_qty * sale.quantity;
+            const newQty = Math.max(0, item.current_qty - deduct);
+            db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, item.ingredient_id);
+            db.prepare(
+              'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+            ).run(item.ingredient_id, item.name_ko, 'out', deduct, `${sale_date} | ${sale.menu_item} x${sale.quantity}`);
+          }
+        }
+        db.prepare('INSERT INTO daily_sales (sale_date, menu_item, quantity) VALUES (?,?,?)').run(sale_date, sale.menu_item, sale.quantity);
       }
-    }
-    db.prepare('INSERT INTO daily_sales (sale_date, menu_item, quantity) VALUES (?,?,?)').run(sale_date, sale.menu_item, sale.quantity);
+    });
+    processSales();
+    res.json({ success: true, warnings: errors });
+  } catch (e) {
+    console.error('판매 저장 오류:', e);
+    res.status(500).json({ error: '판매 저장 실패: ' + e.message });
   }
-  res.json({ success: true, warnings: errors });
 });
 
 app.get('/api/daily-sales', (req, res) => {
