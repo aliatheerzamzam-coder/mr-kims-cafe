@@ -920,8 +920,11 @@
       el.innerHTML = rows.map(row => {
         const ago = Math.round((Date.now() - row.created_at) / 1000);
         const agoStr = ago < 60 ? `${ago}s` : `${Math.round(ago/60)}m`;
-        const waMsg = `رمز التحقق الخاص بك في مستر كيمز: ${row.code}`;
-        const waUrl = `https://wa.me/${row.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(waMsg)}`;
+        const waMsg = `رمز التحقق الخاص بك في مستر كيمز: ${row.code}\nYour Mr. Kim's CAFE verification code: ${row.code}`;
+        // 국제번호 변환: 0xxx → 964xxx
+        let waPhone = row.phone.replace(/[^0-9]/g, '');
+        if (waPhone.startsWith('0')) waPhone = '964' + waPhone.slice(1);
+        const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMsg)}`;
         return `<div class="verify-card">
           <div>
             <div class="verify-phone" style="direction:ltr">${esc(row.phone)}</div>
