@@ -3235,13 +3235,21 @@
     return authState.token ? { 'x-customer-token': authState.token } : {};
   }
 
-  function saveAuthState() {
-    localStorage.setItem('kims-auth', JSON.stringify({ customer: authState.customer, token: authState.token }));
+  function saveAuthState(remember) {
+    const payload = JSON.stringify({ customer: authState.customer, token: authState.token });
+    if (remember) {
+      localStorage.setItem('kims-auth', payload);
+      sessionStorage.removeItem('kims-auth');
+    } else {
+      sessionStorage.setItem('kims-auth', payload);
+      localStorage.removeItem('kims-auth');
+    }
   }
 
   function loadAuthState() {
     try {
-      const saved = JSON.parse(localStorage.getItem('kims-auth') || 'null');
+      const raw = localStorage.getItem('kims-auth') || sessionStorage.getItem('kims-auth') || 'null';
+      const saved = JSON.parse(raw);
       if (saved?.token && saved?.customer) {
         authState.token = saved.token;
         authState.customer = saved.customer;
@@ -3310,7 +3318,8 @@
       if (!res.ok) { errEl.textContent = data.error || 'Login failed'; errEl.classList.add('show'); return; }
       authState.customer = data.customer;
       authState.token = data.token;
-      saveAuthState();
+      const remember = document.getElementById('login-remember')?.checked || false;
+      saveAuthState(remember);
       await loadFavorites();
       updateAuthUI();
       closeAuthModal();
@@ -3359,7 +3368,7 @@
       authState.customer = data.customer;
       authState.token = data.token;
       authState.favorites = [];
-      saveAuthState();
+      saveAuthState(false);
       updateAuthUI();
       closeAuthModal();
       showToast('🎉 ' + (document.getElementById('html-root').lang === 'ar' ? `مرحباً ${data.customer.name}!` : `Welcome, ${data.customer.name}!`));
@@ -3375,6 +3384,7 @@
     try { await fetch('/api/customers/logout', { method: 'POST', headers: authHeader() }); } catch (_) {}
     authState = { customer: null, token: null, favorites: [] };
     localStorage.removeItem('kims-auth');
+    sessionStorage.removeItem('kims-auth');
     updateAuthUI();
     closeProfileModal();
     showToast(document.getElementById('html-root').lang === 'ar' ? 'تم تسجيل الخروج' : 'Logged out');
@@ -3651,6 +3661,7 @@
         } else {
           authState = { customer: null, token: null, favorites: [] };
           localStorage.removeItem('kims-auth');
+          sessionStorage.removeItem('kims-auth');
         }
       } catch (_) {}
     }
@@ -3877,6 +3888,10 @@
         <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
         <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" />
       </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;color:var(--text-mid);margin-bottom:4px;">
+        <input type="checkbox" id="login-remember" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;" />
+        <span class="en">Keep me logged in</span><span class="ar">ابق متصلاً</span>
+      </label>
       <button class="btn-auth-submit" id="btn-login" onclick="doLogin()">
         <span class="en">Login</span><span class="ar">دخول</span>
       </button>
