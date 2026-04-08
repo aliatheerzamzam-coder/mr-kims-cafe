@@ -2,6 +2,35 @@ const express = require('express');
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
 const path = require('path');
+const https = require('https');
+
+// ─── WhatsApp 자동 발송 (UltraMsg) ─────────────────────────────────────────────
+// 환경변수: ULTRAMSG_INSTANCE, ULTRAMSG_TOKEN
+function sendWhatsApp(toPhone, message) {
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  const token    = process.env.ULTRAMSG_TOKEN;
+  if (!instance || !token) return; // API 키 없으면 스킵 (캐셔 대시보드 수동 방식)
+
+  // 이라크 번호 변환: 0xxx → 964xxx
+  let wa = toPhone.replace(/[^0-9]/g, '');
+  if (wa.startsWith('0')) wa = '964' + wa.slice(1);
+
+  const body = JSON.stringify({ token, to: wa, body: message });
+  const options = {
+    hostname: `api.ultramsg.com`,
+    path: `/${instance}/messages/chat`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+  };
+  const req = https.request(options, (res) => {
+    let d = '';
+    res.on('data', c => d += c);
+    res.on('end', () => console.log(`[WA] ${toPhone} → ${res.statusCode}`));
+  });
+  req.on('error', e => console.error('[WA] 전송 실패:', e.message));
+  req.write(body);
+  req.end();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +97,7 @@ db.exec(`
     table_num      TEXT,
     customer_name  TEXT,
     customer_phone TEXT,
+    arrival_time   TEXT,
     items          TEXT NOT NULL,
     total          REAL NOT NULL,
     created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -114,8 +144,9 @@ db.exec(`
   );
 `);
 
-// orders 테이블에 customer_id 컬럼 추가 (기존 DB 호환)
+// 기존 DB 호환 마이그레이션
 try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)'); } catch (_) {}
+try { db.exec('ALTER TABLE orders ADD COLUMN arrival_time TEXT'); } catch (_) {}
 
 // 기본 데이터
 if (!db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get()) {
@@ -236,6 +267,9 @@ app.post('/api/customers/verify-request', (req, res) => {
   console.log(`[VERIFY] ${phone} → ${code}`);
   // 캐셔에 SSE 알림
   broadcastSSE({ type: 'verify_request', phone: phone.trim(), code });
+  // WhatsApp 자동 발송 (ULTRAMSG 설정 시)
+  const waMsg = `🔐 رمز التحقق الخاص بك في مستر كيمز: *${code}*\nYour Mr. Kim's CAFE verification code: *${code}*\n\nصالح لمدة 10 دقائق / Valid for 10 minutes.`;
+  sendWhatsApp(phone.trim(), waMsg);
   res.json({ success: true });
 });
 
@@ -257,13 +291,9 @@ app.post('/api/customers/verify-confirm', (req, res) => {
 
 // 회원가입
 app.post('/api/customers/register', (req, res) => {
-  const { name, email, phone, password, birthdate, verify_token } = req.body;
-  if (!name || !email || !phone || !password || !verify_token)
+  const { name, email, phone, password, birthdate } = req.body;
+  if (!name || !email || !phone || !password)
     return res.status(400).json({ error: '모든 필드를 입력하세요' });
-  // verify_token 검증 (phone 포함)
-  const tokenPhone = verify_token.split(':').slice(1).join(':');
-  if (tokenPhone !== phone.trim())
-    return res.status(400).json({ error: '전화번호 인증을 완료하세요' });
   if (password.length < 6)
     return res.status(400).json({ error: '비밀번호는 6자 이상이어야 합니다' });
   const hash = crypto.createHash('sha256').update(password).digest('hex');
@@ -343,7 +373,7 @@ app.get('/api/customers/pending-verifications', (req, res) => {
 
 // 주문 생성 (웹사이트 → 서버)
 app.post('/api/orders', optionalCustomer, (req, res) => {
-  const { type, tableNum, customerName, customerPhone, items, total } = req.body;
+  const { type, tableNum, customerName, customerPhone, arrivalTime, items, total } = req.body;
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
 
@@ -354,11 +384,11 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
       db.prepare("UPDATE order_counter SET value=value+1 WHERE id=1").run();
       const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
       db.prepare(`
-        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, items, total, customer_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, arrival_time, items, total, customer_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(id, num, Date.now(), 'new', type,
         tableNum || null, customerName || null, customerPhone || null,
-        JSON.stringify(items), total, req.customerId || null);
+        arrivalTime || null, JSON.stringify(items), total, req.customerId || null);
       return db.prepare("SELECT * FROM orders WHERE id=?").get(id);
     });
 

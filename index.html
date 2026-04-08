@@ -1024,26 +1024,6 @@
     }
     .step-dot.active { background: var(--green); }
 
-    /* WhatsApp 인증 안내 박스 */
-    .wa-instruction {
-      background: #e8f5e9; border: 1px solid #a5d6a7;
-      border-radius: var(--radius-sm); padding: 14px;
-      font-size: 0.82rem; color: #2e7d32;
-      margin: 12px 0; line-height: 1.6;
-    }
-    .wa-instruction strong { display: block; margin-bottom: 4px; }
-    .btn-wa {
-      display: flex; align-items: center; gap: 8px;
-      width: 100%; padding: 11px 16px;
-      border-radius: var(--radius-pill);
-      border: none; background: #25d366;
-      color: #fff; font-family: inherit;
-      font-size: 0.9rem; font-weight: 800;
-      cursor: pointer; justify-content: center;
-      transition: background 0.2s;
-      margin: 8px 0;
-    }
-    .btn-wa:hover { background: #128c7e; }
 
     /* =========================================
        PROFILE MODAL
@@ -2221,7 +2201,7 @@
           </div>
           <div class="order-form-field">
             <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-            <input type="tel" id="book-phone" placeholder="0000 000 0000" />
+            <input type="tel" id="book-phone" placeholder="0000 000 0000" maxlength="13" />
           </div>
           <button class="btn-book" id="btn-book" onclick="submitBooking()">
             <span class="en">📲 Book via WhatsApp</span>
@@ -2778,6 +2758,7 @@
     if (selectedType === 'pickup') {
       if (!document.getElementById('input-name').value.trim()) { showToast('⚠️ Please enter your name'); return; }
       if (!validatePhone(document.getElementById('input-phone').value)) { showToast('⚠️ Phone must be 11 digits (xxxx xxx xxxx)'); return; }
+      if (!document.getElementById('input-arrival').value) { showToast('⚠️ Please select your arrival time'); return; }
     }
     const savedType = selectedType;
     closeCheckout();
@@ -2894,6 +2875,7 @@
     // 로그인 상태면 이름/전화번호 자동 채움
     let cName = selectedType === 'pickup' ? document.getElementById('input-name').value : null;
     let cPhone = selectedType === 'pickup' ? document.getElementById('input-phone').value : null;
+    let cArrival = selectedType === 'pickup' ? document.getElementById('input-arrival').value : null;
     if (authState.customer && selectedType === 'pickup') {
       if (!cName)  cName  = authState.customer.name;
       if (!cPhone) cPhone = authState.customer.phone;
@@ -2910,6 +2892,7 @@
           tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
           customerName: cName,
           customerPhone: cPhone,
+          arrivalTime: cArrival,
           items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
           total
         })
@@ -2927,8 +2910,10 @@
     document.getElementById('confirm-modal').classList.remove('open');
     const nameEl = document.getElementById('input-name');
     const phoneEl = document.getElementById('input-phone');
+    const arrivalEl = document.getElementById('input-arrival');
     if (nameEl) nameEl.value = '';
     if (phoneEl) phoneEl.value = '';
+    if (arrivalEl) arrivalEl.value = '';
 
     if (savedOrder) {
       saveActiveOrder(savedOrder.id, savedOrder.num);
@@ -3238,7 +3223,6 @@
   /* ─── AUTH STATE ─── */
   const CASHIER_WA_NUM = '9647750060011';
   let authState = { customer: null, token: null, favorites: [] };
-  let _verifyToken = null;
 
   function authHeader() {
     return authState.token ? { 'x-customer-token': authState.token } : {};
@@ -3330,105 +3314,30 @@
     } finally { btn.disabled = false; }
   }
 
-  /* ─── SIGNUP STEP 1: Request WhatsApp verification ─── */
-  async function requestVerifyCode() {
-    const phone = document.getElementById('signup-phone').value.trim();
-    const errEl = document.getElementById('signup-error');
-    errEl.classList.remove('show');
-    if (!validatePhone(phone)) {
-      errEl.textContent = 'Please enter a valid 11-digit phone number (xxxx xxx xxxx).';
-      errEl.classList.add('show'); return;
-    }
-    const btn = document.getElementById('btn-send-code');
-    btn.disabled = true;
-    try {
-      const res = await fetch('/api/customers/verify-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneDigits(phone) })
-      });
-      const data = await res.json();
-      if (!res.ok) { errEl.textContent = data.error || 'Request failed'; errEl.classList.add('show'); btn.disabled = false; return; }
-      document.getElementById('verify-sent-badge').classList.add('show');
-      document.getElementById('wa-instruction').style.display = '';
-      document.getElementById('code-field').style.display = '';
-      document.getElementById('btn-verify-code').style.display = '';
-    } catch (e) {
-      errEl.textContent = 'Network error. Please try again.';
-      errEl.classList.add('show');
-      btn.disabled = false;
-    }
-  }
-
-  function openVerifyWA() {
-    const phone = document.getElementById('signup-phone').value.trim();
-    const lang = document.getElementById('html-root').lang;
-    const msg = lang === 'ar'
-      ? `مرحباً، أريد رمز التحقق لرقم: ${phone}`
-      : `Hi, I need a verification code for: ${phone}`;
-    window.open(`https://wa.me/${CASHIER_WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank');
-  }
-
-  /* ─── SIGNUP STEP 1: Confirm code ─── */
-  async function confirmVerifyCode() {
-    const phone = document.getElementById('signup-phone').value.trim();
-    const code  = document.getElementById('signup-code').value.trim();
-    const errEl = document.getElementById('signup-error');
-    errEl.classList.remove('show');
-    if (!code) { errEl.textContent = 'Enter the verification code.'; errEl.classList.add('show'); return; }
-    const btn = document.getElementById('btn-verify-code');
-    btn.disabled = true;
-    try {
-      const res = await fetch('/api/customers/verify-confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneDigits(phone), code })
-      });
-      const data = await res.json();
-      if (!res.ok) { errEl.textContent = data.error || 'Verification failed'; errEl.classList.add('show'); btn.disabled = false; return; }
-      _verifyToken = data.verify_token;
-      // Go to step 2
-      document.getElementById('sdot-1').classList.remove('active');
-      document.getElementById('sdot-2').classList.add('active');
-      document.getElementById('signup-step-1').style.display = 'none';
-      document.getElementById('signup-step-2').style.display = '';
-    } catch (e) {
-      errEl.textContent = 'Network error. Please try again.';
-      errEl.classList.add('show');
-      btn.disabled = false;
-    }
-  }
-
   function resetSignupForm() {
-    _verifyToken = null;
-    document.getElementById('sdot-1').classList.add('active');
-    document.getElementById('sdot-2').classList.remove('active');
-    document.getElementById('signup-step-1').style.display = '';
-    document.getElementById('signup-step-2').style.display = 'none';
     document.getElementById('signup-phone').value = '';
-    document.getElementById('signup-code').value = '';
-    document.getElementById('verify-sent-badge').classList.remove('show');
-    document.getElementById('wa-instruction').style.display = 'none';
-    document.getElementById('code-field').style.display = 'none';
-    document.getElementById('btn-verify-code').style.display = 'none';
-    document.getElementById('btn-send-code').disabled = false;
+    document.getElementById('signup-name').value = '';
+    document.getElementById('signup-email').value = '';
+    document.getElementById('signup-password').value = '';
+    document.getElementById('signup-password2').value = '';
+    document.getElementById('signup-birthdate').value = '';
   }
 
-  /* ─── SIGNUP STEP 2: Register ─── */
+  /* ─── SIGNUP: Register ─── */
   async function doRegister() {
+    const phone     = document.getElementById('signup-phone').value.trim();
     const name      = document.getElementById('signup-name').value.trim();
     const email     = document.getElementById('signup-email').value.trim();
     const password  = document.getElementById('signup-password').value;
     const password2 = document.getElementById('signup-password2').value;
     const birthdate = document.getElementById('signup-birthdate').value;
-    const phone     = document.getElementById('signup-phone').value.trim();
     const errEl     = document.getElementById('signup-error');
     errEl.classList.remove('show');
 
+    if (!validatePhone(phone)) { errEl.textContent = 'Please enter a valid 11-digit phone number.'; errEl.classList.add('show'); return; }
     if (!name || !email || !password) { errEl.textContent = 'Please fill all required fields.'; errEl.classList.add('show'); return; }
     if (password !== password2) { errEl.textContent = 'Passwords do not match.'; errEl.classList.add('show'); return; }
     if (password.length < 6)    { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
-    if (!_verifyToken)          { errEl.textContent = 'Phone not verified. Go back to step 1.'; errEl.classList.add('show'); return; }
 
     const btn = document.getElementById('btn-register');
     btn.disabled = true;
@@ -3436,7 +3345,7 @@
       const res = await fetch('/api/customers/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone: phoneDigits(phone), password, birthdate, verify_token: _verifyToken })
+        body: JSON.stringify({ name, email, phone: phoneDigits(phone), password, birthdate })
       });
       const data = await res.json();
       if (!res.ok) { errEl.textContent = data.error || 'Registration failed'; errEl.classList.add('show'); btn.disabled = false; return; }
@@ -3820,7 +3729,19 @@
       </div>
       <div class="order-form-field">
         <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-        <input type="tel" id="input-phone" placeholder="0000 000 0000" />
+        <input type="tel" id="input-phone" placeholder="0000 000 0000" maxlength="13" />
+      </div>
+      <div class="order-form-field">
+        <label><span class="en">Arriving in</span><span class="ar">سأصل خلال</span></label>
+        <select id="input-arrival">
+          <option value=""><span class="en">Select time…</span></option>
+          <option value="5 min">5 min / 5 دقائق</option>
+          <option value="10 min">10 min / 10 دقائق</option>
+          <option value="15 min">15 min / 15 دقائق</option>
+          <option value="20 min">20 min / 20 دقائق</option>
+          <option value="30 min">30 min / 30 دقائق</option>
+          <option value="45 min">45 min / 45 دقيقة</option>
+        </select>
       </div>
     </div>
 
@@ -3943,7 +3864,7 @@
       <div class="auth-error" id="login-error"></div>
       <div class="auth-field">
         <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-        <input type="tel" id="login-phone" placeholder="0000 000 0000" autocomplete="tel" />
+        <input type="tel" id="login-phone" placeholder="0000 000 0000" autocomplete="tel" maxlength="13" />
       </div>
       <div class="auth-field">
         <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
@@ -3962,80 +3883,39 @@
 
     <!-- ── Signup form ── -->
     <div id="auth-pane-signup" style="display:none">
-      <div class="step-indicator">
-        <div class="step-dot active" id="sdot-1"></div>
-        <div class="step-dot" id="sdot-2"></div>
-      </div>
       <div class="auth-error" id="signup-error"></div>
 
-      <!-- Step 1: Phone verification -->
-      <div id="signup-step-1">
-        <div class="auth-field">
-          <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-          <div class="phone-row">
-            <div class="auth-field" style="margin:0">
-              <input type="tel" id="signup-phone" placeholder="0000 000 0000" autocomplete="tel" />
-            </div>
-            <button class="btn-auth-verify" id="btn-send-code" onclick="requestVerifyCode()">
-              <span class="en">Send Code</span><span class="ar">إرسال</span>
-            </button>
-          </div>
-          <div class="verify-badge" id="verify-sent-badge">
-            ✅ <span class="en">Code sent via WhatsApp!</span><span class="ar">تم إرسال الرمز عبر واتساب!</span>
-          </div>
-        </div>
-
-        <div class="wa-instruction" id="wa-instruction" style="display:none">
-          <strong>📱 <span class="en">WhatsApp Verification</span><span class="ar">التحقق عبر واتساب</span></strong>
-          <span class="en">1. Click the button below to open WhatsApp<br>2. Send the message to our number<br>3. We'll reply with your 6-digit code</span>
-          <span class="ar">١. اضغط الزر أدناه لفتح واتساب<br>٢. أرسل الرسالة إلى رقمنا<br>٣. سنرد عليك برمز مكوّن من ٦ أرقام</span>
-          <button class="btn-wa" id="btn-open-wa" onclick="openVerifyWA()">
-            <span>📲</span>
-            <span class="en">Open WhatsApp</span><span class="ar">افتح واتساب</span>
-          </button>
-        </div>
-
-        <div class="auth-field" id="code-field" style="display:none">
-          <label><span class="en">Verification Code</span><span class="ar">رمز التحقق</span></label>
-          <input type="text" id="signup-code" placeholder="123456" maxlength="6"
-                 inputmode="numeric" autocomplete="one-time-code" />
-        </div>
-
-        <button class="btn-auth-submit" id="btn-verify-code" style="display:none" onclick="confirmVerifyCode()">
-          <span class="en">Verify & Continue →</span><span class="ar">تحقق وتابع ←</span>
-        </button>
+      <div class="auth-field">
+        <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
+        <input type="tel" id="signup-phone" placeholder="0000 000 0000" autocomplete="tel" maxlength="13" />
       </div>
-
-      <!-- Step 2: Account details -->
-      <div id="signup-step-2" style="display:none">
-        <div class="auth-field-row">
-          <div class="auth-field">
-            <label><span class="en">Full Name</span><span class="ar">الاسم الكامل</span></label>
-            <input type="text" id="signup-name" placeholder="Ahmed Al-..." autocomplete="name" />
-          </div>
-          <div class="auth-field">
-            <label><span class="en">Birthdate</span><span class="ar">تاريخ الميلاد</span></label>
-            <input type="date" id="signup-birthdate" />
-          </div>
+      <div class="auth-field-row">
+        <div class="auth-field">
+          <label><span class="en">Full Name</span><span class="ar">الاسم الكامل</span></label>
+          <input type="text" id="signup-name" placeholder="Ahmed Al-..." autocomplete="name" />
         </div>
         <div class="auth-field">
-          <label><span class="en">Email</span><span class="ar">البريد الإلكتروني</span></label>
-          <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email" />
+          <label><span class="en">Birthdate</span><span class="ar">تاريخ الميلاد</span></label>
+          <input type="date" id="signup-birthdate" />
         </div>
-        <div class="auth-field-row">
-          <div class="auth-field">
-            <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
-            <input type="password" id="signup-password" placeholder="Min 6 chars" autocomplete="new-password" />
-          </div>
-          <div class="auth-field">
-            <label><span class="en">Confirm</span><span class="ar">تأكيد</span></label>
-            <input type="password" id="signup-password2" placeholder="••••••" autocomplete="new-password" />
-          </div>
-        </div>
-        <button class="btn-auth-submit" id="btn-register" onclick="doRegister()">
-          <span class="en">Create Account ✓</span><span class="ar">إنشاء الحساب ✓</span>
-        </button>
       </div>
+      <div class="auth-field">
+        <label><span class="en">Email</span><span class="ar">البريد الإلكتروني</span></label>
+        <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email" />
+      </div>
+      <div class="auth-field-row">
+        <div class="auth-field">
+          <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
+          <input type="password" id="signup-password" placeholder="Min 6 chars" autocomplete="new-password" />
+        </div>
+        <div class="auth-field">
+          <label><span class="en">Confirm</span><span class="ar">تأكيد</span></label>
+          <input type="password" id="signup-password2" placeholder="••••••" autocomplete="new-password" />
+        </div>
+      </div>
+      <button class="btn-auth-submit" id="btn-register" onclick="doRegister()">
+        <span class="en">Create Account ✓</span><span class="ar">إنشاء الحساب ✓</span>
+      </button>
 
       <div class="auth-switch">
         <span class="en">Already have an account?</span><span class="ar">لديك حساب بالفعل؟</span>
