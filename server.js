@@ -77,7 +77,45 @@ db.exec(`
     id    INTEGER PRIMARY KEY CHECK (id = 1),
     value INTEGER NOT NULL DEFAULT 1
   );
+
+  CREATE TABLE IF NOT EXISTS customers (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    email      TEXT NOT NULL UNIQUE,
+    phone      TEXT NOT NULL UNIQUE,
+    password   TEXT NOT NULL,
+    birthdate  TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS customer_sessions (
+    token       TEXT PRIMARY KEY,
+    customer_id INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS phone_verifications (
+    phone      TEXT PRIMARY KEY,
+    code       TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS favorites (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id  INTEGER NOT NULL,
+    menu_key     TEXT NOT NULL,
+    menu_name    TEXT NOT NULL,
+    menu_name_ar TEXT NOT NULL DEFAULT '',
+    menu_emoji   TEXT NOT NULL DEFAULT '',
+    menu_price   REAL NOT NULL DEFAULT 0,
+    UNIQUE(customer_id, menu_key),
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+  );
 `);
+
+// orders 테이블에 customer_id 컬럼 추가 (기존 DB 호환)
+try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)'); } catch (_) {}
 
 // 기본 데이터
 if (!db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get()) {
@@ -109,6 +147,40 @@ setInterval(() => {
   for (const [token, created] of sessions) {
     if (now - created > SESSION_TTL) sessions.delete(token);
   }
+}, 60 * 60 * 1000);
+
+// ─── 고객 세션 (DB 기반, 30일 TTL) ───────────────────────────────────────────
+const CUSTOMER_SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30일
+const VERIFY_TTL = 10 * 60 * 1000; // 인증코드 10분
+
+function requireCustomer(req, res, next) {
+  const token = req.headers['x-customer-token'];
+  if (!token) return res.status(401).json({ error: '로그인이 필요합니다' });
+  const row = db.prepare('SELECT * FROM customer_sessions WHERE token=?').get(token);
+  if (!row) return res.status(401).json({ error: '세션이 없습니다. 다시 로그인하세요' });
+  if (Date.now() - row.created_at > CUSTOMER_SESSION_TTL) {
+    db.prepare('DELETE FROM customer_sessions WHERE token=?').run(token);
+    return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인하세요' });
+  }
+  req.customerId = row.customer_id;
+  next();
+}
+
+function optionalCustomer(req, res, next) {
+  const token = req.headers['x-customer-token'];
+  if (token) {
+    const row = db.prepare('SELECT * FROM customer_sessions WHERE token=?').get(token);
+    if (row && Date.now() - row.created_at <= CUSTOMER_SESSION_TTL) {
+      req.customerId = row.customer_id;
+    }
+  }
+  next();
+}
+
+// 만료된 고객 세션 정리 (1시간마다)
+setInterval(() => {
+  const cutoff = Date.now() - CUSTOMER_SESSION_TTL;
+  db.prepare('DELETE FROM customer_sessions WHERE created_at < ?').run(cutoff);
 }, 60 * 60 * 1000);
 
 // ─── SSE 클라이언트 목록 (캐셔 실시간 알림용) ───────────────────────────────────
@@ -151,10 +223,126 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
+
+// 전화번호 인증코드 요청
+app.post('/api/customers/verify-request', (req, res) => {
+  const { phone } = req.body;
+  if (!phone || phone.trim().length < 7)
+    return res.status(400).json({ error: '전화번호를 입력하세요' });
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  db.prepare('INSERT OR REPLACE INTO phone_verifications (phone, code, created_at) VALUES (?,?,?)')
+    .run(phone.trim(), code, Date.now());
+  console.log(`[VERIFY] ${phone} → ${code}`);
+  // 캐셔에 SSE 알림
+  broadcastSSE({ type: 'verify_request', phone: phone.trim(), code });
+  res.json({ success: true });
+});
+
+// 인증코드 확인
+app.post('/api/customers/verify-confirm', (req, res) => {
+  const { phone, code } = req.body;
+  if (!phone || !code) return res.status(400).json({ error: '입력값 누락' });
+  const row = db.prepare('SELECT * FROM phone_verifications WHERE phone=?').get(phone.trim());
+  if (!row) return res.status(400).json({ error: '인증 요청을 먼저 해주세요' });
+  if (Date.now() - row.created_at > VERIFY_TTL)
+    return res.status(400).json({ error: '인증코드가 만료되었습니다. 다시 요청하세요' });
+  if (row.code !== String(code).trim())
+    return res.status(400).json({ error: '인증코드가 틀렸습니다' });
+  db.prepare('DELETE FROM phone_verifications WHERE phone=?').run(phone.trim());
+  // 10분짜리 임시 verify_token 발급
+  const verifyToken = crypto.randomBytes(24).toString('hex') + ':' + phone.trim();
+  res.json({ success: true, verify_token: verifyToken });
+});
+
+// 회원가입
+app.post('/api/customers/register', (req, res) => {
+  const { name, email, phone, password, birthdate, verify_token } = req.body;
+  if (!name || !email || !phone || !password || !verify_token)
+    return res.status(400).json({ error: '모든 필드를 입력하세요' });
+  // verify_token 검증 (phone 포함)
+  const tokenPhone = verify_token.split(':').slice(1).join(':');
+  if (tokenPhone !== phone.trim())
+    return res.status(400).json({ error: '전화번호 인증을 완료하세요' });
+  if (password.length < 6)
+    return res.status(400).json({ error: '비밀번호는 6자 이상이어야 합니다' });
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  try {
+    const r = db.prepare(
+      'INSERT INTO customers (name, email, phone, password, birthdate) VALUES (?,?,?,?,?)'
+    ).run(name.trim(), email.trim().toLowerCase(), phone.trim(), hash, birthdate || null);
+    const token = crypto.randomBytes(32).toString('hex');
+    db.prepare('INSERT INTO customer_sessions (token, customer_id, created_at) VALUES (?,?,?)')
+      .run(token, r.lastInsertRowid, Date.now());
+    const customer = db.prepare('SELECT id, name, email, phone, birthdate, created_at FROM customers WHERE id=?').get(r.lastInsertRowid);
+    res.json({ success: true, token, customer });
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) {
+      if (e.message.includes('email')) return res.status(409).json({ error: '이미 사용 중인 이메일입니다' });
+      if (e.message.includes('phone')) return res.status(409).json({ error: '이미 가입된 전화번호입니다' });
+    }
+    res.status(500).json({ error: '회원가입 실패' });
+  }
+});
+
+// 로그인
+app.post('/api/customers/login', (req, res) => {
+  const { phone, password } = req.body;
+  if (!phone || !password) return res.status(400).json({ error: '전화번호와 비밀번호를 입력하세요' });
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  const customer = db.prepare('SELECT * FROM customers WHERE phone=? AND password=?').get(phone.trim(), hash);
+  if (!customer) return res.status(401).json({ error: '전화번호 또는 비밀번호가 틀렸습니다' });
+  const token = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO customer_sessions (token, customer_id, created_at) VALUES (?,?,?)').run(token, customer.id, Date.now());
+  const { password: _, ...safe } = customer;
+  res.json({ success: true, token, customer: safe });
+});
+
+// 로그아웃
+app.post('/api/customers/logout', (req, res) => {
+  db.prepare('DELETE FROM customer_sessions WHERE token=?').run(req.headers['x-customer-token']);
+  res.json({ success: true });
+});
+
+// 내 정보 + 최근 주문
+app.get('/api/customers/me', requireCustomer, (req, res) => {
+  const customer = db.prepare('SELECT id, name, email, phone, birthdate, created_at FROM customers WHERE id=?').get(req.customerId);
+  if (!customer) return res.status(404).json({ error: '회원 없음' });
+  const orders = db.prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY timestamp DESC LIMIT 30').all(req.customerId);
+  res.json({ customer, orders: orders.map(parseOrder) });
+});
+
+// 즐겨찾기 목록
+app.get('/api/customers/favorites', requireCustomer, (req, res) => {
+  const favs = db.prepare('SELECT * FROM favorites WHERE customer_id=? ORDER BY id DESC').all(req.customerId);
+  res.json(favs);
+});
+
+// 즐겨찾기 토글 (추가/제거)
+app.post('/api/customers/favorites', requireCustomer, (req, res) => {
+  const { menu_key, menu_name, menu_name_ar, menu_emoji, menu_price } = req.body;
+  if (!menu_key) return res.status(400).json({ error: 'menu_key 필요' });
+  const existing = db.prepare('SELECT id FROM favorites WHERE customer_id=? AND menu_key=?').get(req.customerId, menu_key);
+  if (existing) {
+    db.prepare('DELETE FROM favorites WHERE customer_id=? AND menu_key=?').run(req.customerId, menu_key);
+    res.json({ success: true, action: 'removed' });
+  } else {
+    db.prepare('INSERT INTO favorites (customer_id, menu_key, menu_name, menu_name_ar, menu_emoji, menu_price) VALUES (?,?,?,?,?,?)')
+      .run(req.customerId, menu_key, menu_name || '', menu_name_ar || '', menu_emoji || '', menu_price || 0);
+    res.json({ success: true, action: 'added' });
+  }
+});
+
+// 미인증 전화번호 목록 (캐셔 대시보드용)
+app.get('/api/customers/pending-verifications', (req, res) => {
+  const rows = db.prepare('SELECT phone, code, created_at FROM phone_verifications ORDER BY created_at DESC').all();
+  res.json(rows);
+});
+
 // ─── ORDERS ───────────────────────────────────────────────────────────────────
 
 // 주문 생성 (웹사이트 → 서버)
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', optionalCustomer, (req, res) => {
   const { type, tableNum, customerName, customerPhone, items, total } = req.body;
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
@@ -166,11 +354,11 @@ app.post('/api/orders', (req, res) => {
       db.prepare("UPDATE order_counter SET value=value+1 WHERE id=1").run();
       const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
       db.prepare(`
-        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, items, total)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, items, total, customer_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
       `).run(id, num, Date.now(), 'new', type,
         tableNum || null, customerName || null, customerPhone || null,
-        JSON.stringify(items), total);
+        JSON.stringify(items), total, req.customerId || null);
       return db.prepare("SELECT * FROM orders WHERE id=?").get(id);
     });
 

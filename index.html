@@ -852,6 +852,350 @@
     .toast.show { transform: translateX(-50%) translateY(0); }
 
     /* =========================================
+       AUTH — Login button / Profile button
+    ========================================= */
+    .btn-auth-login {
+      padding: 8px 20px;
+      border-radius: var(--radius-pill);
+      border: 2px solid var(--green);
+      color: var(--green);
+      font-weight: 800;
+      font-size: 13px;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-auth-login:hover { background: var(--green); color: #fff; }
+
+    .btn-auth-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px 6px 6px;
+      border-radius: var(--radius-pill);
+      border: 2px solid var(--green-pale);
+      background: var(--green-pale);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--green);
+      transition: all 0.2s var(--ease);
+    }
+    .btn-auth-profile:hover { border-color: var(--green); background: #d4eede; }
+    .profile-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900;
+    }
+
+    /* =========================================
+       AUTH MODAL (login / signup)
+    ========================================= */
+    .auth-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1600;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s var(--ease);
+    }
+    .auth-overlay.open { opacity: 1; pointer-events: all; }
+    .auth-box {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 36px 32px 28px;
+      width: min(460px, 96vw);
+      box-shadow: var(--shadow-md);
+      transform: scale(0.93);
+      transition: transform 0.35s var(--ease);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .auth-overlay.open .auth-box { transform: scale(1); }
+    .auth-logo { text-align: center; font-size: 2rem; margin-bottom: 4px; }
+    .auth-title {
+      text-align: center; font-size: 1.25rem; font-weight: 900;
+      color: var(--text-dark); margin-bottom: 6px;
+    }
+    .auth-sub {
+      text-align: center; font-size: 0.85rem; color: var(--text-soft);
+      margin-bottom: 24px;
+    }
+    .auth-tabs {
+      display: flex; gap: 4px;
+      background: var(--off-white);
+      border-radius: var(--radius-pill);
+      padding: 4px; margin-bottom: 24px;
+    }
+    .auth-tab {
+      flex: 1; padding: 8px;
+      border-radius: var(--radius-pill);
+      border: none; background: transparent;
+      font-family: inherit; font-size: 0.85rem; font-weight: 800;
+      cursor: pointer; color: var(--text-mid);
+      transition: all 0.2s;
+    }
+    .auth-tab.active { background: var(--white); color: var(--green); box-shadow: var(--shadow-xs); }
+
+    .auth-field { margin-bottom: 14px; }
+    .auth-field label {
+      display: block; font-size: 0.78rem; font-weight: 800;
+      color: var(--text-mid); margin-bottom: 5px;
+    }
+    .auth-field input {
+      width: 100%; padding: 10px 14px;
+      border: 2px solid #e0e8e3;
+      border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 0.9rem;
+      color: var(--text-dark); background: var(--white);
+      transition: border-color 0.2s;
+      direction: ltr;
+    }
+    .auth-field input:focus { outline: none; border-color: var(--green); }
+    .auth-field-row { display: flex; gap: 8px; }
+    .auth-field-row .auth-field { flex: 1; }
+
+    .btn-auth-verify {
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--green);
+      background: var(--green-pale);
+      color: var(--green);
+      font-family: inherit; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-auth-verify:hover { background: var(--green); color: #fff; }
+    .btn-auth-verify:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .phone-row { display: flex; gap: 8px; align-items: flex-end; }
+    .phone-row .auth-field { flex: 1; }
+
+    .verify-badge {
+      font-size: 0.75rem; font-weight: 800;
+      color: var(--green); margin-top: 4px;
+      display: none;
+    }
+    .verify-badge.show { display: block; }
+
+    .btn-auth-submit {
+      width: 100%; padding: 13px;
+      border-radius: var(--radius-pill);
+      border: none; background: var(--green);
+      color: #fff; font-family: inherit;
+      font-size: 1rem; font-weight: 900;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+    .btn-auth-submit:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .btn-auth-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .auth-switch {
+      text-align: center; margin-top: 16px;
+      font-size: 0.85rem; color: var(--text-soft);
+    }
+    .auth-switch button {
+      color: var(--green); font-weight: 800;
+      background: none; border: none;
+      cursor: pointer; font-family: inherit;
+      font-size: inherit;
+    }
+    .auth-error {
+      background: #fff0f0; border: 1px solid #fca5a5;
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-size: 0.82rem; color: #c62828;
+      margin-bottom: 12px; display: none;
+    }
+    .auth-error.show { display: block; }
+
+    .step-indicator {
+      display: flex; gap: 8px; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #e0e0e0; transition: background 0.3s;
+    }
+    .step-dot.active { background: var(--green); }
+
+    /* WhatsApp 인증 안내 박스 */
+    .wa-instruction {
+      background: #e8f5e9; border: 1px solid #a5d6a7;
+      border-radius: var(--radius-sm); padding: 14px;
+      font-size: 0.82rem; color: #2e7d32;
+      margin: 12px 0; line-height: 1.6;
+    }
+    .wa-instruction strong { display: block; margin-bottom: 4px; }
+    .btn-wa {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 11px 16px;
+      border-radius: var(--radius-pill);
+      border: none; background: #25d366;
+      color: #fff; font-family: inherit;
+      font-size: 0.9rem; font-weight: 800;
+      cursor: pointer; justify-content: center;
+      transition: background 0.2s;
+      margin: 8px 0;
+    }
+    .btn-wa:hover { background: #128c7e; }
+
+    /* =========================================
+       PROFILE MODAL
+    ========================================= */
+    .profile-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1600;
+      display: flex; align-items: flex-start; justify-content: flex-end;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s var(--ease);
+    }
+    .profile-overlay.open { opacity: 1; pointer-events: all; }
+    .profile-drawer {
+      background: var(--white);
+      width: min(400px, 96vw);
+      height: 100vh;
+      box-shadow: var(--shadow-md);
+      transform: translateX(100%);
+      transition: transform 0.35s var(--ease);
+      display: flex; flex-direction: column;
+    }
+    html[lang="ar"] .profile-drawer { transform: translateX(-100%); }
+    .profile-overlay.open .profile-drawer { transform: translateX(0); }
+    .profile-drawer-header {
+      padding: 20px 24px;
+      background: var(--green);
+      color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .profile-drawer-header h3 { font-size: 1rem; font-weight: 900; }
+    .btn-close-drawer {
+      background: rgba(255,255,255,0.2); border: none;
+      border-radius: 50%; width: 32px; height: 32px;
+      color: #fff; font-size: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
+    }
+    .profile-user-card {
+      padding: 20px 24px;
+      background: var(--green-pale);
+      border-bottom: 1px solid #d4e8d8;
+      flex-shrink: 0;
+    }
+    .profile-user-name { font-size: 1.1rem; font-weight: 900; color: var(--text-dark); }
+    .profile-user-meta { font-size: 0.8rem; color: var(--text-soft); margin-top: 2px; }
+
+    .profile-tabs {
+      display: flex; gap: 4px;
+      padding: 12px 16px 0; flex-shrink: 0;
+      border-bottom: 2px solid #eee;
+    }
+    .profile-tab {
+      padding: 8px 16px;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      font-family: inherit; font-size: 0.82rem; font-weight: 800;
+      cursor: pointer; background: var(--off-white);
+      color: var(--text-mid); transition: all 0.2s;
+      position: relative; bottom: -2px;
+    }
+    .profile-tab.active {
+      background: var(--white); color: var(--green);
+      border-color: #eee; border-bottom-color: var(--white);
+    }
+    .profile-pane { display: none; padding: 16px 24px; overflow-y: auto; flex: 1; }
+    .profile-pane.active { display: block; }
+
+    .order-history-card {
+      background: var(--off-white);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      border-left: 3px solid var(--green);
+    }
+    html[lang="ar"] .order-history-card { border-left: none; border-right: 3px solid var(--green); }
+    .order-history-card.cancelled { border-color: #e53e3e; }
+    .order-history-card.done { border-color: #888; }
+    .oh-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .oh-num { font-weight: 900; font-size: 0.9rem; }
+    .oh-status {
+      font-size: 0.72rem; font-weight: 800; padding: 2px 10px;
+      border-radius: var(--radius-pill);
+    }
+    .oh-status.new      { background: #fff3e0; color: #e65100; }
+    .oh-status.making   { background: var(--green-pale); color: var(--green); }
+    .oh-status.done     { background: #e8f5e9; color: #2e7d32; }
+    .oh-status.cancelled{ background: #fce4ec; color: #c62828; }
+    .oh-items { font-size: 0.8rem; color: var(--text-mid); margin-bottom: 4px; }
+    .oh-meta { font-size: 0.75rem; color: var(--text-soft); display: flex; justify-content: space-between; }
+    .oh-total { font-weight: 800; color: var(--green); }
+
+    .fav-card {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--off-white);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .fav-emoji { font-size: 1.5rem; }
+    .fav-info { flex: 1; }
+    .fav-name { font-weight: 800; font-size: 0.9rem; }
+    .fav-price { font-size: 0.78rem; color: var(--text-soft); }
+    .btn-fav-add {
+      background: var(--green); color: #fff;
+      border: none; border-radius: var(--radius-pill);
+      padding: 6px 14px; font-family: inherit;
+      font-size: 0.78rem; font-weight: 800;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-fav-add:hover { background: var(--green-dark); }
+    .btn-fav-remove {
+      background: none; border: 2px solid #fca5a5;
+      border-radius: 50%; width: 28px; height: 28px;
+      color: #e53e3e; font-size: 0.8rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-logout {
+      width: 100%; padding: 10px;
+      margin-top: 8px;
+      border-radius: var(--radius-pill);
+      border: 2px solid #e0e0e0;
+      background: none; color: var(--text-mid);
+      font-family: inherit; font-size: 0.85rem; font-weight: 800;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout:hover { border-color: #e53e3e; color: #e53e3e; }
+
+    /* 메뉴 카드 별표 아이콘 */
+    .menu-card { position: relative; }
+    .btn-star {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,255,255,0.92);
+      border: none; border-radius: 50%;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; cursor: pointer;
+      box-shadow: var(--shadow-xs);
+      transition: transform 0.2s, background 0.2s;
+      z-index: 2;
+    }
+    html[lang="ar"] .btn-star { right: auto; left: 8px; }
+    .btn-star:hover { transform: scale(1.15); }
+    .btn-star.starred { background: #fff8e1; }
+
+    /* 즐겨찾기 탭 */
+    .group-tab[data-group="favorites"] { display: none; }
+    .group-tab[data-group="favorites"].show { display: inline-flex; }
+
+    /* =========================================
        ORDER STATUS MODAL
     ========================================= */
     .status-modal-overlay {
@@ -1523,6 +1867,17 @@
       <button class="lang-btn"        id="btn-ar" onclick="setLang('ar')">العربية</button>
     </div>
 
+    <!-- 로그아웃 상태: 로그인 버튼 -->
+    <button class="btn-auth-login" id="btn-auth-login" onclick="openAuthModal('login')">
+      <span class="en">Login</span><span class="ar">تسجيل الدخول</span>
+    </button>
+
+    <!-- 로그인 상태: 프로필 버튼 -->
+    <button class="btn-auth-profile" id="btn-auth-profile" style="display:none" onclick="openProfileModal()">
+      <span class="profile-avatar" id="profile-avatar">?</span>
+      <span id="profile-name-short"></span>
+    </button>
+
     <button class="cart-btn" onclick="openCart()">
       🛒 <span class="en">Cart</span><span class="ar">السلة</span>
       <span class="cart-badge" id="cart-badge">0</span>
@@ -1674,7 +2029,8 @@
     <button class="group-tab active" data-group="drinks"  onclick="filterGroup('drinks',this)"><span class="en">Drinks</span><span class="ar">مشروبات</span></button>
     <button class="group-tab"        data-group="dessert" onclick="filterGroup('dessert',this)"><span class="en">Dessert</span><span class="ar">حلويات</span></button>
     <button class="group-tab"        data-group="food"    onclick="filterGroup('food',this)"><span class="en">Food</span><span class="ar">مأكولات</span></button>
-    <button class="group-tab"        data-group="all"     onclick="filterGroup('all',this)"><span class="en">More</span><span class="ar">الكل</span></button>
+    <button class="group-tab"        data-group="all"       onclick="filterGroup('all',this)"><span class="en">More</span><span class="ar">الكل</span></button>
+    <button class="group-tab"        data-group="favorites" onclick="filterGroup('favorites',this)">⭐ <span class="en">Favorites</span><span class="ar">المفضلة</span></button>
   </div>
 
   <div class="cat-grid" id="cat-grid">
@@ -2526,6 +2882,7 @@
     document.getElementById('status-modal').classList.remove('open');
     if (_statusPollTimer) { clearInterval(_statusPollTimer); _statusPollTimer = null; }
     _statusOrderId = null;
+    clearActiveOrder();
   }
 
   async function placeOrder() {
@@ -2534,16 +2891,25 @@
     btn.disabled = true;
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
 
+    // 로그인 상태면 이름/전화번호 자동 채움
+    let cName = selectedType === 'pickup' ? document.getElementById('input-name').value : null;
+    let cPhone = selectedType === 'pickup' ? document.getElementById('input-phone').value : null;
+    if (authState.customer && selectedType === 'pickup') {
+      if (!cName)  cName  = authState.customer.name;
+      if (!cPhone) cPhone = authState.customer.phone;
+    }
+
     let savedOrder = null;
     try {
+      const headers = { 'Content-Type': 'application/json', ...authHeader() };
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           type: selectedType,
           tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
-          customerName: selectedType === 'pickup' ? document.getElementById('input-name').value : null,
-          customerPhone: selectedType === 'pickup' ? document.getElementById('input-phone').value : null,
+          customerName: cName,
+          customerPhone: cPhone,
           items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
           total
         })
@@ -2565,6 +2931,7 @@
     if (phoneEl) phoneEl.value = '';
 
     if (savedOrder) {
+      saveActiveOrder(savedOrder.id, savedOrder.num);
       renderStatusModal(savedOrder);
       document.getElementById('status-modal').classList.add('open');
       startStatusPolling(savedOrder.id);
@@ -2735,14 +3102,88 @@
   function filterGroup(group, btn) {
     document.querySelectorAll('.group-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
+
+    if (group === 'favorites') {
+      renderFavoritesPanel();
+      return;
+    }
+
     const visible = groupMap[group];
     document.querySelectorAll('.cat-tile').forEach(tile => {
       tile.style.display = visible.includes(tile.dataset.cat) ? '' : 'none';
     });
-    // return to cat-grid view
     document.getElementById('cat-grid').style.display = 'grid';
     document.getElementById('items-panel').style.display = 'none';
     document.getElementById('menu-cta').style.display = 'block';
+  }
+
+  function renderFavoritesPanel() {
+    const grid = document.getElementById('menu-grid');
+    const l = document.getElementById('html-root').lang;
+    document.getElementById('cat-panel-title').innerHTML =
+      `<span class="en">⭐ Favorites</span><span class="ar">⭐ المفضلة</span>`;
+
+    if (!authState.customer) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-soft);">
+        <div style="font-size:2.5rem;margin-bottom:12px;">⭐</div>
+        <div style="font-weight:800;margin-bottom:8px;">
+          <span class="en">Login to see your favorites</span><span class="ar">سجّل الدخول لعرض المفضلة</span>
+        </div>
+        <button class="btn-add" style="margin-top:8px;" onclick="openAuthModal('login')">
+          <span class="en">Login</span><span class="ar">دخول</span>
+        </button>
+      </div>`;
+      document.getElementById('cat-grid').style.display = 'none';
+      document.getElementById('items-panel').style.display = 'block';
+      document.getElementById('menu-cta').style.display = 'none';
+      return;
+    }
+
+    const favKeys = new Set(authState.favorites.map(f => f.menu_key));
+    if (favKeys.size === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-soft);">
+        <div style="font-size:2.5rem;margin-bottom:12px;">⭐</div>
+        <span class="en">No favorites yet. Tap ★ on any item to save it!</span>
+        <span class="ar">لا مفضلة بعد. اضغط ★ على أي عنصر لحفظه!</span>
+      </div>`;
+      document.getElementById('cat-grid').style.display = 'none';
+      document.getElementById('items-panel').style.display = 'block';
+      document.getElementById('menu-cta').style.display = 'none';
+      return;
+    }
+
+    // Render favorites as menu cards
+    const cards = authState.favorites.map(fav => {
+      const key = fav.menu_key; // "hot-coffee:0" format
+      return `
+      <div class="menu-card">
+        <button class="btn-star starred" onclick="toggleFavorite('${key}','${esc(fav.menu_name)}','${esc(fav.menu_name_ar)}','${fav.menu_emoji}',${fav.menu_price})" title="Remove from favorites">★</button>
+        <div class="card-thumb-placeholder">${fav.menu_emoji}</div>
+        <div class="card-body">
+          <div class="card-name en">${esc(fav.menu_name)}</div>
+          <div class="card-name ar">${esc(fav.menu_name_ar)}</div>
+          <div class="card-footer">
+            <div>
+              <div class="card-price en">${parseInt(fav.menu_price).toLocaleString()} IQD</div>
+              <div class="card-price ar">${parseInt(fav.menu_price).toLocaleString()} دينار</div>
+            </div>
+            <button class="btn-add" onclick="addToCartFromFav('${key}')">
+              <span class="en">+ Add</span><span class="ar">+ أضف</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.innerHTML = cards;
+    document.getElementById('cat-grid').style.display = 'none';
+    document.getElementById('items-panel').style.display = 'block';
+    document.getElementById('menu-cta').style.display = 'none';
+  }
+
+  function addToCartFromFav(key) {
+    const [cat, idx] = key.split(':');
+    addToCart(cat, parseInt(idx));
   }
 
   function showCategory(cat, tile) {
@@ -2750,8 +3191,18 @@
     const grid = document.getElementById('menu-grid');
     document.getElementById('cat-panel-title').innerHTML =
       `<span class="en">${data.en}</span><span class="ar">${data.ar}</span>`;
-    grid.innerHTML = data.items.map((item, idx) => `
+
+    const favKeys = new Set((authState.favorites || []).map(f => f.menu_key));
+
+    grid.innerHTML = data.items.map((item, idx) => {
+      const key = `${cat}:${idx}`;
+      const starred = favKeys.has(key) ? 'starred' : '';
+      const starIcon = favKeys.has(key) ? '★' : '☆';
+      return `
       <div class="menu-card">
+        <button class="btn-star ${starred}" onclick="toggleFavorite('${key}','${item.en.replace(/'/g,"\\'")}','${item.ar.replace(/'/g,"\\'")}','${item.emoji}',${item.price})" title="Favorite">
+          ${starIcon}
+        </button>
         <div class="card-thumb-placeholder">${item.emoji}</div>
         <div class="card-body">
           <div class="card-name en">${item.en}</div>
@@ -2768,7 +3219,8 @@
             </button>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     document.getElementById('cat-grid').style.display = 'none';
     document.getElementById('items-panel').style.display = 'block';
     document.getElementById('menu-cta').style.display = 'none';
@@ -2778,6 +3230,416 @@
     document.getElementById('cat-grid').style.display = 'grid';
     document.getElementById('items-panel').style.display = 'none';
     document.getElementById('menu-cta').style.display = 'block';
+  }
+
+  /* ─── XSS helper ─── */
+  function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* ─── AUTH STATE ─── */
+  const CASHIER_WA_NUM = '9647750060011';
+  let authState = { customer: null, token: null, favorites: [] };
+  let _verifyToken = null;
+
+  function authHeader() {
+    return authState.token ? { 'x-customer-token': authState.token } : {};
+  }
+
+  function saveAuthState() {
+    localStorage.setItem('kims-auth', JSON.stringify({ customer: authState.customer, token: authState.token }));
+  }
+
+  function loadAuthState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('kims-auth') || 'null');
+      if (saved?.token && saved?.customer) {
+        authState.token = saved.token;
+        authState.customer = saved.customer;
+      }
+    } catch (_) {}
+  }
+
+  function updateAuthUI() {
+    const loggedIn = !!authState.customer;
+    document.getElementById('btn-auth-login').style.display = loggedIn ? 'none' : '';
+    document.getElementById('btn-auth-profile').style.display = loggedIn ? '' : 'none';
+    if (loggedIn) {
+      const initial = (authState.customer.name || '?')[0].toUpperCase();
+      document.getElementById('profile-avatar').textContent = initial;
+      document.getElementById('profile-name-short').textContent = authState.customer.name.split(' ')[0];
+      // 즐겨찾기 탭 표시
+      document.querySelector('.group-tab[data-group="favorites"]').classList.add('show');
+    } else {
+      document.querySelector('.group-tab[data-group="favorites"]').classList.remove('show');
+    }
+  }
+
+  /* ─── AUTH MODAL ─── */
+  function openAuthModal(tab) {
+    document.getElementById('auth-overlay').classList.add('open');
+    switchAuthTab(tab || 'login');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAuthModal() {
+    document.getElementById('auth-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+    resetSignupForm();
+  }
+
+  document.getElementById('auth-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('auth-overlay')) closeAuthModal();
+  });
+
+  function switchAuthTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    document.getElementById('auth-pane-login').style.display  = tab === 'login'  ? '' : 'none';
+    document.getElementById('auth-pane-signup').style.display = tab === 'signup' ? '' : 'none';
+    document.getElementById('login-error').classList.remove('show');
+    document.getElementById('signup-error').classList.remove('show');
+  }
+
+  /* ─── LOGIN ─── */
+  async function doLogin() {
+    const phone = document.getElementById('login-phone').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.classList.remove('show');
+    if (!phone || !password) { errEl.textContent = 'Please fill all fields.'; errEl.classList.add('show'); return; }
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/customers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || 'Login failed'; errEl.classList.add('show'); return; }
+      authState.customer = data.customer;
+      authState.token = data.token;
+      saveAuthState();
+      await loadFavorites();
+      updateAuthUI();
+      closeAuthModal();
+      showToast('✅ ' + (document.getElementById('html-root').lang === 'ar' ? `مرحباً ${data.customer.name}!` : `Welcome back, ${data.customer.name}!`));
+    } catch (e) {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.classList.add('show');
+    } finally { btn.disabled = false; }
+  }
+
+  /* ─── SIGNUP STEP 1: Request WhatsApp verification ─── */
+  async function requestVerifyCode() {
+    const phone = document.getElementById('signup-phone').value.trim();
+    const errEl = document.getElementById('signup-error');
+    errEl.classList.remove('show');
+    if (!phone || phone.length < 7) {
+      errEl.textContent = 'Please enter a valid phone number.';
+      errEl.classList.add('show'); return;
+    }
+    const btn = document.getElementById('btn-send-code');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/customers/verify-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || 'Request failed'; errEl.classList.add('show'); btn.disabled = false; return; }
+      document.getElementById('verify-sent-badge').classList.add('show');
+      document.getElementById('wa-instruction').style.display = '';
+      document.getElementById('code-field').style.display = '';
+      document.getElementById('btn-verify-code').style.display = '';
+    } catch (e) {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+    }
+  }
+
+  function openVerifyWA() {
+    const phone = document.getElementById('signup-phone').value.trim();
+    const lang = document.getElementById('html-root').lang;
+    const msg = lang === 'ar'
+      ? `مرحباً، أريد رمز التحقق لرقم: ${phone}`
+      : `Hi, I need a verification code for: ${phone}`;
+    window.open(`https://wa.me/${CASHIER_WA_NUM}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  /* ─── SIGNUP STEP 1: Confirm code ─── */
+  async function confirmVerifyCode() {
+    const phone = document.getElementById('signup-phone').value.trim();
+    const code  = document.getElementById('signup-code').value.trim();
+    const errEl = document.getElementById('signup-error');
+    errEl.classList.remove('show');
+    if (!code) { errEl.textContent = 'Enter the verification code.'; errEl.classList.add('show'); return; }
+    const btn = document.getElementById('btn-verify-code');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/customers/verify-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code })
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || 'Verification failed'; errEl.classList.add('show'); btn.disabled = false; return; }
+      _verifyToken = data.verify_token;
+      // Go to step 2
+      document.getElementById('sdot-1').classList.remove('active');
+      document.getElementById('sdot-2').classList.add('active');
+      document.getElementById('signup-step-1').style.display = 'none';
+      document.getElementById('signup-step-2').style.display = '';
+    } catch (e) {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+    }
+  }
+
+  function resetSignupForm() {
+    _verifyToken = null;
+    document.getElementById('sdot-1').classList.add('active');
+    document.getElementById('sdot-2').classList.remove('active');
+    document.getElementById('signup-step-1').style.display = '';
+    document.getElementById('signup-step-2').style.display = 'none';
+    document.getElementById('signup-phone').value = '';
+    document.getElementById('signup-code').value = '';
+    document.getElementById('verify-sent-badge').classList.remove('show');
+    document.getElementById('wa-instruction').style.display = 'none';
+    document.getElementById('code-field').style.display = 'none';
+    document.getElementById('btn-verify-code').style.display = 'none';
+    document.getElementById('btn-send-code').disabled = false;
+  }
+
+  /* ─── SIGNUP STEP 2: Register ─── */
+  async function doRegister() {
+    const name      = document.getElementById('signup-name').value.trim();
+    const email     = document.getElementById('signup-email').value.trim();
+    const password  = document.getElementById('signup-password').value;
+    const password2 = document.getElementById('signup-password2').value;
+    const birthdate = document.getElementById('signup-birthdate').value;
+    const phone     = document.getElementById('signup-phone').value.trim();
+    const errEl     = document.getElementById('signup-error');
+    errEl.classList.remove('show');
+
+    if (!name || !email || !password) { errEl.textContent = 'Please fill all required fields.'; errEl.classList.add('show'); return; }
+    if (password !== password2) { errEl.textContent = 'Passwords do not match.'; errEl.classList.add('show'); return; }
+    if (password.length < 6)    { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
+    if (!_verifyToken)          { errEl.textContent = 'Phone not verified. Go back to step 1.'; errEl.classList.add('show'); return; }
+
+    const btn = document.getElementById('btn-register');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/customers/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, password, birthdate, verify_token: _verifyToken })
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || 'Registration failed'; errEl.classList.add('show'); btn.disabled = false; return; }
+      authState.customer = data.customer;
+      authState.token = data.token;
+      authState.favorites = [];
+      saveAuthState();
+      updateAuthUI();
+      closeAuthModal();
+      showToast('🎉 ' + (document.getElementById('html-root').lang === 'ar' ? `مرحباً ${data.customer.name}!` : `Welcome, ${data.customer.name}!`));
+    } catch (e) {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+    }
+  }
+
+  /* ─── LOGOUT ─── */
+  async function doLogout() {
+    try { await fetch('/api/customers/logout', { method: 'POST', headers: authHeader() }); } catch (_) {}
+    authState = { customer: null, token: null, favorites: [] };
+    localStorage.removeItem('kims-auth');
+    updateAuthUI();
+    closeProfileModal();
+    showToast(document.getElementById('html-root').lang === 'ar' ? 'تم تسجيل الخروج' : 'Logged out');
+  }
+
+  /* ─── PROFILE MODAL ─── */
+  function openProfileModal() {
+    document.getElementById('profile-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (authState.customer) {
+      document.getElementById('profile-full-name').textContent = authState.customer.name;
+      document.getElementById('profile-meta').textContent = authState.customer.phone + ' · ' + authState.customer.email;
+    }
+    switchProfileTab('orders');
+    loadProfileData();
+  }
+
+  function closeProfileModal(e) {
+    if (e && e.target !== document.getElementById('profile-overlay')) return;
+    document.getElementById('profile-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function switchProfileTab(tab) {
+    ['orders','favs'].forEach(t => {
+      document.getElementById('ptab-'+t).classList.toggle('active', t === tab);
+      document.getElementById('ppane-'+t).classList.toggle('active', t === tab);
+    });
+  }
+
+  async function loadProfileData() {
+    if (!authState.token) return;
+    try {
+      const res = await fetch('/api/customers/me', { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json();
+      renderOrderHistory(data.orders);
+    } catch (_) {}
+    renderFavsList();
+  }
+
+  function renderOrderHistory(orders) {
+    const el = document.getElementById('order-history-list');
+    const l = document.getElementById('html-root').lang;
+    if (!orders || orders.length === 0) {
+      el.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--text-soft);font-size:0.85rem;">
+        ${l==='ar' ? 'لا طلبات بعد' : 'No orders yet'}
+      </div>`;
+      return;
+    }
+    const statusLabel = { new: l==='ar'?'جديد':'New', making: l==='ar'?'يُحضَّر':'Preparing', done: l==='ar'?'جاهز':'Done', cancelled: l==='ar'?'ملغي':'Cancelled' };
+    el.innerHTML = orders.map(o => {
+      const date = new Date(o.timestamp).toLocaleDateString(l==='ar'?'ar-IQ':'en-GB');
+      const items = o.items.map(i => `${i.emoji} ${l==='ar'?(i.nameAr||i.name):i.name} ×${i.qty}`).join(', ');
+      return `<div class="order-history-card ${o.status}">
+        <div class="oh-header">
+          <span class="oh-num">#${o.num}</span>
+          <span class="oh-status ${o.status}">${statusLabel[o.status]||o.status}</span>
+        </div>
+        <div class="oh-items">${items}</div>
+        <div class="oh-meta">
+          <span>${date}</span>
+          <span class="oh-total">${o.total.toLocaleString()} IQD</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ─── FAVORITES ─── */
+  async function loadFavorites() {
+    if (!authState.token) return;
+    try {
+      const res = await fetch('/api/customers/favorites', { headers: authHeader() });
+      if (res.ok) authState.favorites = await res.json();
+    } catch (_) {}
+  }
+
+  function renderFavsList() {
+    const el = document.getElementById('favs-list');
+    const l = document.getElementById('html-root').lang;
+    if (!authState.favorites || authState.favorites.length === 0) {
+      el.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--text-soft);font-size:0.85rem;">
+        ${l==='ar' ? 'لا مفضلة بعد' : 'No favorites yet. Tap ★ on any menu item!'}
+      </div>`;
+      return;
+    }
+    el.innerHTML = authState.favorites.map(fav => {
+      const key = fav.menu_key;
+      const name = l==='ar' ? (fav.menu_name_ar||fav.menu_name) : fav.menu_name;
+      return `<div class="fav-card">
+        <span class="fav-emoji">${fav.menu_emoji}</span>
+        <div class="fav-info">
+          <div class="fav-name">${esc(name)}</div>
+          <div class="fav-price">${parseInt(fav.menu_price).toLocaleString()} IQD</div>
+        </div>
+        <button class="btn-fav-add" onclick="addToCartFromFav('${key}');closeProfileModal()">
+          ${l==='ar' ? '+ أضف' : '+ Add'}
+        </button>
+        <button class="btn-fav-remove" onclick="toggleFavorite('${key}','','','','',true)" title="Remove">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  async function toggleFavorite(key, name, nameAr, emoji, price, fromProfile) {
+    if (!authState.customer) {
+      openAuthModal('login');
+      showToast(document.getElementById('html-root').lang === 'ar' ? 'سجّل الدخول لحفظ المفضلة' : 'Login to save favorites');
+      return;
+    }
+    const [cat, idx] = key.split(':');
+    const item = menuData[cat]?.items?.[parseInt(idx)];
+    const finalName    = name    || item?.en   || '';
+    const finalNameAr  = nameAr  || item?.ar   || '';
+    const finalEmoji   = emoji   || item?.emoji || '';
+    const finalPrice   = price   || item?.price || 0;
+
+    try {
+      const res = await fetch('/api/customers/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ menu_key: key, menu_name: finalName, menu_name_ar: finalNameAr, menu_emoji: finalEmoji, menu_price: finalPrice })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      await loadFavorites();
+      updateAuthUI();
+      const l = document.getElementById('html-root').lang;
+      if (data.action === 'added') {
+        showToast(l==='ar' ? '⭐ تمت الإضافة إلى المفضلة' : '⭐ Added to Favorites!');
+      } else {
+        showToast(l==='ar' ? 'تمت الإزالة من المفضلة' : 'Removed from Favorites');
+      }
+      // 현재 열린 카테고리 새로고침
+      if (fromProfile) { renderFavsList(); }
+      else {
+        const panel = document.getElementById('items-panel');
+        if (panel.style.display !== 'none') {
+          const favTab = document.querySelector('.group-tab[data-group="favorites"]');
+          if (favTab?.classList.contains('active')) { renderFavoritesPanel(); }
+          else {
+            // 현재 카테고리 리렌더
+            const btn = document.querySelector('.btn-star'); // re-render via showCategory
+            // 별 아이콘만 업데이트
+            document.querySelectorAll('.btn-star').forEach(btn => {
+              const onclick = btn.getAttribute('onclick') || '';
+              const keyMatch = onclick.match(/toggleFavorite\('([^']+)'/);
+              if (keyMatch) {
+                const bKey = keyMatch[1];
+                const isFav = authState.favorites.some(f => f.menu_key === bKey);
+                btn.textContent = isFav ? '★' : '☆';
+                btn.classList.toggle('starred', isFav);
+              }
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  /* ─── 주문 상태 localStorage 유지 ─── */
+  function saveActiveOrder(orderId, orderNum) {
+    localStorage.setItem('kims-active-order', JSON.stringify({ id: orderId, num: orderNum, ts: Date.now() }));
+  }
+
+  function clearActiveOrder() {
+    localStorage.removeItem('kims-active-order');
+  }
+
+  function resumeActiveOrderIfNeeded() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('kims-active-order') || 'null');
+      if (!saved) return;
+      // 2시간 이상 지난 주문은 무시
+      if (Date.now() - saved.ts > 2 * 60 * 60 * 1000) { clearActiveOrder(); return; }
+      fetch(`/api/orders/${saved.id}`).then(r => r.ok ? r.json() : null).then(order => {
+        if (!order) { clearActiveOrder(); return; }
+        if (order.status === 'done' || order.status === 'cancelled') { clearActiveOrder(); return; }
+        renderStatusModal(order);
+        document.getElementById('status-modal').classList.add('open');
+        startStatusPolling(saved.id);
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   /* ─── Contact Form ─── */
@@ -2791,7 +3653,7 @@
   }
 
   /* ─── Init ─── */
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     // Detect language
     const saved = localStorage.getItem('kims-lang');
     const browserAr = (navigator.language || '').startsWith('ar');
@@ -2809,6 +3671,28 @@
         document.getElementById('nav-links').classList.remove('open')
       )
     );
+
+    // Auth: restore session
+    loadAuthState();
+    if (authState.token) {
+      // verify token is still valid
+      try {
+        const r = await fetch('/api/customers/me', { headers: authHeader() });
+        if (r.ok) {
+          const d = await r.json();
+          authState.customer = d.customer;
+          authState.favorites = [];
+          await loadFavorites();
+        } else {
+          authState = { customer: null, token: null, favorites: [] };
+          localStorage.removeItem('kims-auth');
+        }
+      } catch (_) {}
+    }
+    updateAuthUI();
+
+    // Resume active order status if any
+    resumeActiveOrderIfNeeded();
   });
 </script>
 
@@ -2980,6 +3864,178 @@
     <button class="btn-status-close" onclick="closeStatusModal()">
       <span class="en">OK, Got it</span><span class="ar">حسناً</span>
     </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     AUTH MODAL (Login / Signup)
+============================================================ -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">☕</div>
+    <div class="auth-title" id="auth-title">
+      <span class="en">Welcome back</span><span class="ar">مرحباً بعودتك</span>
+    </div>
+    <div class="auth-sub" id="auth-sub">
+      <span class="en">Sign in to your account</span><span class="ar">سجّل الدخول إلى حسابك</span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchAuthTab('login')">
+        <span class="en">Login</span><span class="ar">دخول</span>
+      </button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchAuthTab('signup')">
+        <span class="en">Sign Up</span><span class="ar">إنشاء حساب</span>
+      </button>
+    </div>
+
+    <!-- ── Login form ── -->
+    <div id="auth-pane-login">
+      <div class="auth-error" id="login-error"></div>
+      <div class="auth-field">
+        <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
+        <input type="tel" id="login-phone" placeholder="+964 7xx xxx xxxx" autocomplete="tel" />
+      </div>
+      <div class="auth-field">
+        <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
+        <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-auth-submit" id="btn-login" onclick="doLogin()">
+        <span class="en">Login</span><span class="ar">دخول</span>
+      </button>
+      <div class="auth-switch">
+        <span class="en">Don't have an account?</span><span class="ar">ليس لديك حساب؟</span>
+        <button onclick="switchAuthTab('signup')">
+          <span class="en">Sign up</span><span class="ar">إنشاء حساب</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Signup form ── -->
+    <div id="auth-pane-signup" style="display:none">
+      <div class="step-indicator">
+        <div class="step-dot active" id="sdot-1"></div>
+        <div class="step-dot" id="sdot-2"></div>
+      </div>
+      <div class="auth-error" id="signup-error"></div>
+
+      <!-- Step 1: Phone verification -->
+      <div id="signup-step-1">
+        <div class="auth-field">
+          <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
+          <div class="phone-row">
+            <div class="auth-field" style="margin:0">
+              <input type="tel" id="signup-phone" placeholder="+964 7xx xxx xxxx" autocomplete="tel" />
+            </div>
+            <button class="btn-auth-verify" id="btn-send-code" onclick="requestVerifyCode()">
+              <span class="en">Send Code</span><span class="ar">إرسال</span>
+            </button>
+          </div>
+          <div class="verify-badge" id="verify-sent-badge">
+            ✅ <span class="en">Code sent via WhatsApp!</span><span class="ar">تم إرسال الرمز عبر واتساب!</span>
+          </div>
+        </div>
+
+        <div class="wa-instruction" id="wa-instruction" style="display:none">
+          <strong>📱 <span class="en">WhatsApp Verification</span><span class="ar">التحقق عبر واتساب</span></strong>
+          <span class="en">1. Click the button below to open WhatsApp<br>2. Send the message to our number<br>3. We'll reply with your 6-digit code</span>
+          <span class="ar">١. اضغط الزر أدناه لفتح واتساب<br>٢. أرسل الرسالة إلى رقمنا<br>٣. سنرد عليك برمز مكوّن من ٦ أرقام</span>
+          <button class="btn-wa" id="btn-open-wa" onclick="openVerifyWA()">
+            <span>📲</span>
+            <span class="en">Open WhatsApp</span><span class="ar">افتح واتساب</span>
+          </button>
+        </div>
+
+        <div class="auth-field" id="code-field" style="display:none">
+          <label><span class="en">Verification Code</span><span class="ar">رمز التحقق</span></label>
+          <input type="text" id="signup-code" placeholder="123456" maxlength="6"
+                 inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+
+        <button class="btn-auth-submit" id="btn-verify-code" style="display:none" onclick="confirmVerifyCode()">
+          <span class="en">Verify & Continue →</span><span class="ar">تحقق وتابع ←</span>
+        </button>
+      </div>
+
+      <!-- Step 2: Account details -->
+      <div id="signup-step-2" style="display:none">
+        <div class="auth-field-row">
+          <div class="auth-field">
+            <label><span class="en">Full Name</span><span class="ar">الاسم الكامل</span></label>
+            <input type="text" id="signup-name" placeholder="Ahmed Al-..." autocomplete="name" />
+          </div>
+          <div class="auth-field">
+            <label><span class="en">Birthdate</span><span class="ar">تاريخ الميلاد</span></label>
+            <input type="date" id="signup-birthdate" />
+          </div>
+        </div>
+        <div class="auth-field">
+          <label><span class="en">Email</span><span class="ar">البريد الإلكتروني</span></label>
+          <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email" />
+        </div>
+        <div class="auth-field-row">
+          <div class="auth-field">
+            <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
+            <input type="password" id="signup-password" placeholder="Min 6 chars" autocomplete="new-password" />
+          </div>
+          <div class="auth-field">
+            <label><span class="en">Confirm</span><span class="ar">تأكيد</span></label>
+            <input type="password" id="signup-password2" placeholder="••••••" autocomplete="new-password" />
+          </div>
+        </div>
+        <button class="btn-auth-submit" id="btn-register" onclick="doRegister()">
+          <span class="en">Create Account ✓</span><span class="ar">إنشاء الحساب ✓</span>
+        </button>
+      </div>
+
+      <div class="auth-switch">
+        <span class="en">Already have an account?</span><span class="ar">لديك حساب بالفعل؟</span>
+        <button onclick="switchAuthTab('login')">
+          <span class="en">Login</span><span class="ar">دخول</span>
+        </button>
+      </div>
+    </div>
+
+    <button style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-soft);font-family:inherit;" onclick="closeAuthModal()">✕</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     PROFILE DRAWER
+============================================================ -->
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfileModal(event)">
+  <div class="profile-drawer">
+    <div class="profile-drawer-header">
+      <h3>👤 <span class="en">My Account</span><span class="ar">حسابي</span></h3>
+      <button class="btn-close-drawer" onclick="closeProfileModal()">✕</button>
+    </div>
+    <div class="profile-user-card">
+      <div class="profile-user-name" id="profile-full-name">—</div>
+      <div class="profile-user-meta" id="profile-meta">—</div>
+    </div>
+    <div class="profile-tabs">
+      <button class="profile-tab active" id="ptab-orders"  onclick="switchProfileTab('orders')">
+        🧾 <span class="en">Orders</span><span class="ar">طلباتي</span>
+      </button>
+      <button class="profile-tab"        id="ptab-favs"    onclick="switchProfileTab('favs')">
+        ⭐ <span class="en">Favorites</span><span class="ar">المفضلة</span>
+      </button>
+    </div>
+    <div class="profile-pane active" id="ppane-orders">
+      <div id="order-history-list"><div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
+        <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
+      </div></div>
+    </div>
+    <div class="profile-pane" id="ppane-favs">
+      <div id="favs-list"><div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
+        <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
+      </div></div>
+    </div>
+    <div style="padding:0 24px 20px; flex-shrink:0;">
+      <button class="btn-logout" onclick="doLogout()">
+        <span class="en">Logout</span><span class="ar">تسجيل الخروج</span>
+      </button>
+    </div>
   </div>
 </div>
 
