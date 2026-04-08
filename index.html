@@ -2221,7 +2221,7 @@
           </div>
           <div class="order-form-field">
             <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-            <input type="tel" id="book-phone" placeholder="+964 7xx xxx xxxx" />
+            <input type="tel" id="book-phone" placeholder="0000 000 0000" />
           </div>
           <button class="btn-book" id="btn-book" onclick="submitBooking()">
             <span class="en">📲 Book via WhatsApp</span>
@@ -2777,7 +2777,7 @@
     }
     if (selectedType === 'pickup') {
       if (!document.getElementById('input-name').value.trim()) { showToast('⚠️ Please enter your name'); return; }
-      if (!document.getElementById('input-phone').value.trim()) { showToast('⚠️ Please enter your phone'); return; }
+      if (!validatePhone(document.getElementById('input-phone').value)) { showToast('⚠️ Phone must be 11 digits (xxxx xxx xxxx)'); return; }
     }
     const savedType = selectedType;
     closeCheckout();
@@ -3305,14 +3305,15 @@
     const password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error');
     errEl.classList.remove('show');
-    if (!phone || !password) { errEl.textContent = 'Please fill all fields.'; errEl.classList.add('show'); return; }
+    if (!validatePhone(phone)) { errEl.textContent = 'Please enter a valid 11-digit phone number.'; errEl.classList.add('show'); return; }
+    if (!password) { errEl.textContent = 'Please enter your password.'; errEl.classList.add('show'); return; }
     const btn = document.getElementById('btn-login');
     btn.disabled = true;
     try {
       const res = await fetch('/api/customers/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password })
+        body: JSON.stringify({ phone: phoneDigits(phone), password })
       });
       const data = await res.json();
       if (!res.ok) { errEl.textContent = data.error || 'Login failed'; errEl.classList.add('show'); return; }
@@ -3334,8 +3335,8 @@
     const phone = document.getElementById('signup-phone').value.trim();
     const errEl = document.getElementById('signup-error');
     errEl.classList.remove('show');
-    if (!phone || phone.length < 7) {
-      errEl.textContent = 'Please enter a valid phone number.';
+    if (!validatePhone(phone)) {
+      errEl.textContent = 'Please enter a valid 11-digit phone number (xxxx xxx xxxx).';
       errEl.classList.add('show'); return;
     }
     const btn = document.getElementById('btn-send-code');
@@ -3344,7 +3345,7 @@
       const res = await fetch('/api/customers/verify-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone: phoneDigits(phone) })
       });
       const data = await res.json();
       if (!res.ok) { errEl.textContent = data.error || 'Request failed'; errEl.classList.add('show'); btn.disabled = false; return; }
@@ -3381,7 +3382,7 @@
       const res = await fetch('/api/customers/verify-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code })
+        body: JSON.stringify({ phone: phoneDigits(phone), code })
       });
       const data = await res.json();
       if (!res.ok) { errEl.textContent = data.error || 'Verification failed'; errEl.classList.add('show'); btn.disabled = false; return; }
@@ -3435,7 +3436,7 @@
       const res = await fetch('/api/customers/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, password, birthdate, verify_token: _verifyToken })
+        body: JSON.stringify({ name, email, phone: phoneDigits(phone), password, birthdate, verify_token: _verifyToken })
       });
       const data = await res.json();
       if (!res.ok) { errEl.textContent = data.error || 'Registration failed'; errEl.classList.add('show'); btn.disabled = false; return; }
@@ -3652,6 +3653,51 @@
     e.target.reset();
   }
 
+  /* ─── Phone formatting: xxxx xxx xxxx (11 digits) ─── */
+  function formatPhoneInput(e) {
+    const input = e.target;
+    // 숫자만 추출
+    let digits = input.value.replace(/\D/g, '');
+    // 최대 11자리
+    if (digits.length > 11) digits = digits.slice(0, 11);
+    // xxxx xxx xxxx 포맷
+    let formatted = '';
+    if (digits.length <= 4) {
+      formatted = digits;
+    } else if (digits.length <= 7) {
+      formatted = digits.slice(0,4) + ' ' + digits.slice(4);
+    } else {
+      formatted = digits.slice(0,4) + ' ' + digits.slice(4,7) + ' ' + digits.slice(7);
+    }
+    input.value = formatted;
+  }
+
+  function validatePhone(value) {
+    const digits = value.replace(/\D/g, '');
+    return digits.length === 11;
+  }
+
+  function phoneDigits(value) {
+    return value.replace(/\D/g, '');
+  }
+
+  function attachPhoneFormat(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', formatPhoneInput);
+    el.addEventListener('keydown', (e) => {
+      // 백스페이스가 공백 바로 뒤에서 눌리면 공백도 같이 삭제
+      if (e.key === 'Backspace') {
+        const val = el.value;
+        if (val.endsWith(' ')) {
+          e.preventDefault();
+          el.value = val.slice(0, -2);
+        }
+      }
+    });
+    el.placeholder = '0000 000 0000';
+  }
+
   /* ─── Init ─── */
   document.addEventListener('DOMContentLoaded', async () => {
     // Detect language
@@ -3671,6 +3717,9 @@
         document.getElementById('nav-links').classList.remove('open')
       )
     );
+
+    // Phone formatting 연결
+    ['login-phone','signup-phone','input-phone','book-phone'].forEach(attachPhoneFormat);
 
     // Auth: restore session
     loadAuthState();
@@ -3771,7 +3820,7 @@
       </div>
       <div class="order-form-field">
         <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-        <input type="tel" id="input-phone" placeholder="+964 7xx xxx xxxx" />
+        <input type="tel" id="input-phone" placeholder="0000 000 0000" />
       </div>
     </div>
 
@@ -3894,7 +3943,7 @@
       <div class="auth-error" id="login-error"></div>
       <div class="auth-field">
         <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
-        <input type="tel" id="login-phone" placeholder="+964 7xx xxx xxxx" autocomplete="tel" />
+        <input type="tel" id="login-phone" placeholder="0000 000 0000" autocomplete="tel" />
       </div>
       <div class="auth-field">
         <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
@@ -3925,7 +3974,7 @@
           <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
           <div class="phone-row">
             <div class="auth-field" style="margin:0">
-              <input type="tel" id="signup-phone" placeholder="+964 7xx xxx xxxx" autocomplete="tel" />
+              <input type="tel" id="signup-phone" placeholder="0000 000 0000" autocomplete="tel" />
             </div>
             <button class="btn-auth-verify" id="btn-send-code" onclick="requestVerifyCode()">
               <span class="en">Send Code</span><span class="ar">إرسال</span>
