@@ -249,6 +249,17 @@ app.get('/api/orders/stream', (req, res) => {
   });
 });
 
+// 주문 단건 조회 (고객 상태 추적용 — 인증 불필요, 반드시 /stream 뒤에 위치)
+app.get('/api/orders/:id', (req, res) => {
+  try {
+    const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+    if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' });
+    res.json(parseOrder(order));
+  } catch (e) {
+    res.status(500).json({ error: '주문 조회 실패' });
+  }
+});
+
 function parseOrder(row) {
   return {
     ...row,
