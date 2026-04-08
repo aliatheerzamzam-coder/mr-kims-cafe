@@ -294,8 +294,8 @@ app.post('/api/customers/register', (req, res) => {
   const { name, email, phone, password, birthdate } = req.body;
   if (!name || !email || !phone || !password)
     return res.status(400).json({ error: '모든 필드를 입력하세요' });
-  if (password.length < 6)
-    return res.status(400).json({ error: '비밀번호는 6자 이상이어야 합니다' });
+  if (password.length < 8)
+    return res.status(400).json({ error: '비밀번호는 8자 이상이어야 합니다' });
   const hash = crypto.createHash('sha256').update(password).digest('hex');
   try {
     const r = db.prepare(
