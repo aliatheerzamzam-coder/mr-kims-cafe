@@ -131,6 +131,11 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS admin_sessions (
+    token      TEXT PRIMARY KEY,
+    created_at INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS favorites (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     customer_id  INTEGER NOT NULL,
@@ -157,27 +162,26 @@ if (!db.prepare("SELECT id FROM order_counter WHERE id=1").get()) {
   db.prepare("INSERT INTO order_counter (id, value) VALUES (1, 1)").run();
 }
 
-// ─── 세션 (메모리, 12시간 TTL) ────────────────────────────────────────────────
-const sessions = new Map();
-const SESSION_TTL = 12 * 60 * 60 * 1000; // 12시간
+// ─── 관리자 세션 (SQLite, 12시간 TTL) ─────────────────────────────────────────
+const ADMIN_SESSION_TTL = 12 * 60 * 60 * 1000; // 12시간
 
 function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'];
-  if (!token || !sessions.has(token)) return res.status(401).json({ error: '관리자 로그인이 필요합니다' });
-  const created = sessions.get(token);
-  if (Date.now() - created > SESSION_TTL) {
-    sessions.delete(token);
+  if (!token) return res.status(401).json({ error: '관리자 로그인이 필요합니다' });
+  const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(token);
+  if (!row) return res.status(401).json({ error: '관리자 로그인이 필요합니다' });
+  if (Date.now() - row.created_at > ADMIN_SESSION_TTL) {
+    db.prepare('DELETE FROM admin_sessions WHERE token=?').run(token);
     return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인하세요' });
   }
+  // 슬라이딩 세션: 사용할 때마다 TTL 갱신
+  db.prepare('UPDATE admin_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
   next();
 }
 
-// 만료된 세션 정리 (1시간마다)
+// 만료된 관리자 세션 정리 (1시간마다)
 setInterval(() => {
-  const now = Date.now();
-  for (const [token, created] of sessions) {
-    if (now - created > SESSION_TTL) sessions.delete(token);
-  }
+  db.prepare('DELETE FROM admin_sessions WHERE created_at < ?').run(Date.now() - ADMIN_SESSION_TTL);
 }, 60 * 60 * 1000);
 
 // ─── 고객 세션 (DB 기반, 30일 TTL) ───────────────────────────────────────────
@@ -193,6 +197,8 @@ function requireCustomer(req, res, next) {
     db.prepare('DELETE FROM customer_sessions WHERE token=?').run(token);
     return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인하세요' });
   }
+  // 슬라이딩 세션: 사용할 때마다 TTL 갱신
+  db.prepare('UPDATE customer_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
   req.customerId = row.customer_id;
   next();
 }
@@ -233,7 +239,7 @@ app.post('/api/auth/login', (req, res) => {
   const stored = db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get();
   if (stored?.value === hash) {
     const token = crypto.randomBytes(32).toString('hex');
-    sessions.set(token, Date.now());
+    db.prepare('INSERT INTO admin_sessions (token, created_at) VALUES (?,?)').run(token, Date.now());
     res.json({ success: true, token });
   } else {
     res.status(401).json({ success: false, error: '비밀번호가 틀렸습니다' });
@@ -241,7 +247,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  sessions.delete(req.headers['x-auth-token']);
+  db.prepare('DELETE FROM admin_sessions WHERE token=?').run(req.headers['x-auth-token']);
   res.json({ success: true });
 });
 
@@ -376,6 +382,8 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
   const { type, tableNum, customerName, customerPhone, arrivalTime, items, total } = req.body;
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
+  if (type === 'pickup' && !arrivalTime)
+    return res.status(400).json({ error: '픽업 주문은 도착 예정 시간이 필요합니다' });
 
   try {
     const createOrder = db.transaction(() => {

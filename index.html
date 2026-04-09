@@ -3,7 +3,7 @@
 <html lang="en" dir="ltr" id="html-root">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=1.0" />
   <title>Mr. Kim's CAFE</title>
   <meta name="description" content="Mr. Kim's CAFE — Premium coffee, fresh drinks and good vibes. | مقهى مستر كيم — قهوة مميزة ومشروبات طازجة وأجواء رائعة." />
 
@@ -3352,6 +3352,7 @@
 
     if (!validatePhone(phone)) { errEl.textContent = 'Please enter a valid 11-digit phone number.'; errEl.classList.add('show'); return; }
     if (!name || !email || !password) { errEl.textContent = 'Please fill all required fields.'; errEl.classList.add('show'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.classList.add('show'); return; }
     if (password !== password2) { errEl.textContent = 'Passwords do not match.'; errEl.classList.add('show'); return; }
     if (password.length < 8)    { errEl.textContent = 'Password must be at least 8 characters.'; errEl.classList.add('show'); return; }
 
@@ -3368,9 +3369,10 @@
       authState.customer = data.customer;
       authState.token = data.token;
       authState.favorites = [];
-      saveAuthState(false);
+      saveAuthState(true); // 회원가입 후 localStorage에 저장 (탭 닫아도 유지)
       updateAuthUI();
       closeAuthModal();
+      btn.disabled = false;
       showToast('🎉 ' + (document.getElementById('html-root').lang === 'ar' ? `مرحباً ${data.customer.name}!` : `Welcome, ${data.customer.name}!`));
     } catch (e) {
       errEl.textContent = 'Network error. Please try again.';
@@ -3600,7 +3602,7 @@
 
   function validatePhone(value) {
     const digits = value.replace(/\D/g, '');
-    return digits.length === 11;
+    return digits.length === 11 && digits.startsWith('0');
   }
 
   function phoneDigits(value) {
@@ -3649,23 +3651,22 @@
 
     // Auth: restore session
     loadAuthState();
+    updateAuthUI(); // 캐시된 상태 즉시 반영 (로그인 유지)
     if (authState.token) {
-      // verify token is still valid
+      // 백그라운드에서 서버 검증 — 실패해도 로그아웃 안 함
       try {
         const r = await fetch('/api/customers/me', { headers: authHeader() });
         if (r.ok) {
           const d = await r.json();
           authState.customer = d.customer;
+          saveAuthState(!!localStorage.getItem('kims-auth')); // 저장소 업데이트
           authState.favorites = [];
           await loadFavorites();
-        } else {
-          authState = { customer: null, token: null, favorites: [] };
-          localStorage.removeItem('kims-auth');
-          sessionStorage.removeItem('kims-auth');
+          updateAuthUI();
         }
+        // 401/403/500 모두 캐시 유지 — 명시적 로그아웃만 클리어
       } catch (_) {}
     }
-    updateAuthUI();
 
     // Resume active order status if any
     resumeActiveOrderIfNeeded();
@@ -3889,7 +3890,7 @@
         <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" />
       </div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;color:var(--text-mid);margin-bottom:4px;">
-        <input type="checkbox" id="login-remember" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;" />
+        <input type="checkbox" id="login-remember" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;" />
         <span class="en">Keep me logged in</span><span class="ar">ابق متصلاً</span>
       </label>
       <button class="btn-auth-submit" id="btn-login" onclick="doLogin()">

@@ -599,7 +599,7 @@
         ? `<button class="btn-cancel" id="cancel-${safeId}" onclick="cancelOrder('${safeId}')" title="إلغاء الطلب">✕</button>`
         : '';
 
-      return `<div class="order-card status-${order.status}" id="card-${order.id}">
+      return `<div class="order-card status-${order.status}" id="card-${safeId}">
         <div class="order-card-header">
           <span class="order-num">#${order.num}</span>
           <div style="display:flex;gap:8px;align-items:center;">
@@ -615,7 +615,7 @@
         </div>
         <div class="order-actions">
           ${actionBtns}
-          <button class="btn-action btn-print" onclick="printReceipt('${order.id}')" title="طباعة">🖨️</button>
+          <button class="btn-action btn-print" onclick="printReceipt('${safeId}')" title="طباعة">🖨️</button>
           ${cancelBtn}
         </div>
       </div>`;
