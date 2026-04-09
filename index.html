@@ -2722,11 +2722,34 @@
     document.getElementById('cart-drawer').classList.remove('open');
   }
 
+  /* ─── Dine-in QR 토큰 (URL 파라미터에서 읽기) ─── */
+  const _urlParams = new URLSearchParams(location.search);
+  const dineInToken = _urlParams.get('t') || null;
+  const dineInTable = _urlParams.get('table') || null;
+
   /* ─── Checkout ─── */
   let selectedType = null;
 
   function openCheckout() {
     closeCart();
+    // QR 토큰 없으면 Dine-in 버튼 비활성화
+    const dineBtn = document.getElementById('type-dine');
+    if (!dineInToken) {
+      dineBtn.disabled = true;
+      dineBtn.style.opacity = '0.4';
+      dineBtn.style.cursor = 'not-allowed';
+      dineBtn.title = 'Scan table QR code to enable Dine-in';
+      dineBtn.onclick = null;
+    } else {
+      dineBtn.disabled = false;
+      dineBtn.style.opacity = '';
+      dineBtn.style.cursor = '';
+      dineBtn.title = '';
+      dineBtn.onclick = () => selectType('dine');
+      // 테이블 번호 자동 세팅
+      const tableInput = document.getElementById('input-table');
+      if (tableInput && dineInTable) tableInput.value = dineInTable;
+    }
     document.getElementById('checkout-modal').classList.add('open');
   }
 
@@ -2791,13 +2814,11 @@
       placeBtn.querySelector('.ar').textContent = 'نعم، اطلب الآن ✓';
     }
 
-    document.getElementById('wifi-error-msg').style.display = 'none';
     document.getElementById('confirm-modal').classList.add('open');
   }
 
   function closeConfirm() {
     document.getElementById('confirm-modal').classList.remove('open');
-    document.getElementById('wifi-error-msg').style.display = 'none';
     openCheckout();
   }
 
@@ -2961,24 +2982,6 @@
       openPaymentModal();
       return;
     }
-
-    // Dine-in: 매장 WiFi 연결 확인
-    if (selectedType === 'dine') {
-      const wifiErr = document.getElementById('wifi-error-msg');
-      try {
-        const r = await fetch('/api/check-wifi');
-        const data = await r.json();
-        if (!data.allowed) {
-          wifiErr.style.display = 'block';
-          return;
-        }
-      } catch (e) {
-        wifiErr.style.display = 'block';
-        return;
-      }
-      wifiErr.style.display = 'none';
-    }
-
     await placeOrderInternal(null);
   }
 
@@ -3004,6 +3007,7 @@
         body: JSON.stringify({
           type: selectedType,
           tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
+          dineToken: selectedType === 'dine' ? dineInToken : null,
           customerName: cName,
           customerPhone: cPhone,
           arrivalTime: cArrival,
@@ -3902,11 +3906,6 @@
     <div class="confirm-total">
       <span><span class="en">Total</span><span class="ar">الإجمالي</span></span>
       <span id="confirm-total-price"></span>
-    </div>
-    <div id="wifi-error-msg" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:0.9rem;text-align:center;line-height:1.5">
-      <div style="font-size:1.4rem;margin-bottom:4px">📶</div>
-      <strong><span class="en">Store WiFi required for Dine-in</span><span class="ar">يجب الاتصال بـ WiFi المحل للطلب داخلي</span></strong><br>
-      <span style="color:#666"><span class="en">Please connect to <b>Mr.kim</b> WiFi and try again.</span><span class="ar">يرجى الاتصال بـ WiFi <b>Mr.kim</b> والمحاولة مرة أخرى.</span></span>
     </div>
     <div class="confirm-btns">
       <button class="btn-confirm-no" onclick="closeConfirm()">

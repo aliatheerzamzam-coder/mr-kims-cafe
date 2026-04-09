@@ -35,16 +35,6 @@ function sendWhatsApp(toPhone, message) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── 매장 WiFi 체크 ────────────────────────────────────────────────────────────
-// 192.168.100.x 대역 = 매장 WiFi (Mr.kim)
-const STORE_WIFI_SUBNET = '192.168.100.';
-
-function isStoreWifi(req) {
-  const raw = req.ip || req.socket?.remoteAddress || '';
-  const ip = raw.replace(/^::ffff:/, '');
-  // localhost(개발/캐셔) 또는 매장 WiFi 대역이면 허용
-  return ip === '127.0.0.1' || ip === '::1' || ip.startsWith(STORE_WIFI_SUBNET);
-}
 
 // ─── DB 경로: Railway 볼륨 or 로컬 ────────────────────────────────────────────
 const DB_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH
@@ -147,6 +137,12 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS table_tokens (
+    table_num  TEXT PRIMARY KEY,
+    token      TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS favorites (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     customer_id  INTEGER NOT NULL,
@@ -243,10 +239,6 @@ function broadcastSSE(data) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// WiFi 연결 여부 확인 (클라이언트 → 서버)
-app.get('/api/check-wifi', (req, res) => {
-  res.json({ allowed: isStoreWifi(req) });
-});
 
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -273,6 +265,28 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
     return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다' });
   const hash = crypto.createHash('sha256').update(newPassword).digest('hex');
   db.prepare("UPDATE settings SET value=? WHERE key='admin_pw'").run(hash);
+  res.json({ success: true });
+});
+
+// ─── TABLE TOKENS (QR코드 Dine-in 인증) ───────────────────────────────────────
+
+// 전체 목록 조회
+app.get('/api/table-tokens', requireAuth, (req, res) => {
+  res.json(db.prepare('SELECT * FROM table_tokens ORDER BY CAST(table_num AS INTEGER)').all());
+});
+
+// 토큰 생성/재발급
+app.post('/api/table-tokens', requireAuth, (req, res) => {
+  const { tableNum } = req.body;
+  if (!tableNum) return res.status(400).json({ error: 'tableNum 필요' });
+  const token = crypto.randomBytes(8).toString('hex'); // 16자 hex
+  db.prepare('INSERT OR REPLACE INTO table_tokens (table_num, token) VALUES (?,?)').run(String(tableNum), token);
+  res.json({ success: true, table_num: String(tableNum), token });
+});
+
+// 토큰 삭제
+app.delete('/api/table-tokens/:tableNum', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM table_tokens WHERE table_num=?').run(req.params.tableNum);
   res.json({ success: true });
 });
 
@@ -400,8 +414,12 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
   if (type === 'pickup' && !arrivalTime)
     return res.status(400).json({ error: '픽업 주문은 도착 예정 시간이 필요합니다' });
-  if (type === 'dine' && !isStoreWifi(req))
-    return res.status(403).json({ error: 'WIFI_REQUIRED' });
+  if (type === 'dine') {
+    const { dineToken } = req.body;
+    if (!dineToken) return res.status(403).json({ error: 'QR_REQUIRED' });
+    const tableRow = db.prepare('SELECT table_num FROM table_tokens WHERE token=?').get(dineToken);
+    if (!tableRow) return res.status(403).json({ error: 'QR_INVALID' });
+  }
 
   // 로그인 고객 정보 자동 채움: 픽업 주문 시 이름/전화 누락이면 고객 DB에서 가져옴
   if (req.customerId && type === 'pickup' && (!customerName || !customerPhone)) {

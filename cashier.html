@@ -453,6 +453,7 @@
 <div class="page-tabs">
   <button class="page-tab active" id="tab-orders"  onclick="switchTab('orders')">📋 الطلبات الحالية</button>
   <button class="page-tab"        id="tab-history" onclick="switchTab('history')">🗂️ سجل الطلبات</button>
+  <button class="page-tab"        id="tab-qr"      onclick="switchTab('qr')">🪑 QR الطاولات</button>
 </div>
 
 <!-- ── Tab: Current Orders ── -->
@@ -480,6 +481,27 @@
 </div>
 
 
+<!-- ── Tab: Table QR Codes ── -->
+<div class="tab-pane" id="pane-qr">
+  <div style="padding:24px 28px">
+    <!-- 생성 폼 -->
+    <div style="background:#fff;border-radius:16px;padding:20px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:24px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <div style="font-size:0.8rem;color:#888;margin-bottom:6px;font-weight:700">رقم الطاولة / Table No.</div>
+        <input type="number" id="qr-table-input" min="1" max="99" placeholder="e.g. 5"
+          style="width:120px;padding:10px 14px;border:2px solid #d4e8d8;border-radius:10px;font-size:1rem;font-family:inherit;outline:none" />
+      </div>
+      <button onclick="generateTableQR()"
+        style="background:#367d4d;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:0.95rem;font-weight:800;cursor:pointer;font-family:inherit">
+        ➕ إنشاء QR / Generate QR
+      </button>
+    </div>
+    <!-- 목록 -->
+    <div id="qr-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
   /* ─── State ─── */
   let orders = [];
@@ -521,6 +543,7 @@
       if (!dateInput.value) dateInput.value = localDateStr();
       loadHistory();
     }
+    if (tab === 'qr') loadTableQRs();
   }
 
   /* ─── Sound ─── */
@@ -813,6 +836,99 @@
 
   /* ─── Admin Token ─── */
   let adminToken = localStorage.getItem('kims-admin-token') || '';
+
+  /* ─── Table QR Codes ─── */
+  const BASE_URL = location.origin;
+
+  async function loadTableQRs() {
+    const list = document.getElementById('qr-list');
+    list.innerHTML = '<div style="color:#888;padding:20px">جاري التحميل...</div>';
+    try {
+      const r = await fetch('/api/table-tokens', { headers: { 'x-auth-token': adminToken } });
+      if (r.status === 401) { list.innerHTML = '<div style="color:#e53e3e;padding:20px">⚠️ يجب تسجيل الدخول أولاً</div>'; return; }
+      const tokens = await r.json();
+      if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">لا توجد طاولات. أنشئ QR أولاً.</div>'; return; }
+      list.innerHTML = '';
+      for (const t of tokens) {
+        const url = `${BASE_URL}/?table=${t.table_num}&t=${t.token}`;
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);text-align:center';
+        card.innerHTML = `
+          <div style="font-weight:900;font-size:1.1rem;margin-bottom:12px">🪑 طاولة ${t.table_num} / Table ${t.table_num}</div>
+          <canvas id="qr-canvas-${t.table_num}" style="border-radius:8px"></canvas>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <button onclick="printTableQR('${t.table_num}','${url}')"
+              style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;font-family:inherit">
+              🖨️ طباعة / Print
+            </button>
+            <button onclick="regenToken('${t.table_num}')"
+              style="background:#f0f4f1;color:#4a4a4a;border:1px solid #d4e8d8;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
+              🔄 تجديد
+            </button>
+            <button onclick="deleteTableToken('${t.table_num}')"
+              style="background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
+              🗑️
+            </button>
+          </div>`;
+        list.appendChild(card);
+        QRCode.toCanvas(document.getElementById(`qr-canvas-${t.table_num}`), url, { width: 180, margin: 1 });
+      }
+    } catch(e) {
+      list.innerHTML = '<div style="color:#e53e3e;padding:20px">خطأ في التحميل</div>';
+    }
+  }
+
+  async function generateTableQR() {
+    const tableNum = document.getElementById('qr-table-input').value.trim();
+    if (!tableNum) { alert('أدخل رقم الطاولة / Enter table number'); return; }
+    const r = await fetch('/api/table-tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': adminToken },
+      body: JSON.stringify({ tableNum })
+    });
+    if (r.status === 401) { alert('يجب تسجيل الدخول أولاً / Please login first'); return; }
+    if (r.ok) { document.getElementById('qr-table-input').value = ''; loadTableQRs(); }
+  }
+
+  async function regenToken(tableNum) {
+    if (!confirm(`تجديد رمز الطاولة ${tableNum}؟\nRegenerate token for Table ${tableNum}?\n\n⚠️ The old QR code will stop working!`)) return;
+    await fetch('/api/table-tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': adminToken },
+      body: JSON.stringify({ tableNum })
+    });
+    loadTableQRs();
+  }
+
+  async function deleteTableToken(tableNum) {
+    if (!confirm(`حذف QR الطاولة ${tableNum}؟\nDelete QR for Table ${tableNum}?`)) return;
+    await fetch(`/api/table-tokens/${tableNum}`, {
+      method: 'DELETE', headers: { 'x-auth-token': adminToken }
+    });
+    loadTableQRs();
+  }
+
+  function printTableQR(tableNum, url) {
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <!DOCTYPE html><html><head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+        h1 { font-size: 2rem; margin-bottom: 8px; }
+        p { color: #555; margin-bottom: 20px; font-size: 1rem; }
+        canvas { display: block; margin: 0 auto; }
+        @media print { button { display: none; } }
+      </style></head><body>
+      <h1>🪑 Mr. Kim's Cafe</h1>
+      <p>Table ${tableNum} — Scan to order / امسح للطلب</p>
+      <canvas id="print-qr"></canvas>
+      <br><button onclick="window.print()">🖨️ Print</button>
+      <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+      <script>QRCode.toCanvas(document.getElementById('print-qr'), '${url}', { width: 300, margin: 2 });<\/script>
+      </body></html>`);
+    win.document.close();
+  }
 
   /* ─── 폴백 폴링: 30초마다 오늘 주문 재동기화 ─── */
   setInterval(loadOrders, 30000);
