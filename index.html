@@ -2780,6 +2780,17 @@
     document.getElementById('confirm-items').innerHTML = itemsHtml;
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
     document.getElementById('confirm-total-price').textContent = total.toLocaleString() + ' IQD';
+
+    // 픽업은 결제 필수 — 버튼 텍스트 변경
+    const placeBtn = document.getElementById('btn-place-order');
+    if (selectedType === 'pickup') {
+      placeBtn.querySelector('.en').textContent = '💳 Pay & Order';
+      placeBtn.querySelector('.ar').textContent = '💳 الدفع والطلب';
+    } else {
+      placeBtn.querySelector('.en').textContent = 'Yes, Order Now ✓';
+      placeBtn.querySelector('.ar').textContent = 'نعم، اطلب الآن ✓';
+    }
+
     document.getElementById('confirm-modal').classList.add('open');
   }
 
@@ -2873,19 +2884,95 @@
     clearActiveOrder();
   }
 
-  async function placeOrder() {
-    const btn = document.getElementById('btn-place-order');
-    if (btn.disabled) return;
+  /* ─── 카드 결제 API 플레이스홀더 ───────────────────────────────────────
+   *  결제 업체 API 코드를 받으면 이 함수 안을 교체하세요.
+   *  반드시 { success: true/false, transactionId: '...' } 형태를 반환해야 합니다.
+   *  amount 단위: IQD 정수
+   * ------------------------------------------------------------------- */
+  async function processCardPayment(cardData, amount) {
+    // TODO: 실제 카드 결제 API 코드로 교체
+    throw new Error('PAYMENT_API_NOT_CONFIGURED');
+  }
+
+  /* ─── 결제 모달 열기 ─── */
+  function openPaymentModal() {
+    const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
+    document.getElementById('pay-amount-display').textContent = total.toLocaleString() + ' IQD';
+    document.getElementById('pay-card-num').value = '';
+    document.getElementById('pay-expiry').value = '';
+    document.getElementById('pay-cvv').value = '';
+    document.getElementById('pay-holder').value = '';
+    document.getElementById('pay-error').textContent = '';
+    document.getElementById('payment-modal').classList.add('open');
+  }
+
+  function closePaymentModal() {
+    document.getElementById('payment-modal').classList.remove('open');
+  }
+
+  async function submitPayment() {
+    const btn = document.getElementById('btn-pay-now');
+    const cardNum = document.getElementById('pay-card-num').value.replace(/\s/g,'');
+    const expiry  = document.getElementById('pay-expiry').value.trim();
+    const cvv     = document.getElementById('pay-cvv').value.trim();
+    const holder  = document.getElementById('pay-holder').value.trim();
+    const errorEl = document.getElementById('pay-error');
+    errorEl.textContent = '';
+
+    if (cardNum.length < 13) { errorEl.textContent = '⚠️ Invalid card number'; return; }
+    if (!expiry)              { errorEl.textContent = '⚠️ Enter expiry date'; return; }
+    if (cvv.length < 3)       { errorEl.textContent = '⚠️ Invalid CVV'; return; }
+    if (!holder)              { errorEl.textContent = '⚠️ Enter cardholder name'; return; }
+
     btn.disabled = true;
+    btn.querySelector('.en').textContent = 'Processing…';
+    btn.querySelector('.ar').textContent = '…جارٍ المعالجة';
+
+    const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
+    try {
+      const result = await processCardPayment({ cardNum, expiry, cvv, holder }, total);
+      if (result && result.success) {
+        closePaymentModal();
+        await placeOrderInternal(result.transactionId);
+      } else {
+        errorEl.textContent = '⚠️ Payment failed. Please try again.';
+      }
+    } catch (e) {
+      if (e.message === 'PAYMENT_API_NOT_CONFIGURED') {
+        // 결제 시스템 미설정 시 결제 없이 주문 진행
+        closePaymentModal();
+        await placeOrderInternal(null);
+      } else {
+        errorEl.textContent = '⚠️ Payment error: ' + e.message;
+      }
+    } finally {
+      btn.disabled = false;
+      btn.querySelector('.en').textContent = 'Pay Now';
+      btn.querySelector('.ar').textContent = 'ادفع الآن';
+    }
+  }
+
+  async function placeOrder() {
+    // 픽업 주문은 반드시 온라인 결제 먼저
+    if (selectedType === 'pickup') {
+      document.getElementById('confirm-modal').classList.remove('open');
+      openPaymentModal();
+      return;
+    }
+    await placeOrderInternal(null);
+  }
+
+  async function placeOrderInternal(transactionId) {
+    const btn = document.getElementById('btn-place-order');
+    if (btn) btn.disabled = true;
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
 
-    // 로그인 상태면 이름/전화번호 자동 채움
-    let cName = selectedType === 'pickup' ? document.getElementById('input-name').value : null;
-    let cPhone = selectedType === 'pickup' ? document.getElementById('input-phone').value : null;
-    let cArrival = selectedType === 'pickup' ? document.getElementById('input-arrival').value : null;
-    if (authState.customer && selectedType === 'pickup') {
-      if (!cName)  cName  = authState.customer.name;
-      if (!cPhone) cPhone = authState.customer.phone;
+    // 로그인 상태면 이름/전화번호 자동 채움 (authState 우선, 폼 입력값 보조)
+    let cName = null, cPhone = null, cArrival = null;
+    if (selectedType === 'pickup') {
+      cName   = document.getElementById('input-name').value.trim()   || (authState.customer?.name  ?? null);
+      cPhone  = document.getElementById('input-phone').value.trim()  || (authState.customer?.phone ?? null);
+      cArrival = document.getElementById('input-arrival').value.trim() || null;
     }
 
     let savedOrder = null;
@@ -2901,7 +2988,8 @@
           customerPhone: cPhone,
           arrivalTime: cArrival,
           items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
-          total
+          total,
+          paymentTransactionId: transactionId || null
         })
       });
       if (res.ok) {
@@ -3801,6 +3889,77 @@
       </button>
       <button class="btn-confirm-yes" id="btn-place-order" onclick="placeOrder()">
         <span class="en">Yes, Order Now ✓</span><span class="ar">نعم، اطلب الآن ✓</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAYMENT MODAL (픽업 전용 온라인 결제)
+============================================================ -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-title" style="gap:8px">
+      <span style="font-size:1.5rem">💳</span>
+      <span class="en">Card Payment</span>
+      <span class="ar">الدفع بالبطاقة</span>
+    </div>
+    <p style="text-align:center;color:var(--text-mid);font-size:0.9rem;margin:0 0 16px">
+      <span class="en">Online payment is required for Pickup orders.</span>
+      <span class="ar">الدفع الإلكتروني مطلوب لطلبات الاستلام.</span>
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label style="font-size:0.8rem;color:var(--text-soft);display:block;margin-bottom:4px">
+          <span class="en">Card Number</span><span class="ar">رقم البطاقة</span>
+        </label>
+        <input id="pay-card-num" type="text" inputmode="numeric" maxlength="19"
+          placeholder="1234 5678 9012 3456"
+          oninput="this.value=this.value.replace(/[^\d]/g,'').replace(/(.{4})/g,'$1 ').trim()"
+          style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:var(--radius-sm);font-size:1rem;outline:none;box-sizing:border-box">
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1">
+          <label style="font-size:0.8rem;color:var(--text-soft);display:block;margin-bottom:4px">
+            <span class="en">Expiry (MM/YY)</span><span class="ar">انتهاء الصلاحية</span>
+          </label>
+          <input id="pay-expiry" type="text" inputmode="numeric" maxlength="5"
+            placeholder="MM/YY"
+            oninput="let v=this.value.replace(/\D/g,'');if(v.length>=3)v=v.slice(0,2)+'/'+v.slice(2);this.value=v"
+            style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:var(--radius-sm);font-size:1rem;outline:none;box-sizing:border-box">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:0.8rem;color:var(--text-soft);display:block;margin-bottom:4px">CVV</label>
+          <input id="pay-cvv" type="password" inputmode="numeric" maxlength="4"
+            placeholder="•••"
+            oninput="this.value=this.value.replace(/\D/g,'')"
+            style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:var(--radius-sm);font-size:1rem;outline:none;box-sizing:border-box">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:0.8rem;color:var(--text-soft);display:block;margin-bottom:4px">
+          <span class="en">Cardholder Name</span><span class="ar">اسم حامل البطاقة</span>
+        </label>
+        <input id="pay-holder" type="text"
+          placeholder="FULL NAME"
+          style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:var(--radius-sm);font-size:1rem;outline:none;box-sizing:border-box;text-transform:uppercase">
+      </div>
+    </div>
+
+    <div id="pay-error" style="color:var(--red);font-size:0.85rem;min-height:20px;margin-top:8px;text-align:center"></div>
+
+    <div class="confirm-total" style="margin-top:8px">
+      <span><span class="en">Total to Pay</span><span class="ar">المبلغ الإجمالي</span></span>
+      <span id="pay-amount-display" style="color:var(--green);font-weight:800"></span>
+    </div>
+
+    <div class="confirm-btns" style="margin-top:16px">
+      <button class="btn-confirm-no" onclick="closePaymentModal();document.getElementById('confirm-modal').classList.add('open')">
+        <span class="en">← Back</span><span class="ar">→ رجوع</span>
+      </button>
+      <button class="btn-confirm-yes" id="btn-pay-now" onclick="submitPayment()">
+        <span class="en">Pay Now</span><span class="ar">ادفع الآن</span>
       </button>
     </div>
   </div>

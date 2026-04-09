@@ -379,11 +379,20 @@ app.get('/api/customers/pending-verifications', (req, res) => {
 
 // 주문 생성 (웹사이트 → 서버)
 app.post('/api/orders', optionalCustomer, (req, res) => {
-  const { type, tableNum, customerName, customerPhone, arrivalTime, items, total } = req.body;
+  let { type, tableNum, customerName, customerPhone, arrivalTime, items, total } = req.body;
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
   if (type === 'pickup' && !arrivalTime)
     return res.status(400).json({ error: '픽업 주문은 도착 예정 시간이 필요합니다' });
+
+  // 로그인 고객 정보 자동 채움: 픽업 주문 시 이름/전화 누락이면 고객 DB에서 가져옴
+  if (req.customerId && type === 'pickup' && (!customerName || !customerPhone)) {
+    const customer = db.prepare('SELECT name, phone FROM customers WHERE id=?').get(req.customerId);
+    if (customer) {
+      if (!customerName)  customerName  = customer.name;
+      if (!customerPhone) customerPhone = customer.phone;
+    }
+  }
 
   try {
     const createOrder = db.transaction(() => {
