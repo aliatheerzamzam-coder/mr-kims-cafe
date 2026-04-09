@@ -35,6 +35,17 @@ function sendWhatsApp(toPhone, message) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── 매장 WiFi 체크 ────────────────────────────────────────────────────────────
+// 192.168.100.x 대역 = 매장 WiFi (Mr.kim)
+const STORE_WIFI_SUBNET = '192.168.100.';
+
+function isStoreWifi(req) {
+  const raw = req.ip || req.socket?.remoteAddress || '';
+  const ip = raw.replace(/^::ffff:/, '');
+  // localhost(개발/캐셔) 또는 매장 WiFi 대역이면 허용
+  return ip === '127.0.0.1' || ip === '::1' || ip.startsWith(STORE_WIFI_SUBNET);
+}
+
 // ─── DB 경로: Railway 볼륨 or 로컬 ────────────────────────────────────────────
 const DB_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH
   ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'cafe-warehouse.db')
@@ -232,6 +243,11 @@ function broadcastSSE(data) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// WiFi 연결 여부 확인 (클라이언트 → 서버)
+app.get('/api/check-wifi', (req, res) => {
+  res.json({ allowed: isStoreWifi(req) });
+});
+
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
@@ -384,6 +400,8 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
     return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
   if (type === 'pickup' && !arrivalTime)
     return res.status(400).json({ error: '픽업 주문은 도착 예정 시간이 필요합니다' });
+  if (type === 'dine' && !isStoreWifi(req))
+    return res.status(403).json({ error: 'WIFI_REQUIRED' });
 
   // 로그인 고객 정보 자동 채움: 픽업 주문 시 이름/전화 누락이면 고객 DB에서 가져옴
   if (req.customerId && type === 'pickup' && (!customerName || !customerPhone)) {

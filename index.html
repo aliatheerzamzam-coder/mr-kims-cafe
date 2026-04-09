@@ -2791,11 +2791,13 @@
       placeBtn.querySelector('.ar').textContent = 'نعم، اطلب الآن ✓';
     }
 
+    document.getElementById('wifi-error-msg').style.display = 'none';
     document.getElementById('confirm-modal').classList.add('open');
   }
 
   function closeConfirm() {
     document.getElementById('confirm-modal').classList.remove('open');
+    document.getElementById('wifi-error-msg').style.display = 'none';
     openCheckout();
   }
 
@@ -2959,6 +2961,24 @@
       openPaymentModal();
       return;
     }
+
+    // Dine-in: 매장 WiFi 연결 확인
+    if (selectedType === 'dine') {
+      const wifiErr = document.getElementById('wifi-error-msg');
+      try {
+        const r = await fetch('/api/check-wifi');
+        const data = await r.json();
+        if (!data.allowed) {
+          wifiErr.style.display = 'block';
+          return;
+        }
+      } catch (e) {
+        wifiErr.style.display = 'block';
+        return;
+      }
+      wifiErr.style.display = 'none';
+    }
+
     await placeOrderInternal(null);
   }
 
@@ -3882,6 +3902,11 @@
     <div class="confirm-total">
       <span><span class="en">Total</span><span class="ar">الإجمالي</span></span>
       <span id="confirm-total-price"></span>
+    </div>
+    <div id="wifi-error-msg" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:0.9rem;text-align:center;line-height:1.5">
+      <div style="font-size:1.4rem;margin-bottom:4px">📶</div>
+      <strong><span class="en">Store WiFi required for Dine-in</span><span class="ar">يجب الاتصال بـ WiFi المحل للطلب داخلي</span></strong><br>
+      <span style="color:#666"><span class="en">Please connect to <b>Mr.kim</b> WiFi and try again.</span><span class="ar">يرجى الاتصال بـ WiFi <b>Mr.kim</b> والمحاولة مرة أخرى.</span></span>
     </div>
     <div class="confirm-btns">
       <button class="btn-confirm-no" onclick="closeConfirm()">
