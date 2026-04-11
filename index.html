@@ -2738,12 +2738,14 @@
       dineBtn.disabled = true;
       dineBtn.style.opacity = '0.4';
       dineBtn.style.cursor = 'not-allowed';
+      dineBtn.style.pointerEvents = 'none';
       dineBtn.title = 'Scan table QR code to enable Dine-in';
       dineBtn.onclick = null;
     } else {
       dineBtn.disabled = false;
       dineBtn.style.opacity = '';
       dineBtn.style.cursor = '';
+      dineBtn.style.pointerEvents = '';
       dineBtn.title = '';
       dineBtn.onclick = () => selectType('dine');
       // 테이블 번호 자동 세팅
@@ -2764,6 +2766,7 @@
   }
 
   function selectType(type) {
+    if (type === 'dine' && !dineInToken) return; // QR 토큰 없으면 Dine-in 차단
     selectedType = type;
     ['dine','pickup','delivery'].forEach(t => {
       document.getElementById('type-'+t).classList.toggle('selected', t === type);
