@@ -330,6 +330,25 @@ tr:hover td{background:#fafcfb}
       <button id="pwBtn" class="btn btn-primary" onclick="changePw()">저장</button>
     </div>
   </div>
+
+  <div class="card" style="max-width:520px;margin-top:1.5rem">
+    <h3>👤 캐셔 관리</h3>
+    <div id="cashier-list" style="margin-bottom:1rem"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem">
+    <h4 style="margin:0 0 .75rem">새 캐셔 추가</h4>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label>이름</label>
+      <input type="text" id="newCashierName" placeholder="캐셔 이름">
+    </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label>비밀번호</label>
+      <input type="password" id="newCashierPw" placeholder="4자 이상">
+    </div>
+    <div id="cashierMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="addCashier()">추가</button>
+    </div>
+  </div>
 </div>
 
 </main>
@@ -523,6 +542,7 @@ function showTab(id, btn) {
   if (id === 'adjust')      loadAdjust();
   if (id === 'daily')       loadDaily();
   if (id === 'history')     loadHistory();
+  if (id === 'settings')    loadCashiers();
 }
 
 // ══════════════════════════════════════════════
@@ -1102,6 +1122,64 @@ async function changePw() {
     msgEl.innerHTML = '<div class="alert alert-danger">변경 실패. 네트워크를 확인하세요.</div>';
   } finally {
     unlockBtn('pwBtn');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 캐셔 관리
+// ══════════════════════════════════════════════
+async function loadCashiers() {
+  const listEl = document.getElementById('cashier-list');
+  if (!listEl) return;
+  try {
+    const data = await fetch('/api/cashiers', { headers: hdr() }).then(r => r.json());
+    if (!data.length) {
+      listEl.innerHTML = '<p style="color:var(--soft);font-size:.9em">등록된 캐셔 없음</p>';
+      return;
+    }
+    listEl.innerHTML = data.map(c => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);">
+        <span>👤 <strong>${esc(c.name)}</strong></span>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:.8em" onclick="deleteCashier(${c.id},'${esc(c.name)}')">삭제</button>
+      </div>`).join('');
+  } catch (e) {
+    listEl.innerHTML = '<p style="color:var(--red);font-size:.9em">불러오기 실패</p>';
+  }
+}
+
+async function addCashier() {
+  const name = document.getElementById('newCashierName').value.trim();
+  const pw = document.getElementById('newCashierPw').value;
+  const msgEl = document.getElementById('cashierMsg');
+  if (!name) { msgEl.innerHTML = '<div class="alert alert-danger">이름을 입력하세요</div>'; return; }
+  if (pw.length < 4) { msgEl.innerHTML = '<div class="alert alert-danger">비밀번호 4자 이상 입력하세요</div>'; return; }
+  try {
+    const r = await fetch('/api/cashiers', {
+      method: 'POST',
+      headers: { ...hdr(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, password: pw })
+    }).then(r => r.json());
+    if (r.id) {
+      msgEl.innerHTML = '<div class="alert alert-success">✅ 추가 완료</div>';
+      document.getElementById('newCashierName').value = '';
+      document.getElementById('newCashierPw').value = '';
+      loadCashiers();
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error||'추가 실패')}</div>`;
+    }
+  } catch (e) {
+    msgEl.innerHTML = '<div class="alert alert-danger">추가 실패. 네트워크를 확인하세요.</div>';
+  }
+}
+
+async function deleteCashier(id, name) {
+  if (!confirm(`"${name}" 캐셔를 삭제하시겠습니까?`)) return;
+  try {
+    const r = await fetch(`/api/cashiers/${id}`, { method: 'DELETE', headers: hdr() }).then(r => r.json());
+    if (r.success) loadCashiers();
+    else alert(r.error || '삭제 실패');
+  } catch (e) {
+    alert('삭제 실패');
   }
 }
 

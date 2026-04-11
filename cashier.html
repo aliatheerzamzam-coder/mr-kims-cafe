@@ -410,9 +410,78 @@
       }
     }
     #print-area { display: none; }
+
+    /* ─── 로그인 오버레이 ─── */
+    #loginOverlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .login-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      width: min(360px, 90vw);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    .login-box h2 { color: var(--green); font-size: 1.5rem; font-weight: 900; margin-bottom: .25rem; }
+    .login-box p  { color: var(--text-soft); font-size: .9rem; margin-bottom: 1.5rem; }
+    .login-box input {
+      width: 100%; padding: .8rem 1rem;
+      border: 2px solid #d4e8d8; border-radius: 12px;
+      font-size: 1rem; font-family: inherit; outline: none;
+      transition: border 0.2s; margin-bottom: .75rem; display: block;
+    }
+    .login-box input:focus { border-color: var(--green); }
+    .login-box button {
+      width: 100%; padding: .85rem;
+      background: var(--green); color: #fff;
+      border: none; border-radius: var(--radius-pill);
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: background 0.2s;
+    }
+    .login-box button:hover:not(:disabled) { background: var(--green-dark); }
+    .login-box button:disabled { opacity: .6; cursor: not-allowed; }
+    .login-err { color: var(--red); font-size: .85rem; margin-top: .5rem; min-height: 1.2rem; }
+    .cashier-badge {
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius-pill);
+      padding: 5px 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .btn-logout {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      border-radius: var(--radius-pill);
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.25); }
   </style>
 </head>
 <body>
+
+<!-- 로그인 오버레이 -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <h2>🏪 캐셔 로그인</h2>
+    <p>Mr. Kim's Café — كاشير</p>
+    <input type="text" id="loginName" placeholder="이름 (Name)" autocomplete="username" />
+    <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter') doCashierLogin()" />
+    <button id="loginBtn" onclick="doCashierLogin()">로그인</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
 
 <div id="print-area"></div>
 <div class="new-order-flash" id="new-flash">🔔 طلب جديد!</div>
@@ -425,7 +494,9 @@
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
     <span style="font-size:0.78rem;opacity:0.8;">مباشر<span class="conn-dot" id="conn-dot"></span></span>
+    <span class="cashier-badge" id="cashier-badge"></span>
     <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 الصوت: تشغيل</button>
+    <button class="btn-logout" onclick="doCashierLogout()">로그아웃</button>
   </div>
 </div>
 
@@ -655,7 +726,7 @@
     try {
       const res = await fetch(`/api/orders/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ status: 'cancelled' })
       });
       if (!res.ok) throw new Error();
@@ -675,7 +746,7 @@
     try {
       const res = await fetch(`/api/orders/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ status })
       });
       if (!res.ok) throw new Error();
@@ -786,13 +857,14 @@
           <td><div class="history-items-list">${itemsList}</div></td>
           <td style="font-weight:900;color:var(--green);">${o.total.toLocaleString()}</td>
           <td><span class="status-badge ${o.status}">${statusLabel[o.status]||o.status}</span></td>
+          <td style="font-size:0.8em;color:#888;">${esc(o.cashier_name||'-')}</td>
           <td><button class="btn-action btn-print" style="padding:6px 10px;" onclick="printReceipt('${esc(o.id)}')" title="طباعة">🖨️</button></td>
         </tr>`;
       }).join('');
 
       listEl.innerHTML = `<table class="history-table">
         <thead><tr>
-          <th>رقم</th><th>الوقت</th><th>النوع</th><th>الطلبات</th><th>IQD</th><th>الحالة</th><th></th>
+          <th>رقم</th><th>الوقت</th><th>النوع</th><th>الطلبات</th><th>IQD</th><th>الحالة</th><th>كاشير</th><th></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -834,8 +906,66 @@
     };
   }
 
-  /* ─── Admin Token ─── */
-  let adminToken = localStorage.getItem('kims-admin-token') || '';
+  /* ─── 캐셔 로그인 ─── */
+  let cashierToken = sessionStorage.getItem('cashier_token') || '';
+  let cashierName  = sessionStorage.getItem('cashier_name')  || '';
+
+  function cashierHeaders(extra) {
+    return Object.assign({ 'x-cashier-token': cashierToken }, extra || {});
+  }
+
+  function updateCashierBadge() {
+    const badge = document.getElementById('cashier-badge');
+    if (cashierName) badge.textContent = '👤 ' + cashierName;
+    else badge.textContent = '';
+  }
+
+  async function doCashierLogin() {
+    const name = document.getElementById('loginName').value.trim();
+    const pw   = document.getElementById('loginPw').value;
+    const err  = document.getElementById('loginErr');
+    const btn  = document.getElementById('loginBtn');
+    err.textContent = '';
+    if (!name || !pw) { err.textContent = '이름과 비밀번호를 입력하세요'; return; }
+    btn.disabled = true; btn.textContent = '로그인 중...';
+    try {
+      const res = await fetch('/api/cashier/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, password: pw })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        cashierToken = d.token;
+        cashierName  = d.name;
+        sessionStorage.setItem('cashier_token', cashierToken);
+        sessionStorage.setItem('cashier_name', cashierName);
+        document.getElementById('loginOverlay').style.display = 'none';
+        updateCashierBadge();
+      } else {
+        err.textContent = d.error || '로그인 실패';
+      }
+    } catch (e) {
+      err.textContent = '서버에 연결할 수 없습니다';
+    }
+    btn.disabled = false; btn.textContent = '로그인';
+  }
+
+  async function doCashierLogout() {
+    await fetch('/api/cashier/logout', { method: 'POST', headers: cashierHeaders() });
+    sessionStorage.removeItem('cashier_token');
+    sessionStorage.removeItem('cashier_name');
+    cashierToken = ''; cashierName = '';
+    location.reload();
+  }
+
+  // 페이지 로드 시 세션 확인
+  if (!cashierToken) {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  } else {
+    document.getElementById('loginOverlay').style.display = 'none';
+    updateCashierBadge();
+  }
 
   /* ─── Table QR Codes ─── */
   const BASE_URL = location.origin;
@@ -844,7 +974,7 @@
     const list = document.getElementById('qr-list');
     list.innerHTML = '<div style="color:#888;padding:20px">جاري التحميل...</div>';
     try {
-      const r = await fetch('/api/table-tokens', { headers: { 'x-auth-token': adminToken } });
+      const r = await fetch('/api/table-tokens', { headers: cashierHeaders() });
       if (r.status === 401) { list.innerHTML = '<div style="color:#e53e3e;padding:20px">⚠️ يجب تسجيل الدخول أولاً</div>'; return; }
       const tokens = await r.json();
       if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">لا توجد طاولات. أنشئ QR أولاً.</div>'; return; }
@@ -883,10 +1013,10 @@
     if (!tableNum) { alert('أدخل رقم الطاولة / Enter table number'); return; }
     const r = await fetch('/api/table-tokens', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-auth-token': adminToken },
+      headers: cashierHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ tableNum })
     });
-    if (r.status === 401) { alert('يجب تسجيل الدخول أولاً / Please login first'); return; }
+    if (r.status === 401) { alert('로그인이 필요합니다'); return; }
     if (r.ok) { document.getElementById('qr-table-input').value = ''; loadTableQRs(); }
   }
 
@@ -894,7 +1024,7 @@
     if (!confirm(`تجديد رمز الطاولة ${tableNum}؟\nRegenerate token for Table ${tableNum}?\n\n⚠️ The old QR code will stop working!`)) return;
     await fetch('/api/table-tokens', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-auth-token': adminToken },
+      headers: cashierHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ tableNum })
     });
     loadTableQRs();
@@ -903,7 +1033,7 @@
   async function deleteTableToken(tableNum) {
     if (!confirm(`حذف QR الطاولة ${tableNum}؟\nDelete QR for Table ${tableNum}?`)) return;
     await fetch(`/api/table-tokens/${tableNum}`, {
-      method: 'DELETE', headers: { 'x-auth-token': adminToken }
+      method: 'DELETE', headers: cashierHeaders()
     });
     loadTableQRs();
   }

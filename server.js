@@ -154,11 +154,26 @@ db.exec(`
     UNIQUE(customer_id, menu_key),
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS cashiers (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL UNIQUE,
+    password   TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS cashier_sessions (
+    token      TEXT PRIMARY KEY,
+    cashier_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (cashier_id) REFERENCES cashiers(id) ON DELETE CASCADE
+  );
 `);
 
 // 기존 DB 호환 마이그레이션
 try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)'); } catch (_) {}
 try { db.exec('ALTER TABLE orders ADD COLUMN arrival_time TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE orders ADD COLUMN cashier_name TEXT'); } catch (_) {}
 
 // 기본 데이터
 if (!db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get()) {
@@ -189,6 +204,39 @@ function requireAuth(req, res, next) {
 // 만료된 관리자 세션 정리 (1시간마다)
 setInterval(() => {
   db.prepare('DELETE FROM admin_sessions WHERE created_at < ?').run(Date.now() - ADMIN_SESSION_TTL);
+}, 60 * 60 * 1000);
+
+// ─── 캐셔 세션 (12시간 TTL) ────────────────────────────────────────────────────
+const CASHIER_SESSION_TTL = 12 * 60 * 60 * 1000;
+
+function requireCashierOrAdmin(req, res, next) {
+  // 관리자 토큰도 허용
+  const adminToken = req.headers['x-auth-token'];
+  if (adminToken) {
+    const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(adminToken);
+    if (row && Date.now() - row.created_at <= ADMIN_SESSION_TTL) {
+      db.prepare('UPDATE admin_sessions SET created_at=? WHERE token=?').run(Date.now(), adminToken);
+      req.cashierName = '관리자';
+      return next();
+    }
+  }
+  // 캐셔 토큰
+  const cashierToken = req.headers['x-cashier-token'];
+  if (!cashierToken) return res.status(401).json({ error: '로그인이 필요합니다' });
+  const row = db.prepare('SELECT cs.*, c.name FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
+  if (!row) return res.status(401).json({ error: '로그인이 필요합니다' });
+  if (Date.now() - row.created_at > CASHIER_SESSION_TTL) {
+    db.prepare('DELETE FROM cashier_sessions WHERE token=?').run(cashierToken);
+    return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인하세요' });
+  }
+  db.prepare('UPDATE cashier_sessions SET created_at=? WHERE token=?').run(Date.now(), cashierToken);
+  req.cashierName = row.name;
+  next();
+}
+
+// 만료된 캐셔 세션 정리 (1시간마다)
+setInterval(() => {
+  db.prepare('DELETE FROM cashier_sessions WHERE created_at < ?').run(Date.now() - CASHIER_SESSION_TTL);
 }, 60 * 60 * 1000);
 
 // ─── 고객 세션 (DB 기반, 30일 TTL) ───────────────────────────────────────────
@@ -268,15 +316,59 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// ─── CASHIER AUTH ─────────────────────────────────────────────────────────────
+
+app.post('/api/cashier/login', (req, res) => {
+  const { name, password } = req.body;
+  if (!name || !password) return res.status(400).json({ error: '이름과 비밀번호를 입력하세요' });
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  const cashier = db.prepare('SELECT * FROM cashiers WHERE name=? AND password=?').get(name.trim(), hash);
+  if (!cashier) return res.status(401).json({ error: '이름 또는 비밀번호가 틀렸습니다' });
+  const token = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO cashier_sessions (token, cashier_id, created_at) VALUES (?,?,?)').run(token, cashier.id, Date.now());
+  res.json({ success: true, token, name: cashier.name });
+});
+
+app.post('/api/cashier/logout', (req, res) => {
+  db.prepare('DELETE FROM cashier_sessions WHERE token=?').run(req.headers['x-cashier-token']);
+  res.json({ success: true });
+});
+
+// 캐셔 목록 조회 (관리자 전용)
+app.get('/api/cashiers', requireAuth, (req, res) => {
+  res.json(db.prepare('SELECT id, name, created_at FROM cashiers ORDER BY name').all());
+});
+
+// 캐셔 계정 생성 (관리자 전용)
+app.post('/api/cashiers', requireAuth, (req, res) => {
+  const { name, password } = req.body;
+  if (!name || !password) return res.status(400).json({ error: '이름과 비밀번호를 입력하세요' });
+  if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다' });
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  try {
+    const r = db.prepare('INSERT INTO cashiers (name, password, created_at) VALUES (?,?,?)').run(name.trim(), hash, Date.now());
+    res.json({ success: true, id: r.lastInsertRowid, name: name.trim() });
+  } catch (e) {
+    res.status(400).json({ error: '이미 존재하는 이름입니다' });
+  }
+});
+
+// 캐셔 계정 삭제 (관리자 전용)
+app.delete('/api/cashiers/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM cashier_sessions WHERE cashier_id=?').run(req.params.id);
+  db.prepare('DELETE FROM cashiers WHERE id=?').run(req.params.id);
+  res.json({ success: true });
+});
+
 // ─── TABLE TOKENS (QR코드 Dine-in 인증) ───────────────────────────────────────
 
 // 전체 목록 조회
-app.get('/api/table-tokens', requireAuth, (req, res) => {
+app.get('/api/table-tokens', requireCashierOrAdmin, (req, res) => {
   res.json(db.prepare('SELECT * FROM table_tokens ORDER BY CAST(table_num AS INTEGER)').all());
 });
 
 // 토큰 생성/재발급
-app.post('/api/table-tokens', requireAuth, (req, res) => {
+app.post('/api/table-tokens', requireCashierOrAdmin, (req, res) => {
   const { tableNum } = req.body;
   if (!tableNum) return res.status(400).json({ error: 'tableNum 필요' });
   const token = crypto.randomBytes(8).toString('hex'); // 16자 hex
@@ -285,7 +377,7 @@ app.post('/api/table-tokens', requireAuth, (req, res) => {
 });
 
 // 토큰 삭제
-app.delete('/api/table-tokens/:tableNum', requireAuth, (req, res) => {
+app.delete('/api/table-tokens/:tableNum', requireCashierOrAdmin, (req, res) => {
   db.prepare('DELETE FROM table_tokens WHERE table_num=?').run(req.params.tableNum);
   res.json({ success: true });
 });
@@ -487,8 +579,21 @@ app.put('/api/orders/:id/status', (req, res) => {
   const { status } = req.body;
   if (!['new', 'making', 'done', 'cancelled'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태' });
+
+  // 캐셔 이름 추적 (선택적 — 토큰 없어도 동작)
+  let cashierName = null;
+  const cashierToken = req.headers['x-cashier-token'];
+  if (cashierToken) {
+    const row = db.prepare('SELECT c.name FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
+    if (row) cashierName = row.name;
+  }
+
   try {
-    db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
+    if (cashierName) {
+      db.prepare("UPDATE orders SET status=?, cashier_name=? WHERE id=?").run(status, cashierName, req.params.id);
+    } else {
+      db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
+    }
     const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
     if (!order) return res.status(404).json({ error: '주문 없음' });
     const parsed = parseOrder(order);
