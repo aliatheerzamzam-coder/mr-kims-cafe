@@ -2735,19 +2735,17 @@
     // QR 토큰 없으면 Dine-in 버튼 비활성화
     const dineBtn = document.getElementById('type-dine');
     if (!dineInToken) {
-      dineBtn.disabled = true;
-      dineBtn.style.opacity = '0.4';
-      dineBtn.style.cursor = 'not-allowed';
-      dineBtn.style.pointerEvents = 'none';
-      dineBtn.title = 'Scan table QR code to enable Dine-in';
-      dineBtn.onclick = null;
+      dineBtn.disabled = false;
+      dineBtn.style.opacity = '0.55';
+      dineBtn.style.cursor = 'pointer';
+      dineBtn.style.pointerEvents = '';
+      dineBtn.title = '매장 안에서만 이용 가능 · In-store only';
     } else {
       dineBtn.disabled = false;
       dineBtn.style.opacity = '';
       dineBtn.style.cursor = '';
       dineBtn.style.pointerEvents = '';
       dineBtn.title = '';
-      dineBtn.onclick = () => selectType('dine');
       // 테이블 번호 자동 세팅
       const tableInput = document.getElementById('input-table');
       if (tableInput && dineInTable) tableInput.value = dineInTable;
@@ -2766,7 +2764,10 @@
   }
 
   function selectType(type) {
-    if (type === 'dine' && !dineInToken) return; // QR 토큰 없으면 Dine-in 차단
+    if (type === 'dine' && !dineInToken) {
+      showToast('🪑 매장 안에서만 작동하는 기능입니다 · In-store only — scan the table QR code');
+      return;
+    }
     selectedType = type;
     ['dine','pickup','delivery'].forEach(t => {
       document.getElementById('type-'+t).classList.toggle('selected', t === type);
