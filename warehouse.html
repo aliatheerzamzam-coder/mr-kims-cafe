@@ -39,6 +39,24 @@ header{background:var(--green);color:#fff;padding:1rem 1.5rem;display:flex;align
 .badge-admin{background:rgba(255,255,255,.2);border-radius:var(--r-pill);padding:.25rem .75rem;font-size:.8rem;font-weight:700}
 .btn-logout{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:var(--r-pill);padding:.35rem .9rem;cursor:pointer;font-size:.85rem;font-weight:700;transition:background var(--spd)}
 .btn-logout:hover{background:rgba(255,255,255,.3)}
+.btn-lang{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:var(--r-pill);padding:.3rem .75rem;cursor:pointer;font-size:.82rem;font-weight:800;letter-spacing:.03em;transition:background var(--spd)}
+.btn-lang:hover{background:rgba(255,255,255,.28)}
+
+/* ── RTL overrides ── */
+[dir="rtl"] body{font-family:'Cairo',sans-serif}
+[dir="rtl"] nav{flex-direction:row-reverse}
+[dir="rtl"] .sec-head{flex-direction:row-reverse}
+[dir="rtl"] .btn-bar{flex-direction:row-reverse}
+[dir="rtl"] .form-grid label,[dir="rtl"] .form-group label{text-align:right;display:block}
+[dir="rtl"] .header-right{flex-direction:row-reverse}
+[dir="rtl"] input,[dir="rtl"] select,[dir="rtl"] textarea{text-align:right}
+[dir="rtl"] table{direction:rtl}
+[dir="rtl"] th,[dir="rtl"] td{text-align:right}
+[dir="rtl"] .stat-grid .stat-card{direction:rtl}
+[dir="rtl"] .low-list{direction:rtl}
+[dir="rtl"] .cost-box{direction:rtl}
+[dir="rtl"] .sales-grid{direction:rtl}
+[dir="rtl"] .modal{direction:rtl}
 
 /* ── TABS ── */
 nav{background:var(--white);border-bottom:2px solid #e8f0eb;display:flex;overflow-x:auto;gap:.25rem;padding:.5rem 1rem}
@@ -161,23 +179,24 @@ tr:hover td{background:#fafcfb}
 <!-- ── HEADER ── -->
 <header>
   <div class="brand">
-    ☕ Mr. Kim's <span>창고 관리 | إدارة المخزن</span>
+    ☕ Mr. Kim's <span data-i18n="brand_sub">창고 관리</span>
   </div>
   <div class="header-right">
-    <span class="badge-admin">🔑 관리자</span>
-    <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+    <button class="btn-lang" id="langToggle" onclick="toggleLang()">AR</button>
+    <span class="badge-admin" data-i18n="badge_admin">🔑 관리자</span>
+    <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">로그아웃</button>
   </div>
 </header>
 
 <!-- ── NAV TABS ── -->
 <nav id="mainNav">
-  <button class="active" onclick="showTab('dashboard',this)">📊 대시보드</button>
-  <button onclick="showTab('ingredients',this)">🧪 재료 관리</button>
-  <button onclick="showTab('recipes',this)">📋 레시피 & 원가</button>
-  <button onclick="showTab('adjust',this)">📦 입출고</button>
-  <button onclick="showTab('daily',this)">🛒 일일 판매</button>
-  <button onclick="showTab('history',this)">📜 기록</button>
-  <button onclick="showTab('settings',this)">⚙️ 설정</button>
+  <button class="active" onclick="showTab('dashboard',this)" data-i18n="nav_dashboard">📊 대시보드</button>
+  <button onclick="showTab('ingredients',this)" data-i18n="nav_ingredients">🧪 재료 관리</button>
+  <button onclick="showTab('recipes',this)" data-i18n="nav_recipes">📋 레시피 & 원가</button>
+  <button onclick="showTab('adjust',this)" data-i18n="nav_adjust">📦 입출고</button>
+  <button onclick="showTab('daily',this)" data-i18n="nav_daily">🛒 일일 판매</button>
+  <button onclick="showTab('history',this)" data-i18n="nav_history">📜 기록</button>
+  <button onclick="showTab('settings',this)" data-i18n="nav_settings">⚙️ 설정</button>
 </nav>
 
 <main>
@@ -185,20 +204,26 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 1. 대시보드 ───────────── -->
 <div class="tab-panel active" id="tab-dashboard">
   <div class="sec-head">
-    <h2>📊 창고 현황 / لوحة التحكم</h2>
-    <button class="btn btn-outline btn-sm" onclick="loadDashboard()">🔄 새로고침</button>
+    <h2 data-i18n="tab_dashboard_title">📊 창고 현황</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadDashboard()" data-i18n="btn_refresh">🔄 새로고침</button>
   </div>
   <div class="stat-grid" id="statGrid"></div>
   <div id="lowStockSection" class="hidden">
     <div class="card">
-      <h3>⚠️ 재고 부족 경고 / تحذير نقص المخزون</h3>
+      <h3 data-i18n="low_stock_title">⚠️ 재고 부족 경고</h3>
       <div class="low-list" id="lowList"></div>
     </div>
   </div>
   <div class="card">
-    <h3>🕐 최근 입출고 기록</h3>
+    <h3 data-i18n="recent_history_title">🕐 최근 입출고 기록</h3>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>재료</th><th>구분</th><th>수량</th><th>사유</th><th>일시</th></tr></thead>
+      <thead><tr>
+        <th data-i18n="col_ingredient">재료</th>
+        <th data-i18n="col_type">구분</th>
+        <th data-i18n="col_qty">수량</th>
+        <th data-i18n="col_reason">사유</th>
+        <th data-i18n="col_datetime">일시</th>
+      </tr></thead>
       <tbody id="recentHistTb"></tbody>
     </table></div>
   </div>
@@ -207,12 +232,21 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 2. 재료 관리 ───────────── -->
 <div class="tab-panel" id="tab-ingredients">
   <div class="sec-head">
-    <h2>🧪 재료 관리 / إدارة المواد</h2>
-    <button class="btn btn-primary btn-sm" onclick="openIngModal()">+ 재료 추가</button>
+    <h2 data-i18n="tab_ing_title">🧪 재료 관리</h2>
+    <button class="btn btn-primary btn-sm" onclick="openIngModal()" data-i18n="btn_add_ing">+ 재료 추가</button>
   </div>
   <div class="card">
     <div class="tbl-wrap"><table>
-      <thead><tr><th>재료명 (KO)</th><th>아랍어 (AR)</th><th>단위</th><th>현재 재고</th><th>최소 재고</th><th>단위 원가 (IQD)</th><th>상태</th><th>관리</th></tr></thead>
+      <thead><tr>
+        <th data-i18n="col_name_ko">재료명 (KO)</th>
+        <th data-i18n="col_name_ar">아랍어 (AR)</th>
+        <th data-i18n="col_unit">단위</th>
+        <th data-i18n="col_cur_qty">현재 재고</th>
+        <th data-i18n="col_min_qty">최소 재고</th>
+        <th data-i18n="col_cost">단위 원가 (IQD)</th>
+        <th data-i18n="col_status">상태</th>
+        <th data-i18n="col_manage">관리</th>
+      </tr></thead>
       <tbody id="ingTb"></tbody>
     </table></div>
   </div>
@@ -221,23 +255,30 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 3. 레시피 & 원가 ───────────── -->
 <div class="tab-panel" id="tab-recipes">
   <div class="sec-head">
-    <h2>📋 레시피 & 원가 / الوصفات والتكلفة</h2>
-    <button class="btn btn-primary btn-sm" onclick="openRecipeModal()">+ 레시피 추가/수정</button>
+    <h2 data-i18n="tab_recipe_title">📋 레시피 & 원가</h2>
+    <button class="btn btn-primary btn-sm" onclick="openRecipeModal()" data-i18n="btn_add_recipe">+ 레시피 추가/수정</button>
   </div>
   <div class="card">
     <div class="tbl-wrap"><table>
-      <thead><tr><th>메뉴</th><th>재료</th><th>수량</th><th>단위</th><th>비용</th><th>관리</th></tr></thead>
+      <thead><tr>
+        <th data-i18n="col_menu">메뉴</th>
+        <th data-i18n="col_ingredient">재료</th>
+        <th data-i18n="col_qty">수량</th>
+        <th data-i18n="col_unit">단위</th>
+        <th data-i18n="col_cost">비용</th>
+        <th data-i18n="col_manage">관리</th>
+      </tr></thead>
       <tbody id="recipeTb"></tbody>
     </table></div>
   </div>
   <div class="card">
-    <h3>💰 원가 계산기 / حساب التكلفة</h3>
+    <h3 data-i18n="cost_calc_title">💰 원가 계산기</h3>
     <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
       <div class="form-group" style="flex:1;min-width:200px">
-        <label>메뉴 선택</label>
-        <select id="costMenuSel"><option value="">— 메뉴 선택 —</option></select>
+        <label data-i18n="label_select_menu">메뉴 선택</label>
+        <select id="costMenuSel"><option value="" data-i18n-opt="opt_select_menu">— 메뉴 선택 —</option></select>
       </div>
-      <button id="calcCostBtn" class="btn btn-primary" onclick="calcCost()">계산하기</button>
+      <button id="calcCostBtn" class="btn btn-primary" onclick="calcCost()" data-i18n="btn_calc">계산하기</button>
     </div>
     <div id="costResult" class="hidden cost-box" style="margin-top:1rem"></div>
   </div>
@@ -245,55 +286,53 @@ tr:hover td{background:#fafcfb}
 
 <!-- ───────────── 4. 입출고 ───────────── -->
 <div class="tab-panel" id="tab-adjust">
-  <div class="sec-head"><h2>📦 입출고 / الجرد</h2></div>
+  <div class="sec-head"><h2 data-i18n="tab_adjust_title">📦 입출고</h2></div>
   <div class="card">
-    <h3>재고 수량 조정</h3>
+    <h3 data-i18n="adj_card_title">재고 수량 조정</h3>
     <div class="form-grid">
       <div class="form-group">
-        <label>재료 선택</label>
-        <select id="adjIng"><option value="">— 선택 —</option></select>
+        <label data-i18n="label_select_ing">재료 선택</label>
+        <select id="adjIng"><option value="" data-i18n-opt="opt_select">— 선택 —</option></select>
       </div>
       <div class="form-group">
-        <label>구분</label>
+        <label data-i18n="label_type">구분</label>
         <select id="adjType">
-          <option value="in">📥 입고 (추가)</option>
-          <option value="out">📤 출고 (차감)</option>
+          <option value="in" data-i18n-opt="opt_in">📥 입고 (추가)</option>
+          <option value="out" data-i18n-opt="opt_out">📤 출고 (차감)</option>
         </select>
       </div>
       <div class="form-group">
-        <label>수량</label>
+        <label data-i18n="label_qty">수량</label>
         <input type="number" id="adjQty" min="0" step="0.01" placeholder="0">
       </div>
       <div class="form-group">
-        <label>사유 (선택)</label>
-        <input type="text" id="adjReason" placeholder="예: 납품 입고, 폐기 등">
+        <label data-i18n="label_reason">사유 (선택)</label>
+        <input type="text" id="adjReason" data-i18n-ph="ph_reason" placeholder="예: 납품 입고, 폐기 등">
       </div>
     </div>
     <div id="adjMsg"></div>
     <div class="btn-bar">
-      <button id="adjBtn" class="btn btn-primary" onclick="submitAdjust()">✅ 적용</button>
+      <button id="adjBtn" class="btn btn-primary" onclick="submitAdjust()" data-i18n="btn_apply">✅ 적용</button>
     </div>
   </div>
 </div>
 
 <!-- ───────────── 5. 일일 판매 ───────────── -->
 <div class="tab-panel" id="tab-daily">
-  <div class="sec-head"><h2>🛒 일일 판매 입력 / مبيعات اليوم</h2></div>
+  <div class="sec-head"><h2 data-i18n="tab_daily_title">🛒 일일 판매 입력</h2></div>
   <div class="card">
     <div class="form-grid" style="max-width:300px">
       <div class="form-group">
-        <label>📅 판매 날짜</label>
+        <label data-i18n="label_sale_date">📅 판매 날짜</label>
         <input type="date" id="saleDate">
       </div>
     </div>
-    <p style="font-size:.85rem;color:var(--soft);margin-bottom:1rem">판매 수량을 입력하면 레시피 기준으로 재고가 자동 차감됩니다. 0은 무시됩니다.</p>
-    <div id="salesEmpty" class="hidden" style="padding:1.5rem 0;color:var(--soft);font-size:.9rem">
-      ⚠️ 등록된 레시피가 없습니다. 먼저 레시피 탭에서 메뉴를 추가해주세요.
-    </div>
-    <div class="sales-grid" id="salesGrid"></div>
+    <p data-i18n="daily_hint" style="font-size:.85rem;color:var(--soft);margin-bottom:1rem">메뉴 이름과 판매 수량을 입력하세요. 저장 시 레시피 기준으로 재고가 자동 차감됩니다.</p>
+    <div id="saleRows" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem"></div>
+    <button class="btn btn-outline btn-sm" onclick="addSaleRow()" data-i18n="btn_add_sale_row">+ 메뉴 추가</button>
     <div id="saleMsg" style="margin-top:.75rem"></div>
     <div class="btn-bar" style="margin-top:1rem">
-      <button id="saleBtn" class="btn btn-primary" onclick="submitSales()">✅ 판매 기록 저장 & 재고 차감</button>
+      <button id="saleBtn" class="btn btn-primary" onclick="submitSales()" data-i18n="btn_save_sales">✅ 판매 기록 저장 & 재고 차감</button>
     </div>
   </div>
 </div>
@@ -301,12 +340,19 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 6. 기록 ───────────── -->
 <div class="tab-panel" id="tab-history">
   <div class="sec-head">
-    <h2>📜 입출고 기록 / السجل</h2>
-    <button class="btn btn-outline btn-sm" onclick="loadHistory()">🔄 새로고침</button>
+    <h2 data-i18n="tab_history_title">📜 입출고 기록</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadHistory()" data-i18n="btn_refresh">🔄 새로고침</button>
   </div>
   <div class="card">
     <div class="tbl-wrap"><table>
-      <thead><tr><th>재료</th><th>구분</th><th>수량</th><th>사유</th><th>일시</th></tr></thead>
+      <thead><tr>
+        <th data-i18n="col_ingredient">재료</th>
+        <th data-i18n="col_type">구분</th>
+        <th data-i18n="col_qty">수량</th>
+        <th data-i18n="col_reason">사유</th>
+        <th data-i18n="col_datetime">일시</th>
+        <th data-i18n="col_action">작업</th>
+      </tr></thead>
       <tbody id="histTb"></tbody>
     </table></div>
   </div>
@@ -314,39 +360,39 @@ tr:hover td{background:#fafcfb}
 
 <!-- ───────────── 7. 설정 ───────────── -->
 <div class="tab-panel" id="tab-settings">
-  <div class="sec-head"><h2>⚙️ 설정 / الإعدادات</h2></div>
+  <div class="sec-head"><h2 data-i18n="tab_settings_title">⚙️ 설정</h2></div>
   <div class="card" style="max-width:420px">
-    <h3>🔑 비밀번호 변경</h3>
+    <h3 data-i18n="pw_title">🔑 비밀번호 변경</h3>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label>새 비밀번호</label>
-      <input type="password" id="newPw" placeholder="4자 이상">
+      <label data-i18n="label_new_pw">새 비밀번호</label>
+      <input type="password" id="newPw" data-i18n-ph="ph_new_pw" placeholder="4자 이상">
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label>새 비밀번호 확인</label>
-      <input type="password" id="newPw2" placeholder="동일하게 입력">
+      <label data-i18n="label_new_pw2">새 비밀번호 확인</label>
+      <input type="password" id="newPw2" data-i18n-ph="ph_new_pw2" placeholder="동일하게 입력">
     </div>
     <div id="pwMsg"></div>
     <div class="btn-bar">
-      <button id="pwBtn" class="btn btn-primary" onclick="changePw()">저장</button>
+      <button id="pwBtn" class="btn btn-primary" onclick="changePw()" data-i18n="btn_save">저장</button>
     </div>
   </div>
 
   <div class="card" style="max-width:520px;margin-top:1.5rem">
-    <h3>👤 캐셔 관리</h3>
+    <h3 data-i18n="cashier_title">👤 캐셔 관리</h3>
     <div id="cashier-list" style="margin-bottom:1rem"></div>
     <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem">
-    <h4 style="margin:0 0 .75rem">새 캐셔 추가</h4>
+    <h4 data-i18n="cashier_add_title" style="margin:0 0 .75rem">새 캐셔 추가</h4>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label>이름</label>
-      <input type="text" id="newCashierName" placeholder="캐셔 이름">
+      <label data-i18n="label_name">이름</label>
+      <input type="text" id="newCashierName" data-i18n-ph="ph_cashier_name" placeholder="캐셔 이름">
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label>비밀번호</label>
-      <input type="password" id="newCashierPw" placeholder="4자 이상">
+      <label data-i18n="label_pw">비밀번호</label>
+      <input type="password" id="newCashierPw" data-i18n-ph="ph_cashier_pw" placeholder="4자 이상">
     </div>
     <div id="cashierMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-primary" onclick="addCashier()">추가</button>
+      <button class="btn btn-primary" onclick="addCashier()" data-i18n="btn_add">추가</button>
     </div>
   </div>
 </div>
@@ -356,19 +402,19 @@ tr:hover td{background:#fafcfb}
 <!-- ── 재료 추가/수정 모달 ── -->
 <div class="modal-overlay hidden" id="ingModal">
   <div class="modal">
-    <h3 id="ingModalTitle">재료 추가</h3>
+    <h3 id="ingModalTitle" data-i18n="modal_ing_title">재료 추가</h3>
     <input type="hidden" id="ingId">
     <div class="form-grid">
       <div class="form-group">
-        <label>재료명 (한국어) *</label>
-        <input id="ingNameKo" placeholder="예: 바닐라 시럽">
+        <label data-i18n="label_name_ko">재료명 (한국어) *</label>
+        <input id="ingNameKo" data-i18n-ph="ph_name_ko" placeholder="예: 바닐라 시럽">
       </div>
       <div class="form-group">
-        <label>재료명 (아랍어)</label>
+        <label data-i18n="label_name_ar">재료명 (아랍어)</label>
         <input id="ingNameAr" class="ar" placeholder="مثال: شراب الفانيليا" dir="rtl">
       </div>
       <div class="form-group">
-        <label>단위 *</label>
+        <label data-i18n="label_unit">단위 *</label>
         <select id="ingUnit">
           <option value="병">병 (시럽류)</option>
           <option value="kg">kg (파우더류)</option>
@@ -381,22 +427,22 @@ tr:hover td{background:#fafcfb}
         </select>
       </div>
       <div class="form-group">
-        <label>현재 재고</label>
+        <label data-i18n="label_cur_qty">현재 재고</label>
         <input type="number" id="ingCurQty" min="0" step="0.01" placeholder="0">
       </div>
       <div class="form-group">
-        <label>최소 재고 (경고 기준)</label>
+        <label data-i18n="label_min_qty">최소 재고 (경고 기준)</label>
         <input type="number" id="ingMinQty" min="0" step="0.01" placeholder="1">
       </div>
       <div class="form-group">
-        <label>단위당 원가 (IQD)</label>
+        <label data-i18n="label_unit_cost">단위당 원가 (IQD)</label>
         <input type="number" id="ingCost" min="0" step="1" placeholder="0">
       </div>
     </div>
     <div id="ingModalMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-outline" onclick="closeModal('ingModal')">취소</button>
-      <button id="ingSaveBtn" class="btn btn-primary" onclick="saveIngredient()">저장</button>
+      <button class="btn btn-outline" onclick="closeModal('ingModal')" data-i18n="btn_cancel">취소</button>
+      <button id="ingSaveBtn" class="btn btn-primary" onclick="saveIngredient()" data-i18n="btn_save">저장</button>
     </div>
   </div>
 </div>
@@ -404,28 +450,309 @@ tr:hover td{background:#fafcfb}
 <!-- ── 레시피 추가/수정 모달 ── -->
 <div class="modal-overlay hidden" id="recipeModal">
   <div class="modal">
-    <h3>레시피 추가 / 수정</h3>
+    <h3 data-i18n="modal_recipe_title">레시피 추가 / 수정</h3>
     <div class="form-group" style="margin-bottom:1rem">
-      <label>메뉴명 *</label>
-      <input id="recipeMenuName" placeholder="예: 아이스 라떼">
+      <label data-i18n="label_menu_name">메뉴명 *</label>
+      <input id="recipeMenuName" data-i18n-ph="ph_menu_name" placeholder="예: 아이스 라떼">
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--mid)">재료 목록</label>
-      <button class="btn btn-outline btn-sm" onclick="addRecipeRow()">+ 재료 추가</button>
+      <label data-i18n="label_ing_list" style="font-size:.8rem;font-weight:700;color:var(--mid)">재료 목록</label>
+      <button class="btn btn-outline btn-sm" onclick="addRecipeRow()" data-i18n="btn_add_ing_row">+ 재료 추가</button>
     </div>
     <div id="recipeRows" style="margin-bottom:.75rem"></div>
     <div id="recipeModalMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-outline" onclick="closeModal('recipeModal')">취소</button>
-      <button id="recipeSaveBtn" class="btn btn-primary" onclick="saveRecipe()">저장</button>
+      <button class="btn btn-outline" onclick="closeModal('recipeModal')" data-i18n="btn_cancel">취소</button>
+      <button id="recipeSaveBtn" class="btn btn-primary" onclick="saveRecipe()" data-i18n="btn_save">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 입출고 기록 수정 모달 ── -->
+<div class="modal-overlay hidden" id="histEditModal">
+  <div class="modal">
+    <h3 data-i18n="modal_hist_edit_title">입출고 기록 수정</h3>
+    <input type="hidden" id="histEditId">
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="col_ingredient">재료</label>
+      <input type="text" id="histEditIngName" readonly style="background:var(--card-bg);color:var(--soft);cursor:default">
+    </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_type">구분</label>
+      <select id="histEditType">
+        <option value="in" data-i18n="opt_in">📥 입고 (추가)</option>
+        <option value="out" data-i18n="opt_out">📤 출고 (차감)</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_qty">수량</label>
+      <input type="number" id="histEditQty" min="0.01" step="0.01">
+    </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_reason">사유 (선택)</label>
+      <input type="text" id="histEditReason" data-i18n-ph="ph_reason" placeholder="예: 납품 입고, 폐기 등">
+    </div>
+    <div id="histEditMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('histEditModal')" data-i18n="btn_cancel">취소</button>
+      <button id="histEditSaveBtn" class="btn btn-primary" onclick="saveHistEdit()" data-i18n="btn_save">저장</button>
     </div>
   </div>
 </div>
 
 <script>
+// ══════════════════════════════════════════════
+// i18n — 다국어 지원
+// ══════════════════════════════════════════════
+const TRANSLATIONS = {
+  ko: {
+    brand_sub:'창고 관리', badge_admin:'🔑 관리자', btn_logout:'로그아웃',
+    nav_dashboard:'📊 대시보드', nav_ingredients:'🧪 재료 관리', nav_recipes:'📋 레시피 & 원가',
+    nav_adjust:'📦 입출고', nav_daily:'🛒 일일 판매', nav_history:'📜 기록', nav_settings:'⚙️ 설정',
+    tab_dashboard_title:'📊 창고 현황', btn_refresh:'🔄 새로고침',
+    low_stock_title:'⚠️ 재고 부족 경고', recent_history_title:'🕐 최근 입출고 기록',
+    col_ingredient:'재료', col_type:'구분', col_qty:'수량', col_reason:'사유', col_datetime:'일시',
+    tab_ing_title:'🧪 재료 관리', btn_add_ing:'+ 재료 추가',
+    col_name_ko:'재료명 (KO)', col_name_ar:'아랍어 (AR)', col_unit:'단위',
+    col_cur_qty:'현재 재고', col_min_qty:'최소 재고', col_cost:'단위 원가 (IQD)',
+    col_status:'상태', col_manage:'관리',
+    tab_recipe_title:'📋 레시피 & 원가', btn_add_recipe:'+ 레시피 추가/수정',
+    col_menu:'메뉴', cost_calc_title:'💰 원가 계산기',
+    label_select_menu:'메뉴 선택', btn_calc:'계산하기', opt_select_menu:'— 메뉴 선택 —',
+    tab_adjust_title:'📦 입출고', adj_card_title:'재고 수량 조정',
+    label_select_ing:'재료 선택', opt_select:'— 선택 —', label_type:'구분',
+    opt_in:'📥 입고 (추가)', opt_out:'📤 출고 (차감)',
+    label_qty:'수량', label_reason:'사유 (선택)', ph_reason:'예: 납품 입고, 폐기 등',
+    btn_apply:'✅ 적용',
+    tab_daily_title:'🛒 일일 판매 입력', label_sale_date:'📅 판매 날짜',
+    daily_hint:'판매 수량을 입력하면 레시피 기준으로 재고가 자동 차감됩니다. 0은 무시됩니다.',
+    daily_empty:'⚠️ 등록된 레시피가 없습니다. 먼저 레시피 탭에서 메뉴를 추가해주세요.',
+    btn_save_sales:'✅ 판매 기록 저장 & 재고 차감',
+    btn_add_sale_row:'+ 메뉴 추가',
+    ph_sale_menu:'메뉴 이름',
+    err_no_sale_rows:'판매 항목을 하나 이상 입력하세요',
+    tab_history_title:'📜 입출고 기록',
+    tab_settings_title:'⚙️ 설정', pw_title:'🔑 비밀번호 변경',
+    label_new_pw:'새 비밀번호', ph_new_pw:'4자 이상',
+    label_new_pw2:'새 비밀번호 확인', ph_new_pw2:'동일하게 입력',
+    btn_save:'저장', cashier_title:'👤 캐셔 관리', cashier_add_title:'새 캐셔 추가',
+    label_name:'이름', ph_cashier_name:'캐셔 이름',
+    label_pw:'비밀번호', ph_cashier_pw:'4자 이상', btn_add:'추가',
+    modal_ing_title:'재료 추가', label_name_ko:'재료명 (한국어) *', ph_name_ko:'예: 바닐라 시럽',
+    label_name_ar:'재료명 (아랍어)', label_unit:'단위 *',
+    label_cur_qty:'현재 재고', label_min_qty:'최소 재고 (경고 기준)',
+    label_unit_cost:'단위당 원가 (IQD)', btn_cancel:'취소',
+    modal_recipe_title:'레시피 추가 / 수정', label_menu_name:'메뉴명 *',
+    ph_menu_name:'예: 아이스 라떼', label_ing_list:'재료 목록', btn_add_ing_row:'+ 재료 추가',
+    // 동적 JS 문자열
+    btn_edit:'수정', btn_delete:'삭제',
+    col_action:'작업',
+    confirm_del_hist:'이 입출고 기록을 삭제할까요?\n(재고 수량이 자동으로 되돌려집니다)',
+    modal_hist_edit_title:'입출고 기록 수정',
+    err_hist_type:'구분을 선택하세요',
+    err_hist_qty:'수량을 올바르게 입력하세요',
+    err_hist_save:'저장 실패. 다시 시도해주세요.',
+    hist_del_fail:'삭제 실패. 다시 시도해주세요.',
+    stat_total_ing:'총 재료 종류', stat_low_ing:'재고 부족 재료 ⚠️',
+    low_item_cur:'현재', low_item_min:'최소',
+    badge_in:'📥 입고', badge_out:'📤 출고',
+    err_load_data:'데이터를 불러오지 못했습니다',
+    ing_empty:'재료 없음. 재료를 추가해주세요.',
+    status_out:'재고없음', status_low:'부족', status_ok:'정상',
+    err_load_retry:'불러오기 실패. 새로고침 해주세요.',
+    modal_ing_edit_title:'재료 수정',
+    err_ing_name:'재료명을 입력하세요',
+    err_save_net:'저장 실패. 네트워크를 확인하세요.',
+    confirm_del_ing:'재료를 삭제할까요?\n(해당 재료가 포함된 레시피도 삭제됩니다)',
+    err_del:'삭제 실패. 다시 시도해주세요.',
+    recipe_empty:'레시피 없음', err_load:'불러오기 실패',
+    opt_select_ing_lbl:'— 재료 선택 —', ph_qty:'수량',
+    err_menu_name:'메뉴명을 입력하세요',
+    err_ing_required:'재료를 하나 이상 추가하세요',
+    err_dup_ing:'중복 재료가 있습니다',
+    err_dup_ing_hint:'같은 재료는 하나만 등록하고 수량을 합쳐서 입력해주세요.',
+    confirm_del_recipe:'레시피를 삭제할까요?',
+    cost_menu_lbl:'메뉴', cost_total_lbl:'원가 합계',
+    btn_calculating:'계산 중...', err_calc:'계산 실패. 다시 시도해주세요.',
+    adj_current:'현재',
+    err_adj_input:'재료와 수량을 올바르게 입력하세요',
+    adj_success:'완료! 현재 재고',
+    err_req_net:'요청 실패. 네트워크를 확인하세요.',
+    err_load_menus:'메뉴 목록을 불러오지 못했습니다',
+    err_no_date:'날짜를 선택하세요',
+    err_no_sales:'⚠️ 판매 수량을 하나 이상 입력하세요',
+    sales_success:'개 메뉴 판매 기록 완료. 재고 차감 완료.',
+    hist_empty:'기록 없음',
+    err_pw_mismatch:'비밀번호가 일치하지 않습니다',
+    err_pw_short:'4자 이상 입력하세요',
+    pw_success:'✅ 비밀번호 변경 완료',
+    pw_change_fail:'변경 실패. 네트워크를 확인하세요.',
+    cashier_empty:'등록된 캐셔 없음',
+    err_cashier_name:'이름을 입력하세요',
+    err_cashier_pw:'비밀번호 4자 이상 입력하세요',
+    cashier_added:'✅ 추가 완료',
+    cashier_add_fail:'추가 실패',
+    cashier_add_net:'추가 실패. 네트워크를 확인하세요.',
+    confirm_del_cashier:'캐셔를 삭제하시겠습니까?',
+  },
+  ar: {
+    brand_sub:'إدارة المخزن', badge_admin:'🔑 مدير', btn_logout:'خروج',
+    nav_dashboard:'📊 لوحة التحكم', nav_ingredients:'🧪 المواد', nav_recipes:'📋 الوصفات والتكلفة',
+    nav_adjust:'📦 الجرد', nav_daily:'🛒 مبيعات اليوم', nav_history:'📜 السجل', nav_settings:'⚙️ الإعدادات',
+    tab_dashboard_title:'📊 لوحة التحكم', btn_refresh:'🔄 تحديث',
+    low_stock_title:'⚠️ تحذير نقص المخزون', recent_history_title:'🕐 آخر العمليات',
+    col_ingredient:'المادة', col_type:'النوع', col_qty:'الكمية', col_reason:'السبب', col_datetime:'التاريخ',
+    tab_ing_title:'🧪 إدارة المواد', btn_add_ing:'+ إضافة مادة',
+    col_name_ko:'الاسم (KO)', col_name_ar:'اسم عربي (AR)', col_unit:'الوحدة',
+    col_cur_qty:'المخزون الحالي', col_min_qty:'الحد الأدنى', col_cost:'التكلفة (IQD)',
+    col_status:'الحالة', col_manage:'إدارة',
+    tab_recipe_title:'📋 الوصفات والتكلفة', btn_add_recipe:'+ إضافة وصفة',
+    col_menu:'القائمة', cost_calc_title:'💰 حساب التكلفة',
+    label_select_menu:'اختر قائمة', btn_calc:'احسب', opt_select_menu:'— اختر قائمة —',
+    tab_adjust_title:'📦 الجرد', adj_card_title:'تعديل الكمية',
+    label_select_ing:'اختر المادة', opt_select:'— اختر —', label_type:'النوع',
+    opt_in:'📥 وارد (إضافة)', opt_out:'📤 صادر (خصم)',
+    label_qty:'الكمية', label_reason:'السبب (اختياري)', ph_reason:'مثال: توريد، إتلاف...',
+    btn_apply:'✅ تطبيق',
+    tab_daily_title:'🛒 مبيعات اليوم', label_sale_date:'📅 تاريخ المبيعات',
+    daily_hint:'أدخل الكميات المباعة وسيتم خصم المخزون تلقائياً حسب الوصفة. القيم الصفرية تُتجاهل.',
+    daily_empty:'⚠️ لا توجد وصفات مسجّلة. أضف وصفات أولاً من تبويب الوصفات.',
+    btn_save_sales:'✅ حفظ المبيعات وخصم المخزون',
+    btn_add_sale_row:'+ إضافة منتج',
+    ph_sale_menu:'اسم المنتج',
+    err_no_sale_rows:'أضف عنصراً واحداً على الأقل',
+    tab_history_title:'📜 السجل',
+    tab_settings_title:'⚙️ الإعدادات', pw_title:'🔑 تغيير كلمة المرور',
+    label_new_pw:'كلمة المرور الجديدة', ph_new_pw:'4 أحرف على الأقل',
+    label_new_pw2:'تأكيد كلمة المرور', ph_new_pw2:'أعد الإدخال',
+    btn_save:'حفظ', cashier_title:'👤 إدارة الكاشير', cashier_add_title:'إضافة كاشير',
+    label_name:'الاسم', ph_cashier_name:'اسم الكاشير',
+    label_pw:'كلمة المرور', ph_cashier_pw:'4 أحرف على الأقل', btn_add:'إضافة',
+    modal_ing_title:'إضافة مادة', label_name_ko:'الاسم (كوري) *', ph_name_ko:'مثال: شراب الفانيليا',
+    label_name_ar:'الاسم (عربي)', label_unit:'الوحدة *',
+    label_cur_qty:'المخزون الحالي', label_min_qty:'الحد الأدنى (تحذير)',
+    label_unit_cost:'التكلفة للوحدة (IQD)', btn_cancel:'إلغاء',
+    modal_recipe_title:'إضافة / تعديل وصفة', label_menu_name:'اسم القائمة *',
+    ph_menu_name:'مثال: لاتيه مثلج', label_ing_list:'قائمة المواد', btn_add_ing_row:'+ إضافة مادة',
+    // Dynamic JS strings
+    btn_edit:'تعديل', btn_delete:'حذف',
+    col_action:'إجراء',
+    confirm_del_hist:'هل تريد حذف هذا السجل؟\n(سيتم استعادة كمية المخزون تلقائياً)',
+    modal_hist_edit_title:'تعديل سجل الجرد',
+    err_hist_type:'اختر النوع',
+    err_hist_qty:'أدخل كمية صحيحة',
+    err_hist_save:'فشل الحفظ. حاول مرة أخرى.',
+    hist_del_fail:'فشل الحذف. حاول مرة أخرى.',
+    stat_total_ing:'إجمالي المواد', stat_low_ing:'مواد ناقصة ⚠️',
+    low_item_cur:'الحالي', low_item_min:'الأدنى',
+    badge_in:'📥 وارد', badge_out:'📤 صادر',
+    err_load_data:'فشل تحميل البيانات',
+    ing_empty:'لا توجد مواد. أضف مادة.',
+    status_out:'نفد', status_low:'ناقص', status_ok:'طبيعي',
+    err_load_retry:'فشل التحميل. أعد تحميل الصفحة.',
+    modal_ing_edit_title:'تعديل مادة',
+    err_ing_name:'أدخل اسم المادة',
+    err_save_net:'فشل الحفظ. تحقق من الشبكة.',
+    confirm_del_ing:'هل تريد حذف هذه المادة؟\n(سيتم حذف الوصفات التي تحتوي عليها أيضاً)',
+    err_del:'فشل الحذف. حاول مرة أخرى.',
+    recipe_empty:'لا توجد وصفات', err_load:'فشل التحميل',
+    opt_select_ing_lbl:'— اختر مادة —', ph_qty:'الكمية',
+    err_menu_name:'أدخل اسم القائمة',
+    err_ing_required:'أضف مادة واحدة على الأقل',
+    err_dup_ing:'مواد مكررة',
+    err_dup_ing_hint:'سجّل كل مادة مرة واحدة واجمع الكميات.',
+    confirm_del_recipe:'هل تريد حذف هذه الوصفة؟',
+    cost_menu_lbl:'القائمة', cost_total_lbl:'إجمالي التكلفة',
+    btn_calculating:'جارٍ الحساب...', err_calc:'فشل الحساب. حاول مرة أخرى.',
+    adj_current:'الحالي',
+    err_adj_input:'أدخل المادة والكمية بشكل صحيح',
+    adj_success:'تم! المخزون الحالي',
+    err_req_net:'فشل الطلب. تحقق من الشبكة.',
+    err_load_menus:'فشل تحميل قائمة المنتجات',
+    err_no_date:'اختر تاريخاً',
+    err_no_sales:'⚠️ أدخل كمية مبيعات واحدة على الأقل',
+    sales_success:'منتج تم تسجيله. تم خصم المخزون.',
+    hist_empty:'لا توجد سجلات',
+    err_pw_mismatch:'كلمتا المرور غير متطابقتين',
+    err_pw_short:'أدخل 4 أحرف على الأقل',
+    pw_success:'✅ تم تغيير كلمة المرور',
+    pw_change_fail:'فشل التغيير. تحقق من الشبكة.',
+    cashier_empty:'لا يوجد كاشير مسجّل',
+    err_cashier_name:'أدخل الاسم',
+    err_cashier_pw:'كلمة المرور 4 أحرف على الأقل',
+    cashier_added:'✅ تمت الإضافة',
+    cashier_add_fail:'فشل الإضافة',
+    cashier_add_net:'فشل الإضافة. تحقق من الشبكة.',
+    confirm_del_cashier:'هل تريد حذف هذا الكاشير؟',
+  }
+};
+
+let currentLang = localStorage.getItem('wh_lang') || 'ko';
+const t = key => TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS.ko[key] ?? key;
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('wh_lang', lang);
+  const t = TRANSLATIONS[lang];
+  const html = document.documentElement;
+  html.setAttribute('lang', lang === 'ar' ? 'ar' : 'ko');
+  html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+  // text nodes
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+  // placeholders
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.getAttribute('data-i18n-ph');
+    if (t[key] !== undefined) el.placeholder = t[key];
+  });
+  // select option text (data-i18n-opt)
+  document.querySelectorAll('[data-i18n-opt]').forEach(el => {
+    const key = el.getAttribute('data-i18n-opt');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+  // adjType select options
+  const adjType = document.getElementById('adjType');
+  if (adjType) {
+    adjType.options[0].text = t['opt_in'];
+    adjType.options[1].text = t['opt_out'];
+  }
+  const histEditType = document.getElementById('histEditType');
+  if (histEditType) {
+    histEditType.options[0].text = t['opt_in'];
+    histEditType.options[1].text = t['opt_out'];
+  }
+
+  // toggle button label
+  const btn = document.getElementById('langToggle');
+  if (btn) btn.textContent = lang === 'ar' ? 'KO' : 'AR';
+
+  // 현재 활성 탭 동적 콘텐츠 새로고침 (로그인 후에만)
+  if (sessionStorage.getItem('wh_token')) {
+    const activePanel = document.querySelector('.tab-panel.active');
+    if (activePanel) {
+      const id = activePanel.id.replace('tab-', '');
+      if (id === 'dashboard')   loadDashboard();
+      else if (id === 'ingredients') loadIngredients();
+      else if (id === 'recipes')     loadRecipes();
+      else if (id === 'adjust')      loadAdjust();
+      else if (id === 'daily')       loadDaily();
+      else if (id === 'history')     loadHistory();
+      else if (id === 'settings')    loadCashiers();
+    }
+  }
+}
+
+function toggleLang() {
+  applyLang(currentLang === 'ko' ? 'ar' : 'ko');
+}
+
 let token = sessionStorage.getItem('wh_token') || '';
 let ingredients = [];
 let recipes = [];
+let _histCache = [];
 
 // ══════════════════════════════════════════════
 // 1. XSS 방지 유틸리티
@@ -565,8 +892,8 @@ async function loadDashboard() {
     const low = d.low_stock.length;
     const sg = document.getElementById('statGrid');
     sg.innerHTML = `
-      <div class="stat"><div class="num">${esc(String(total))}</div><div class="lbl">총 재료 종류</div></div>
-      <div class="stat ${low > 0 ? 'danger' : ''}"><div class="num">${esc(String(low))}</div><div class="lbl">재고 부족 재료 ⚠️</div></div>
+      <div class="stat"><div class="num">${esc(String(total))}</div><div class="lbl">${t('stat_total_ing')}</div></div>
+      <div class="stat ${low > 0 ? 'danger' : ''}"><div class="num">${esc(String(low))}</div><div class="lbl">${t('stat_low_ing')}</div></div>
     `;
 
     const ls = document.getElementById('lowStockSection');
@@ -582,7 +909,7 @@ async function loadDashboard() {
             <div class="name">${esc(i.name_ko)}</div>
             <div style="font-size:.75rem;color:var(--soft)">${esc(i.name_ar)}</div>
           </div>
-          <div class="qty">현재 ${esc(String(i.current_qty))}${esc(i.unit)} / 최소 ${esc(String(i.min_qty))}${esc(i.unit)}</div>
+          <div class="qty">${t('low_item_cur')} ${esc(String(i.current_qty))}${esc(i.unit)} / ${t('low_item_min')} ${esc(String(i.min_qty))}${esc(i.unit)}</div>
         `;
         ll.appendChild(div);
       });
@@ -594,23 +921,29 @@ async function loadDashboard() {
     tb.innerHTML = '';
     d.recent_history.forEach(h => tb.appendChild(buildHistRow(h)));
   } catch (e) {
-    document.getElementById('statGrid').innerHTML = '<div class="alert alert-danger">데이터를 불러오지 못했습니다</div>';
+    document.getElementById('statGrid').innerHTML = `<div class="alert alert-danger">${t('err_load_data')}</div>`;
   }
 }
 
-function buildHistRow(h) {
+function buildHistRow(h, showActions = false) {
   const tr = document.createElement('tr');
   const badge = h.change_type === 'in'
-    ? '<span class="badge badge-in">📥 입고</span>'
-    : '<span class="badge badge-out">📤 출고</span>';
+    ? `<span class="badge badge-in">${t('badge_in')}</span>`
+    : `<span class="badge badge-out">${t('badge_out')}</span>`;
   const dt = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'))
     .toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const actionTd = showActions ? `
+    <td style="white-space:nowrap">
+      <button class="btn btn-sm btn-outline" style="padding:.2rem .5rem;font-size:.75rem" onclick="openHistEditModal(${h.id})">${t('btn_edit')}</button>
+      <button class="btn btn-sm btn-danger" style="padding:.2rem .5rem;font-size:.75rem;margin-left:.25rem" onclick="deleteHistEntry(${h.id})">${t('btn_delete')}</button>
+    </td>` : '';
   tr.innerHTML = `
     <td>${esc(h.ingredient_name)}</td>
     <td>${badge}</td>
     <td><b>${esc(String(h.quantity))}</b></td>
     <td style="font-size:.8rem;color:var(--soft)">${esc(h.reason || '-')}</td>
     <td class="hist-date">${esc(dt)}</td>
+    ${actionTd}
   `;
   return tr;
 }
@@ -626,16 +959,16 @@ async function loadIngredients(render = true) {
 
     const tb = document.getElementById('ingTb');
     if (!d.length) {
-      tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--soft);padding:1.5rem">재료 없음. 재료를 추가해주세요.</td></tr>';
+      tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--soft);padding:1.5rem">${t('ing_empty')}</td></tr>`;
       return;
     }
     tb.innerHTML = '';
     d.forEach(i => {
       const status = i.current_qty === 0
-        ? '<span class="badge badge-danger">재고없음</span>'
+        ? `<span class="badge badge-danger">${t('status_out')}</span>`
         : i.current_qty <= i.min_qty
-          ? '<span class="badge badge-warn">부족</span>'
-          : '<span class="badge badge-ok">정상</span>';
+          ? `<span class="badge badge-warn">${t('status_low')}</span>`
+          : `<span class="badge badge-ok">${t('status_ok')}</span>`;
       const cls = i.current_qty === 0 ? 'qty-danger' : i.current_qty <= i.min_qty ? 'qty-warn' : 'qty-ok';
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -647,8 +980,8 @@ async function loadIngredients(render = true) {
         <td>${i.cost_per_unit.toLocaleString()} IQD</td>
         <td>${status}</td>
         <td style="white-space:nowrap">
-          <button class="btn btn-outline btn-sm" data-ing-id="${i.id}">수정</button>
-          <button class="btn btn-danger btn-sm" data-del-id="${i.id}" data-del-name="${esc(i.name_ko)}">삭제</button>
+          <button class="btn btn-outline btn-sm" data-ing-id="${i.id}">${t('btn_edit')}</button>
+          <button class="btn btn-danger btn-sm" data-del-id="${i.id}" data-del-name="${esc(i.name_ko)}">${t('btn_delete')}</button>
         </td>
       `;
       tr.querySelector('[data-ing-id]').addEventListener('click', () => editIng(i));
@@ -656,12 +989,12 @@ async function loadIngredients(render = true) {
       tb.appendChild(tr);
     });
   } catch (e) {
-    document.getElementById('ingTb').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--red);padding:1.5rem">불러오기 실패. 새로고침 해주세요.</td></tr>';
+    document.getElementById('ingTb').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load_retry')}</td></tr>`;
   }
 }
 
 function openIngModal() {
-  document.getElementById('ingModalTitle').textContent = '재료 추가';
+  document.getElementById('ingModalTitle').textContent = t('modal_ing_title');
   document.getElementById('ingId').value = '';
   ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ingUnit').value = '병';
@@ -670,7 +1003,7 @@ function openIngModal() {
 }
 
 function editIng(i) {
-  document.getElementById('ingModalTitle').textContent = '재료 수정';
+  document.getElementById('ingModalTitle').textContent = t('modal_ing_edit_title');
   document.getElementById('ingId').value = i.id;
   document.getElementById('ingNameKo').value = i.name_ko;
   document.getElementById('ingNameAr').value = i.name_ar;
@@ -693,7 +1026,7 @@ async function saveIngredient() {
     cost_per_unit: parseFloat(document.getElementById('ingCost').value) || 0
   };
   if (!body.name_ko) {
-    document.getElementById('ingModalMsg').innerHTML = '<div class="alert alert-danger">재료명을 입력하세요</div>';
+    document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${t('err_ing_name')}</div>`;
     return;
   }
   lockBtn('ingSaveBtn');
@@ -704,19 +1037,19 @@ async function saveIngredient() {
     if (r.success) { closeModal('ingModal'); loadIngredients(); }
     else document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
   } catch (e) {
-    document.getElementById('ingModalMsg').innerHTML = '<div class="alert alert-danger">저장 실패. 네트워크를 확인하세요.</div>';
+    document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
   } finally {
     unlockBtn('ingSaveBtn');
   }
 }
 
 async function delIng(id, name) {
-  if (!confirm(`"${name}" 재료를 삭제할까요?\n(해당 재료가 포함된 레시피도 삭제됩니다)`)) return;
+  if (!confirm(`"${name}" ${t('confirm_del_ing')}`)) return;
   try {
     await fetch(`/api/ingredients/${id}`, { method: 'DELETE', headers: hdr() });
     loadIngredients();
   } catch (e) {
-    alert('삭제 실패. 다시 시도해주세요.');
+    alert(t('err_del'));
   }
 }
 
@@ -739,7 +1072,7 @@ async function loadRecipes() {
     const menuNames = Object.keys(grouped);
 
     if (!menuNames.length) {
-      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">레시피 없음</td></tr>';
+      tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">${t('recipe_empty')}</td></tr>`;
     } else {
       menuNames.forEach(menu => {
         const items = grouped[menu];
@@ -761,8 +1094,8 @@ async function loadRecipes() {
               <td rowspan="${items.length}" style="text-align:center">
                 <div style="font-weight:800;color:var(--green)">${Math.round(totalCost).toLocaleString()} IQD</div>
                 <div style="display:flex;gap:.3rem;justify-content:center;margin-top:.4rem">
-                  <button class="btn btn-outline btn-sm" data-edit-menu="${esc(menu)}">수정</button>
-                  <button class="btn btn-danger btn-sm" data-del-menu="${esc(menu)}">삭제</button>
+                  <button class="btn btn-outline btn-sm" data-edit-menu="${esc(menu)}">${t('btn_edit')}</button>
+                  <button class="btn btn-danger btn-sm" data-del-menu="${esc(menu)}">${t('btn_delete')}</button>
                 </div>
               </td>
             `;
@@ -779,7 +1112,7 @@ async function loadRecipes() {
 
     // 원가 계산기 select 업데이트
     const sel = document.getElementById('costMenuSel');
-    sel.innerHTML = '<option value="">— 메뉴 선택 —</option>';
+    sel.innerHTML = `<option value="">${t('opt_select_menu')}</option>`;
     menuNames.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m;
@@ -787,7 +1120,7 @@ async function loadRecipes() {
       sel.appendChild(opt);
     });
   } catch (e) {
-    document.getElementById('recipeTb').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">불러오기 실패</td></tr>';
+    document.getElementById('recipeTb').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load')}</td></tr>`;
   }
 }
 
@@ -816,7 +1149,7 @@ function addRecipeRow(ingId = '', qty = '') {
   sel.style.cssText = 'padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none';
   const defaultOpt = document.createElement('option');
   defaultOpt.value = '';
-  defaultOpt.textContent = '— 재료 선택 —';
+  defaultOpt.textContent = t('opt_select_ing_lbl');
   sel.appendChild(defaultOpt);
   ingredients.forEach(i => {
     const opt = document.createElement('option');
@@ -832,7 +1165,7 @@ function addRecipeRow(ingId = '', qty = '') {
   qtyInput.value = qty;
   qtyInput.min = 0;
   qtyInput.step = 0.01;
-  qtyInput.placeholder = '수량';
+  qtyInput.placeholder = t('ph_qty');
   qtyInput.style.cssText = 'width:90px;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;text-align:center;outline:none';
 
   const delBtn = document.createElement('button');
@@ -849,7 +1182,7 @@ function addRecipeRow(ingId = '', qty = '') {
 async function saveRecipe() {
   const menu = document.getElementById('recipeMenuName').value.trim();
   const msgEl = document.getElementById('recipeModalMsg');
-  if (!menu) { msgEl.innerHTML = '<div class="alert alert-danger">메뉴명을 입력하세요</div>'; return; }
+  if (!menu) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_menu_name')}</div>`; return; }
 
   const rows = [...document.querySelectorAll('#recipeRows .recipe-row')];
   const rawItems = rows
@@ -859,7 +1192,7 @@ async function saveRecipe() {
     }))
     .filter(i => i.ingredient_id && i.quantity > 0);
 
-  if (!rawItems.length) { msgEl.innerHTML = '<div class="alert alert-danger">재료를 하나 이상 추가하세요</div>'; return; }
+  if (!rawItems.length) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_ing_required')}</div>`; return; }
 
   // ── 4. 중복 재료 검증 ──────────────────────────
   const idSet = new Set();
@@ -872,7 +1205,7 @@ async function saveRecipe() {
     idSet.add(i.ingredient_id);
   });
   if (duplicates.length) {
-    msgEl.innerHTML = `<div class="alert alert-danger">중복 재료가 있습니다: <b>${esc(duplicates.join(', '))}</b><br>같은 재료는 하나만 등록하고 수량을 합쳐서 입력해주세요.</div>`;
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_dup_ing')}: <b>${esc(duplicates.join(', '))}</b><br>${t('err_dup_ing_hint')}</div>`;
     return;
   }
 
@@ -886,26 +1219,26 @@ async function saveRecipe() {
     if (r.success) { closeModal('recipeModal'); loadRecipes(); }
     else msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
   } catch (e) {
-    msgEl.innerHTML = '<div class="alert alert-danger">저장 실패. 네트워크를 확인하세요.</div>';
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
   } finally {
     unlockBtn('recipeSaveBtn');
   }
 }
 
 async function delRecipe(menu) {
-  if (!confirm(`"${menu}" 레시피를 삭제할까요?`)) return;
+  if (!confirm(`"${menu}" ${t('confirm_del_recipe')}`)) return;
   try {
     await fetch(`/api/recipes/menu/${encodeURIComponent(menu)}`, { method: 'DELETE', headers: hdr() });
     loadRecipes();
   } catch (e) {
-    alert('삭제 실패. 다시 시도해주세요.');
+    alert(t('err_del'));
   }
 }
 
 async function calcCost() {
   const menu = document.getElementById('costMenuSel').value;
   if (!menu) return;
-  lockBtn('calcCostBtn', '계산 중...');
+  lockBtn('calcCostBtn', t('btn_calculating'));
   try {
     // ── 6. 항상 최신 데이터로 계산 ──
     const d = await fetch(`/api/cost/${encodeURIComponent(menu)}`).then(r => r.json());
@@ -915,7 +1248,7 @@ async function calcCost() {
 
     const lbl = document.createElement('div');
     lbl.className = 'lbl';
-    lbl.innerHTML = `메뉴: <b>${esc(d.menu_item)}</b>`;
+    lbl.innerHTML = `${t('cost_menu_lbl')}: <b>${esc(d.menu_item)}</b>`;
     box.appendChild(lbl);
 
     d.items.forEach(i => {
@@ -928,11 +1261,11 @@ async function calcCost() {
     const total = document.createElement('div');
     total.className = 'total';
     total.style.marginTop = '.5rem';
-    total.textContent = `원가 합계: ${d.total_cost.toLocaleString()} IQD`;
+    total.textContent = `${t('cost_total_lbl')}: ${d.total_cost.toLocaleString()} IQD`;
     box.appendChild(total);
   } catch (e) {
     document.getElementById('costResult').classList.remove('hidden');
-    document.getElementById('costResult').innerHTML = '<div class="alert alert-danger">계산 실패. 다시 시도해주세요.</div>';
+    document.getElementById('costResult').innerHTML = `<div class="alert alert-danger">${t('err_calc')}</div>`;
   } finally {
     unlockBtn('calcCostBtn');
   }
@@ -943,11 +1276,11 @@ async function calcCost() {
 // ══════════════════════════════════════════════
 function loadAdjust() {
   const sel = document.getElementById('adjIng');
-  sel.innerHTML = '<option value="">— 선택 —</option>';
+  sel.innerHTML = `<option value="">${t('opt_select')}</option>`;
   ingredients.forEach(i => {
     const opt = document.createElement('option');
     opt.value = i.id;
-    opt.textContent = `${i.name_ko} (현재: ${i.current_qty}${i.unit})`;
+    opt.textContent = `${i.name_ko} (${t('adj_current')}: ${i.current_qty}${i.unit})`;
     sel.appendChild(opt);
   });
 }
@@ -960,7 +1293,7 @@ async function submitAdjust() {
   const msgEl = document.getElementById('adjMsg');
 
   if (!ingredient_id || !quantity || quantity <= 0) {
-    msgEl.innerHTML = '<div class="alert alert-danger">재료와 수량을 올바르게 입력하세요</div>';
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_adj_input')}</div>`;
     return;
   }
   lockBtn('adjBtn');
@@ -972,7 +1305,7 @@ async function submitAdjust() {
     }).then(r => r.json());
 
     if (r.success) {
-      msgEl.innerHTML = `<div class="alert alert-success">✅ 완료! 현재 재고: <b>${esc(String(r.new_qty))}</b></div>`;
+      msgEl.innerHTML = `<div class="alert alert-success">✅ ${t('adj_success')}: <b>${esc(String(r.new_qty))}</b></div>`;
       document.getElementById('adjQty').value = '';
       document.getElementById('adjReason').value = '';
       await loadIngredients(false);
@@ -981,73 +1314,53 @@ async function submitAdjust() {
       msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
     }
   } catch (e) {
-    msgEl.innerHTML = '<div class="alert alert-danger">요청 실패. 네트워크를 확인하세요.</div>';
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_req_net')}</div>`;
   } finally {
     unlockBtn('adjBtn');
   }
 }
 
 // ══════════════════════════════════════════════
-// 일일 판매 — 레시피 기반 동적 메뉴 로딩
+// 일일 판매 — 수동 메뉴 입력
 // ══════════════════════════════════════════════
-async function loadDaily() {
+function loadDaily() {
   if (!document.getElementById('saleDate').value) {
-    // ── 2. 바그다드 타임존 적용 날짜 ──
     document.getElementById('saleDate').value = localDateStr();
   }
-
-  try {
-    // ── 1. 레시피에서 메뉴 동적 추출 ──
-    const d = await fetch('/api/recipes').then(r => r.json());
-    recipes = d;
-    const menuNames = [...new Set(d.map(r => r.menu_item))].sort();
-
-    const grid = document.getElementById('salesGrid');
-    const empty = document.getElementById('salesEmpty');
-    grid.innerHTML = '';
-
-    if (!menuNames.length) {
-      empty.classList.remove('hidden');
-      return;
-    }
-    empty.classList.add('hidden');
-
-    menuNames.forEach(m => {
-      const item = document.createElement('div');
-      item.className = 'sales-item';
-
-      const label = document.createElement('label');
-      label.textContent = m;
-
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.min = 0;
-      input.step = 1;
-      input.placeholder = '0';
-      input.value = '0';
-      input.dataset.menu = m;
-
-      item.appendChild(label);
-      item.appendChild(input);
-      grid.appendChild(item);
-    });
-  } catch (e) {
-    document.getElementById('salesGrid').innerHTML = '<div class="alert alert-danger">메뉴 목록을 불러오지 못했습니다</div>';
+  if (!document.getElementById('saleRows').children.length) {
+    addSaleRow();
   }
+}
+
+function addSaleRow() {
+  const container = document.getElementById('saleRows');
+  const row = document.createElement('div');
+  row.className = 'sale-row';
+  row.style.cssText = 'display:flex;gap:.5rem;align-items:center';
+  row.innerHTML = `
+    <input type="text" class="sale-menu" placeholder="${t('ph_sale_menu')}" style="flex:1;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-family:inherit">
+    <input type="number" class="sale-qty" min="1" step="1" placeholder="0" style="width:80px;padding:.45rem .5rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;font-family:inherit">
+    <button class="btn btn-sm" style="padding:.35rem .6rem;background:var(--red);color:#fff;border-radius:6px;flex-shrink:0" onclick="this.closest('.sale-row').remove()">✕</button>
+  `;
+  container.appendChild(row);
+  row.querySelector('.sale-menu').focus();
 }
 
 async function submitSales() {
   const date = document.getElementById('saleDate').value;
   const msgEl = document.getElementById('saleMsg');
 
-  if (!date) { msgEl.innerHTML = '<div class="alert alert-danger">날짜를 선택하세요</div>'; return; }
+  if (!date) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_no_date')}</div>`; return; }
 
-  const inputs = [...document.querySelectorAll('#salesGrid input[data-menu]')];
-  const sales = inputs
-    .filter(i => parseInt(i.value) > 0)
-    .map(i => ({ menu_item: i.dataset.menu, quantity: parseInt(i.value) }));
+  const rows = [...document.querySelectorAll('#saleRows .sale-row')];
+  const sales = rows
+    .map(row => ({
+      menu_item: row.querySelector('.sale-menu').value.trim(),
+      quantity: parseInt(row.querySelector('.sale-qty').value)
+    }))
+    .filter(s => s.menu_item && s.quantity > 0);
 
-  if (!sales.length) { msgEl.innerHTML = '<div class="alert alert-warn">⚠️ 판매 수량을 하나 이상 입력하세요</div>'; return; }
+  if (!sales.length) { msgEl.innerHTML = `<div class="alert alert-warn">${t('err_no_sale_rows')}</div>`; return; }
 
   lockBtn('saleBtn');
   try {
@@ -1058,18 +1371,19 @@ async function submitSales() {
     }).then(r => r.json());
 
     if (r.success) {
-      let html = `<div class="alert alert-success">✅ ${sales.length}개 메뉴 판매 기록 완료. 재고 차감 완료.</div>`;
+      let html = `<div class="alert alert-success">✅ ${sales.length}${t('sales_success')}</div>`;
       if (r.warnings?.length) {
         html += r.warnings.map(w => `<div class="alert alert-warn">⚠️ ${esc(w)}</div>`).join('');
       }
       msgEl.innerHTML = html;
-      inputs.forEach(i => i.value = '0');
+      document.getElementById('saleRows').innerHTML = '';
+      addSaleRow();
       await loadIngredients(false);
     } else {
       msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
     }
   } catch (e) {
-    msgEl.innerHTML = '<div class="alert alert-danger">저장 실패. 네트워크를 확인하세요.</div>';
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
   } finally {
     unlockBtn('saleBtn');
   }
@@ -1081,15 +1395,72 @@ async function submitSales() {
 async function loadHistory() {
   try {
     const d = await fetch('/api/inventory/history?limit=200').then(r => r.json());
+    _histCache = d;
     const tb = document.getElementById('histTb');
     tb.innerHTML = '';
     if (!d.length) {
-      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--soft);padding:1.5rem">기록 없음</td></tr>';
+      tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">${t('hist_empty')}</td></tr>`;
       return;
     }
-    d.forEach(h => tb.appendChild(buildHistRow(h)));
+    d.forEach(h => tb.appendChild(buildHistRow(h, true)));
   } catch (e) {
-    document.getElementById('histTb').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--red);padding:1.5rem">불러오기 실패</td></tr>';
+    document.getElementById('histTb').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load')}</td></tr>`;
+  }
+}
+
+async function openHistEditModal(id) {
+  const h = _histCache.find(r => r.id === id);
+  if (!h) return;
+  document.getElementById('histEditId').value = id;
+  document.getElementById('histEditIngName').value = h.ingredient_name;
+  document.getElementById('histEditType').value = h.change_type;
+  document.getElementById('histEditQty').value = h.quantity;
+  document.getElementById('histEditReason').value = h.reason || '';
+  document.getElementById('histEditMsg').innerHTML = '';
+  document.getElementById('histEditModal').classList.remove('hidden');
+}
+
+async function deleteHistEntry(id) {
+  if (!confirm(t('confirm_del_hist'))) return;
+  try {
+    const r = await fetch(`/api/inventory/history/${id}`, { method: 'DELETE', headers: hdr() });
+    if (!r.ok) throw new Error();
+    await loadHistory();
+    await loadDashboard();
+  } catch {
+    alert(t('hist_del_fail'));
+  }
+}
+
+async function saveHistEdit() {
+  const id = parseInt(document.getElementById('histEditId').value);
+  const change_type = document.getElementById('histEditType').value;
+  const quantity = parseFloat(document.getElementById('histEditQty').value);
+  const reason = document.getElementById('histEditReason').value.trim();
+  const msgEl = document.getElementById('histEditMsg');
+
+  if (!['in', 'out'].includes(change_type)) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_hist_type')}</div>`; return;
+  }
+  if (!(quantity > 0)) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_hist_qty')}</div>`; return;
+  }
+
+  lockBtn('histEditSaveBtn');
+  try {
+    const r = await fetch(`/api/inventory/history/${id}`, {
+      method: 'PUT',
+      headers: hdr(),
+      body: JSON.stringify({ change_type, quantity, reason })
+    });
+    if (!r.ok) throw new Error();
+    closeModal('histEditModal');
+    await loadHistory();
+    await loadDashboard();
+  } catch {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_hist_save')}</div>`;
+  } finally {
+    unlockBtn('histEditSaveBtn');
   }
 }
 
@@ -1101,8 +1472,8 @@ async function changePw() {
   const pw2 = document.getElementById('newPw2').value;
   const msgEl = document.getElementById('pwMsg');
 
-  if (pw !== pw2) { msgEl.innerHTML = '<div class="alert alert-danger">비밀번호가 일치하지 않습니다</div>'; return; }
-  if (pw.length < 4) { msgEl.innerHTML = '<div class="alert alert-danger">4자 이상 입력하세요</div>'; return; }
+  if (pw !== pw2) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_pw_mismatch')}</div>`; return; }
+  if (pw.length < 4) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_pw_short')}</div>`; return; }
 
   lockBtn('pwBtn');
   try {
@@ -1112,14 +1483,14 @@ async function changePw() {
       body: JSON.stringify({ newPassword: pw })
     }).then(r => r.json());
     if (r.success) {
-      msgEl.innerHTML = '<div class="alert alert-success">✅ 비밀번호 변경 완료</div>';
+      msgEl.innerHTML = `<div class="alert alert-success">${t('pw_success')}</div>`;
       document.getElementById('newPw').value = '';
       document.getElementById('newPw2').value = '';
     } else {
       msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
     }
   } catch (e) {
-    msgEl.innerHTML = '<div class="alert alert-danger">변경 실패. 네트워크를 확인하세요.</div>';
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('pw_change_fail')}</div>`;
   } finally {
     unlockBtn('pwBtn');
   }
@@ -1134,16 +1505,16 @@ async function loadCashiers() {
   try {
     const data = await fetch('/api/cashiers', { headers: hdr() }).then(r => r.json());
     if (!data.length) {
-      listEl.innerHTML = '<p style="color:var(--soft);font-size:.9em">등록된 캐셔 없음</p>';
+      listEl.innerHTML = `<p style="color:var(--soft);font-size:.9em">${t('cashier_empty')}</p>`;
       return;
     }
     listEl.innerHTML = data.map(c => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);">
         <span>👤 <strong>${esc(c.name)}</strong></span>
-        <button class="btn btn-danger" style="padding:4px 10px;font-size:.8em" onclick="deleteCashier(${c.id},'${esc(c.name)}')">삭제</button>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:.8em" onclick="deleteCashier(${c.id},'${esc(c.name)}')">${t('btn_delete')}</button>
       </div>`).join('');
   } catch (e) {
-    listEl.innerHTML = '<p style="color:var(--red);font-size:.9em">불러오기 실패</p>';
+    listEl.innerHTML = `<p style="color:var(--red);font-size:.9em">${t('err_load')}</p>`;
   }
 }
 
@@ -1151,8 +1522,8 @@ async function addCashier() {
   const name = document.getElementById('newCashierName').value.trim();
   const pw = document.getElementById('newCashierPw').value;
   const msgEl = document.getElementById('cashierMsg');
-  if (!name) { msgEl.innerHTML = '<div class="alert alert-danger">이름을 입력하세요</div>'; return; }
-  if (pw.length < 4) { msgEl.innerHTML = '<div class="alert alert-danger">비밀번호 4자 이상 입력하세요</div>'; return; }
+  if (!name) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_cashier_name')}</div>`; return; }
+  if (pw.length < 4) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_cashier_pw')}</div>`; return; }
   try {
     const r = await fetch('/api/cashiers', {
       method: 'POST',
@@ -1160,26 +1531,26 @@ async function addCashier() {
       body: JSON.stringify({ name, password: pw })
     }).then(r => r.json());
     if (r.id) {
-      msgEl.innerHTML = '<div class="alert alert-success">✅ 추가 완료</div>';
+      msgEl.innerHTML = `<div class="alert alert-success">${t('cashier_added')}</div>`;
       document.getElementById('newCashierName').value = '';
       document.getElementById('newCashierPw').value = '';
       loadCashiers();
     } else {
-      msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error||'추가 실패')}</div>`;
+      msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error||t('cashier_add_fail'))}</div>`;
     }
   } catch (e) {
-    msgEl.innerHTML = '<div class="alert alert-danger">추가 실패. 네트워크를 확인하세요.</div>';
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('cashier_add_net')}</div>`;
   }
 }
 
 async function deleteCashier(id, name) {
-  if (!confirm(`"${name}" 캐셔를 삭제하시겠습니까?`)) return;
+  if (!confirm(`"${name}" ${t('confirm_del_cashier')}`)) return;
   try {
     const r = await fetch(`/api/cashiers/${id}`, { method: 'DELETE', headers: hdr() }).then(r => r.json());
     if (r.success) loadCashiers();
-    else alert(r.error || '삭제 실패');
+    else alert(r.error || t('err_del'));
   } catch (e) {
-    alert('삭제 실패');
+    alert(t('err_del'));
   }
 }
 
@@ -1194,6 +1565,7 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 // ══════════════════════════════════════════════
 // 시작
 // ══════════════════════════════════════════════
+applyLang(currentLang);
 if (token) {
   document.getElementById('loginOverlay').style.display = 'none';
   init();

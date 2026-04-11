@@ -3,6 +3,7 @@ const Database = require('better-sqlite3');
 const crypto = require('crypto');
 const path = require('path');
 const https = require('https');
+const QRCode = require('qrcode');
 
 // ─── WhatsApp 자동 발송 (UltraMsg) ─────────────────────────────────────────────
 // 환경변수: ULTRAMSG_INSTANCE, ULTRAMSG_TOKEN
@@ -382,6 +383,18 @@ app.delete('/api/table-tokens/:tableNum', requireCashierOrAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// QR 이미지 생성 (서버 사이드, CDN 불필요)
+app.get('/api/qr-image', requireCashierOrAdmin, async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'url 파라미터 필요' });
+  try {
+    const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1, errorCorrectionLevel: 'M' });
+    res.json({ dataUrl });
+  } catch (e) {
+    res.status(500).json({ error: 'QR 생성 실패' });
+  }
+});
+
 // ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
 
 // 전화번호 인증코드 요청
@@ -693,6 +706,43 @@ app.post('/api/inventory/adjust', requireAuth, (req, res) => {
 app.get('/api/inventory/history', (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 200, 500);
   res.json(db.prepare('SELECT * FROM inventory_history ORDER BY created_at DESC LIMIT ?').all(limit));
+});
+
+app.delete('/api/inventory/history/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id);
+  const row = db.prepare('SELECT * FROM inventory_history WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다' });
+  if (row.ingredient_id) {
+    const ing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(row.ingredient_id);
+    if (ing) {
+      const delta = row.change_type === 'in' ? -row.quantity : row.quantity;
+      const newQty = Math.max(0, ing.current_qty + delta);
+      db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, row.ingredient_id);
+    }
+  }
+  db.prepare('DELETE FROM inventory_history WHERE id=?').run(id);
+  res.json({ success: true });
+});
+
+app.put('/api/inventory/history/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id);
+  const { change_type, quantity, reason } = req.body;
+  if (!['in', 'out'].includes(change_type) || !(quantity > 0))
+    return res.status(400).json({ error: '유효하지 않은 데이터입니다' });
+  const row = db.prepare('SELECT * FROM inventory_history WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다' });
+  if (row.ingredient_id) {
+    const ing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(row.ingredient_id);
+    if (ing) {
+      const revert = row.change_type === 'in' ? -row.quantity : row.quantity;
+      const apply  = change_type === 'in' ? quantity : -quantity;
+      const newQty = Math.max(0, ing.current_qty + revert + apply);
+      db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, row.ingredient_id);
+    }
+  }
+  db.prepare('UPDATE inventory_history SET change_type=?, quantity=?, reason=? WHERE id=?')
+    .run(change_type, parseFloat(quantity), reason || '', id);
+  res.json({ success: true });
 });
 
 // ─── RECIPES ─────────────────────────────────────────────────────────────────

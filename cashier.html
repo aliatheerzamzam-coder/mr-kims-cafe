@@ -572,7 +572,7 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- QR 코드는 서버에서 생성 (CDN 불필요) -->
 <script>
   /* ─── State ─── */
   let orders = [];
@@ -977,47 +977,71 @@
       const r = await fetch('/api/table-tokens', { headers: cashierHeaders() });
       if (r.status === 401) { list.innerHTML = '<div style="color:#e53e3e;padding:20px">⚠️ يجب تسجيل الدخول أولاً</div>'; return; }
       const tokens = await r.json();
-      if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">لا توجد طاولات. أنشئ QR أولاً.</div>'; return; }
+      if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">테이블 없음. QR을 생성해주세요.</div>'; return; }
       list.innerHTML = '';
       for (const t of tokens) {
         const url = `${BASE_URL}/?table=${t.table_num}&t=${t.token}`;
+        const encodedUrl = encodeURIComponent(url);
+        // QR 이미지 서버에서 받아오기
+        const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
+        const qrData = qrRes.ok ? await qrRes.json() : null;
+        const imgSrc = qrData?.dataUrl || '';
         const card = document.createElement('div');
         card.style.cssText = 'background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);text-align:center';
         card.innerHTML = `
-          <div style="font-weight:900;font-size:1.1rem;margin-bottom:12px">🪑 طاولة ${t.table_num} / Table ${t.table_num}</div>
-          <canvas id="qr-canvas-${t.table_num}" style="border-radius:8px"></canvas>
+          <div style="font-weight:900;font-size:1.1rem;margin-bottom:12px">🪑 طاولة ${esc(t.table_num)} / Table ${esc(t.table_num)}</div>
+          ${imgSrc
+            ? `<img id="qr-img-${esc(t.table_num)}" src="${imgSrc}" style="border-radius:8px;width:180px;height:180px" alt="QR Table ${esc(t.table_num)}">`
+            : `<div style="font-size:0.7rem;color:#888;word-break:break-all;padding:8px">${esc(url)}</div>`
+          }
           <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-            <button onclick="printTableQR('${t.table_num}','${url}')"
+            <button onclick="printTableQR('${esc(t.table_num)}','${esc(url)}')"
               style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;font-family:inherit">
               🖨️ طباعة / Print
             </button>
-            <button onclick="regenToken('${t.table_num}')"
+            <button onclick="regenToken('${esc(t.table_num)}')"
               style="background:#f0f4f1;color:#4a4a4a;border:1px solid #d4e8d8;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
               🔄 تجديد
             </button>
-            <button onclick="deleteTableToken('${t.table_num}')"
+            <button onclick="deleteTableToken('${esc(t.table_num)}')"
               style="background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
               🗑️
             </button>
           </div>`;
         list.appendChild(card);
-        QRCode.toCanvas(document.getElementById(`qr-canvas-${t.table_num}`), url, { width: 180, margin: 1 });
       }
     } catch(e) {
-      list.innerHTML = '<div style="color:#e53e3e;padding:20px">خطأ في التحميل</div>';
+      list.innerHTML = `<div style="color:#e53e3e;padding:20px">불러오기 실패: ${e.message}</div>`;
     }
   }
 
   async function generateTableQR() {
     const tableNum = document.getElementById('qr-table-input').value.trim();
-    if (!tableNum) { alert('أدخل رقم الطاولة / Enter table number'); return; }
-    const r = await fetch('/api/table-tokens', {
-      method: 'POST',
-      headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ tableNum })
-    });
-    if (r.status === 401) { alert('로그인이 필요합니다'); return; }
-    if (r.ok) { document.getElementById('qr-table-input').value = ''; loadTableQRs(); }
+    if (!tableNum || isNaN(tableNum) || tableNum < 1) {
+      alert('테이블 번호를 입력하세요 / أدخل رقم الطاولة');
+      return;
+    }
+    const btn = document.querySelector('[onclick="generateTableQR()"]');
+    if (btn) { btn.disabled = true; btn.textContent = '생성 중...'; }
+    try {
+      const r = await fetch('/api/table-tokens', {
+        method: 'POST',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ tableNum: String(tableNum) })
+      });
+      if (r.status === 401) { alert('로그인이 필요합니다. 다시 로그인해주세요.'); location.reload(); return; }
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        alert('생성 실패: ' + (d.error || r.status));
+        return;
+      }
+      document.getElementById('qr-table-input').value = '';
+      await loadTableQRs();
+    } catch (e) {
+      alert('네트워크 오류. 서버 연결을 확인하세요.\n' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '➕ إنشاء QR / Generate QR'; }
+    }
   }
 
   async function regenToken(tableNum) {
@@ -1038,7 +1062,11 @@
     loadTableQRs();
   }
 
-  function printTableQR(tableNum, url) {
+  async function printTableQR(tableNum, url) {
+    const encodedUrl = encodeURIComponent(url);
+    const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
+    if (!qrRes.ok) { alert('QR 이미지 생성 실패'); return; }
+    const { dataUrl } = await qrRes.json();
     const win = window.open('', '_blank');
     win.document.write(`
       <!DOCTYPE html><html><head>
@@ -1047,15 +1075,13 @@
         body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
         h1 { font-size: 2rem; margin-bottom: 8px; }
         p { color: #555; margin-bottom: 20px; font-size: 1rem; }
-        canvas { display: block; margin: 0 auto; }
+        img { display: block; margin: 0 auto; }
         @media print { button { display: none; } }
       </style></head><body>
       <h1>🪑 Mr. Kim's Cafe</h1>
       <p>Table ${tableNum} — Scan to order / امسح للطلب</p>
-      <canvas id="print-qr"></canvas>
-      <br><button onclick="window.print()">🖨️ Print</button>
-      <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
-      <script>QRCode.toCanvas(document.getElementById('print-qr'), '${url}', { width: 300, margin: 2 });<\/script>
+      <img src="${dataUrl}" width="300" height="300" alt="QR Code">
+      <br><button onclick="window.print()" style="margin-top:20px;padding:10px 24px;font-size:1rem;cursor:pointer">🖨️ Print</button>
       </body></html>`);
     win.document.close();
   }
