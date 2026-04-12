@@ -144,6 +144,14 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS dine_sessions (
+    session_token TEXT PRIMARY KEY,
+    qr_token      TEXT NOT NULL,
+    table_num     TEXT NOT NULL,
+    created_at    INTEGER NOT NULL,
+    expires_at    INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS favorites (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     customer_id  INTEGER NOT NULL,
@@ -382,6 +390,37 @@ app.delete('/api/table-tokens/:tableNum', requireCashierOrAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// ─── DINE SESSION (QR 스캔 후 1시간 세션) ─────────────────────────────────────
+
+const DINE_SESSION_TTL = 60 * 60 * 1000; // 1시간
+
+// QR 스캔 시 세션 발급 (처음 스캔 시간 고정, 재스캔해도 만료 시간 연장 안 됨)
+app.post('/api/dine-session', (req, res) => {
+  const { qrToken } = req.body;
+  if (!qrToken) return res.status(400).json({ error: 'qrToken 필요' });
+  const tableRow = db.prepare('SELECT table_num FROM table_tokens WHERE token=?').get(qrToken);
+  if (!tableRow) return res.status(403).json({ error: 'QR_INVALID' });
+
+  // 기존 유효한 세션 있으면 그대로 반환 (만료 시간 고정)
+  const existing = db.prepare(
+    'SELECT * FROM dine_sessions WHERE qr_token=? AND expires_at > ?'
+  ).get(qrToken, Date.now());
+  if (existing) {
+    return res.json({ sessionToken: existing.session_token, expiresAt: existing.expires_at, tableNum: existing.table_num });
+  }
+
+  // 만료된 세션 정리 후 새 세션 생성
+  db.prepare('DELETE FROM dine_sessions WHERE qr_token=?').run(qrToken);
+  const sessionToken = crypto.randomBytes(16).toString('hex');
+  const now = Date.now();
+  const expiresAt = now + DINE_SESSION_TTL;
+  db.prepare(
+    'INSERT INTO dine_sessions (session_token, qr_token, table_num, created_at, expires_at) VALUES (?,?,?,?,?)'
+  ).run(sessionToken, qrToken, tableRow.table_num, now, expiresAt);
+
+  res.json({ sessionToken, expiresAt, tableNum: tableRow.table_num });
+});
+
 // QR 이미지 생성 (서버 사이드, CDN 불필요)
 app.get('/api/qr-image', requireCashierOrAdmin, async (req, res) => {
   const { url } = req.query;
@@ -481,10 +520,11 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
   if (type === 'pickup' && !arrivalTime)
     return res.status(400).json({ error: 'Pickup orders require an arrival time / طلبات الاستلام تتطلب وقت الوصول' });
   if (type === 'dine') {
-    const { dineToken } = req.body;
-    if (!dineToken) return res.status(403).json({ error: 'QR_REQUIRED' });
-    const tableRow = db.prepare('SELECT table_num FROM table_tokens WHERE token=?').get(dineToken);
-    if (!tableRow) return res.status(403).json({ error: 'QR_INVALID' });
+    const { dineSessionToken } = req.body;
+    if (!dineSessionToken) return res.status(403).json({ error: 'QR_REQUIRED' });
+    const session = db.prepare('SELECT * FROM dine_sessions WHERE session_token=?').get(dineSessionToken);
+    if (!session) return res.status(403).json({ error: 'QR_INVALID' });
+    if (session.expires_at < Date.now()) return res.status(403).json({ error: 'QR_EXPIRED' });
   }
 
   // 로그인 고객 정보 자동 채움: 로그인 상태면 이름/전화 누락 시 고객 DB에서 가져옴

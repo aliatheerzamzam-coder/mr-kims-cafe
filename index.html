@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en" dir="ltr" id="html-root">
+<html lang="ar" dir="rtl" id="html-root">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -1852,8 +1852,8 @@
 
   <div class="nav-right">
     <div class="lang-toggle" role="group" aria-label="Language">
-      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
-      <button class="lang-btn"        id="btn-ar" onclick="setLang('ar')">العربية</button>
+      <button class="lang-btn"        id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" id="btn-ar" onclick="setLang('ar')">العربية</button>
     </div>
 
     <!-- 로그아웃 상태: 로그인 버튼 -->
@@ -2727,6 +2727,18 @@
   const dineInToken = _urlParams.get('t') || null;
   const dineInTable = _urlParams.get('table') || null;
 
+  // QR 스캔 시 서버에서 1시간 세션 발급
+  let dineSessionToken = null;
+  if (dineInToken) {
+    fetch('/api/dine-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qrToken: dineInToken })
+    }).then(r => r.json()).then(d => {
+      if (d.sessionToken) dineSessionToken = d.sessionToken;
+    }).catch(() => {});
+  }
+
   /* ─── Checkout ─── */
   let selectedType = null;
 
@@ -3071,7 +3083,7 @@
         body: JSON.stringify({
           type: selectedType,
           tableNum: selectedType === 'dine' ? document.getElementById('input-table').value : null,
-          dineToken: selectedType === 'dine' ? dineInToken : null,
+          dineSessionToken: selectedType === 'dine' ? dineSessionToken : null,
           customerName: cName,
           customerPhone: cPhone,
           arrivalTime: cArrival,
@@ -3094,11 +3106,8 @@
 
     btn.disabled = false;
 
-    if (orderError === 'QR_REQUIRED' || orderError === 'QR_INVALID') {
-      const lang = document.getElementById('html-root').getAttribute('lang');
-      showToast(lang === 'ar'
-        ? '❌ رمز QR غير صالح — امسح رمز QR الموجود على الطاولة مجدداً'
-        : '❌ Invalid QR code — please re-scan the table QR code');
+    if (orderError === 'QR_REQUIRED' || orderError === 'QR_INVALID' || orderError === 'QR_EXPIRED') {
+      showToast('❌ امسح رمز QR الموجود على الطاولة مجدداً');
       return;
     }
     if (orderError) {
@@ -3823,8 +3832,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     // Detect language
     const saved = localStorage.getItem('kims-lang');
-    const browserAr = (navigator.language || '').startsWith('ar');
-    setLang(saved || (browserAr ? 'ar' : 'en'));
+    setLang(saved || 'ar');
 
     // Default to Drinks group on load
     filterGroup('drinks', document.querySelector('.group-tab[data-group="drinks"]'));
