@@ -960,28 +960,8 @@
     .auth-field-row { display: flex; gap: 8px; }
     .auth-field-row .auth-field { flex: 1; }
 
-    .btn-auth-verify {
-      padding: 10px 16px;
-      border-radius: var(--radius-sm);
-      border: 2px solid var(--green);
-      background: var(--green-pale);
-      color: var(--green);
-      font-family: inherit; font-size: 0.8rem; font-weight: 800;
-      cursor: pointer; white-space: nowrap;
-      transition: all 0.2s;
-    }
-    .btn-auth-verify:hover { background: var(--green); color: #fff; }
-    .btn-auth-verify:disabled { opacity: 0.5; cursor: not-allowed; }
-
     .phone-row { display: flex; gap: 8px; align-items: flex-end; }
     .phone-row .auth-field { flex: 1; }
-
-    .verify-badge {
-      font-size: 0.75rem; font-weight: 800;
-      color: var(--green); margin-top: 4px;
-      display: none;
-    }
-    .verify-badge.show { display: block; }
 
     .btn-auth-submit {
       width: 100%; padding: 13px;
@@ -1169,7 +1149,7 @@
     }
     html[lang="ar"] .btn-star { right: auto; left: 8px; }
     .btn-star:hover { transform: scale(1.15); }
-    .btn-star.starred { background: #fff8e1; }
+    .btn-star.starred { background: var(--green-pale); color: var(--green); }
 
     /* 즐겨찾기 탭 */
     .group-tab[data-group="favorites"] { display: none; }
@@ -1274,6 +1254,36 @@
       transition: background 0.2s, transform 0.15s;
     }
     .btn-status-close:hover { background: var(--green-dark); transform: translateY(-1px); }
+
+    /* ─── 플로팅 내 주문 버튼 ─── */
+    .my-order-fab {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--green); color: #fff;
+      border: none; border-radius: var(--radius-pill);
+      padding: 13px 24px; font-size: 0.9rem; font-weight: 800;
+      cursor: pointer; font-family: inherit;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+      display: flex; align-items: center; gap: 10px;
+      z-index: 1400;
+      opacity: 0; pointer-events: none;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+      white-space: nowrap;
+    }
+    .my-order-fab.show {
+      opacity: 1; pointer-events: all;
+      transform: translateX(-50%) translateY(0);
+    }
+    .my-order-fab .fab-pulse {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #fff; opacity: 0.9;
+      animation: fab-blink 1.4s ease infinite;
+    }
+    @keyframes fab-blink {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+    .my-order-fab.done-state { background: #27ae60; }
+    .my-order-fab.done-state .fab-pulse { animation: none; }
 
     .status-spinner {
       display: inline-block; width: 14px; height: 14px;
@@ -1835,7 +1845,6 @@
 
   <ul class="nav-links" id="nav-links">
     <li><a href="#menu">      <span class="en">Menu</span><span class="ar">القائمة</span></a></li>
-    <li><a href="#order">     <span class="en">Order</span><span class="ar">اطلب</span></a></li>
     <li><a href="#meeting">   <span class="en">Meeting Room</span><span class="ar">غرفة الاجتماعات</span></a></li>
     <li><a href="#about">     <span class="en">About Us</span><span class="ar">من نحن</span></a></li>
     <li><a href="#contact">   <span class="en">Contact</span><span class="ar">تواصل معنا</span></a></li>
@@ -1893,8 +1902,8 @@
     </h1>
 
     <p class="hero-sub">
-      <span class="en">Good coffee. Good vibes. Always. ☕</span>
-      <span class="ar">قهوة جيدة. أجواء رائعة. دائماً. ☕</span>
+      <span class="en">Coffee house &amp; more</span>
+      <span class="ar">Coffee house &amp; more</span>
     </p>
 
     <a href="#menu" class="btn-hero">
@@ -2087,13 +2096,6 @@
   </div>
 
   <div class="menu-cta" id="menu-cta">
-    <a href="https://www.instagram.com/mr.kims_cafe"
-       target="_blank" rel="noopener noreferrer"
-       class="btn-outline-green">
-      📷
-      <span class="en">View Full Menu on Instagram</span>
-      <span class="ar">عرض القائمة الكاملة على انستغرام</span>
-    </a>
   </div>
 
 </section>
@@ -2111,10 +2113,6 @@
     <span class="en">Your perfect drink is one tap away</span>
     <span class="ar">مشروبك المثالي على بُعد نقرة واحدة</span>
   </h2>
-  <p class="section-desc">
-    <span class="en">Order via WhatsApp for fast delivery or pick up in store.</span>
-    <span class="ar">اطلب عبر واتساب للتوصيل السريع أو الاستلام من المتجر.</span>
-  </p>
   <div class="order-btns">
     <a href="#contact" class="btn-white-ghost">
       📍
@@ -2138,7 +2136,7 @@
       <span class="en">Meeting Room</span>
       <span class="ar">غرفة الاجتماعات</span>
     </h2>
-    <p class="section-desc">
+    <p class="section-desc" style="text-align:center;margin:0 auto;">
       <span class="en">Private, quiet, and fully equipped. Perfect for meetings, study sessions, and small teams.</span>
       <span class="ar">خاصة وهادئة ومجهزة بالكامل. مثالية للاجتماعات والدراسة والفرق الصغيرة.</span>
     </p>
@@ -2530,6 +2528,8 @@
     });
 
     localStorage.setItem('kims-lang', lang);
+
+    if (document.getElementById('cal-month-label')) renderCal();
   }
 
   /* ─── Mobile Nav ─── */
@@ -2882,6 +2882,40 @@
     msgEl.className = 'status-msg' + (order.status === 'done' ? ' ready' : order.status === 'cancelled' ? ' cancelled' : '');
   }
 
+  function showMyOrderFab(status) {
+    const fab = document.getElementById('my-order-fab');
+    if (!fab) return;
+    const l = document.documentElement.lang === 'ar' ? 'ar' : 'en';
+    const label = fab.querySelector('.fab-label');
+    if (status === 'done') {
+      fab.classList.add('done-state');
+      if (label) label.textContent = l === 'ar' ? '🎉 طلبك جاهز!' : '🎉 Order Ready!';
+    } else if (status === 'making') {
+      fab.classList.remove('done-state');
+      if (label) label.textContent = l === 'ar' ? '☕ جارٍ التحضير…' : '☕ Preparing…';
+    } else {
+      fab.classList.remove('done-state');
+      if (label) label.textContent = l === 'ar' ? '📋 طلبي الحالي' : '📋 My Order';
+    }
+    fab.classList.add('show');
+  }
+
+  function hideMyOrderFab() {
+    const fab = document.getElementById('my-order-fab');
+    if (fab) fab.classList.remove('show');
+  }
+
+  function openMyOrder() {
+    if (!_statusOrderId) return;
+    fetch(`/api/orders/${_statusOrderId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(order => {
+        if (!order) return;
+        renderStatusModal(order);
+        document.getElementById('status-modal').classList.add('open');
+      }).catch(() => {});
+  }
+
   function startStatusPolling(orderId) {
     _statusOrderId = orderId;
     if (_statusPollTimer) clearInterval(_statusPollTimer);
@@ -2893,9 +2927,20 @@
         if (!res.ok) return;
         const order = await res.json();
         renderStatusModal(order);
+        // 모달이 열려있으면 모달도 업데이트, FAB도 업데이트
+        if (document.getElementById('status-modal').classList.contains('open')) {
+          renderStatusModal(order);
+        }
+        showMyOrderFab(order.status);
         if (order.status === 'done' || order.status === 'cancelled') {
           clearInterval(_statusPollTimer);
           _statusPollTimer = null;
+          // 완료/취소 3초 후 FAB 제거
+          setTimeout(() => {
+            hideMyOrderFab();
+            clearActiveOrder();
+            _statusOrderId = null;
+          }, 5000);
         }
       } catch (_) {}
     }
@@ -2906,9 +2951,13 @@
 
   function closeStatusModal() {
     document.getElementById('status-modal').classList.remove('open');
-    if (_statusPollTimer) { clearInterval(_statusPollTimer); _statusPollTimer = null; }
-    _statusOrderId = null;
-    clearActiveOrder();
+    // 주문 진행 중이면 FAB 유지, 폴링 계속
+    if (_statusOrderId) {
+      fetch(`/api/orders/${_statusOrderId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(order => { if (order) showMyOrderFab(order.status); })
+        .catch(() => {});
+    }
   }
 
   /* ─── 카드 결제 API 플레이스홀더 ───────────────────────────────────────
@@ -3000,6 +3049,9 @@
       cName   = document.getElementById('input-name').value.trim()   || (authState.customer?.name  ?? null);
       cPhone  = document.getElementById('input-phone').value.trim()  || (authState.customer?.phone ?? null);
       cArrival = document.getElementById('input-arrival').value.trim() || null;
+    } else if (selectedType === 'dine' && authState.customer) {
+      cName  = authState.customer.name  || null;
+      cPhone = authState.customer.phone || null;
     }
 
     let savedOrder = null;
@@ -3680,8 +3732,9 @@
       fetch(`/api/orders/${saved.id}`).then(r => r.ok ? r.json() : null).then(order => {
         if (!order) { clearActiveOrder(); return; }
         if (order.status === 'done' || order.status === 'cancelled') { clearActiveOrder(); return; }
+        _statusOrderId = saved.id;
         renderStatusModal(order);
-        document.getElementById('status-modal').classList.add('open');
+        showMyOrderFab(order.status);
         startStatusPolling(saved.id);
       }).catch(() => {});
     } catch (_) {}
@@ -3754,6 +3807,7 @@
 
     // Init meeting room calendar
     renderCal();
+    setTimeout(renderCal, 0);
 
     // Close mobile nav on link click
     document.querySelectorAll('#nav-links a').forEach(a =>
@@ -4042,6 +4096,12 @@
     </button>
   </div>
 </div>
+
+<!-- 플로팅 내 주문 버튼 -->
+<button class="my-order-fab" id="my-order-fab" onclick="openMyOrder()">
+  <span class="fab-pulse"></span>
+  <span class="fab-label">📋 My Order</span>
+</button>
 
 <!-- ============================================================
      AUTH MODAL (Login / Signup)

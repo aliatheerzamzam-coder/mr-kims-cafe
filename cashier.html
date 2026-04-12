@@ -673,8 +673,8 @@
       const arrivalBadge = order.arrival_time
         ? `&nbsp; ⏱ ${esc(order.arrival_time)}`
         : '';
-      const info = order.type === 'pickup'
-        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong> &nbsp; 📞 ${esc(order.customer_phone)}${arrivalBadge}</div>`
+      const info = order.customer_name
+        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 ${esc(order.customer_phone)}` : ''}${arrivalBadge}</div>`
         : '';
       const itemsHtml = order.items.map(i =>
         `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span></span><span class="item-qty">×${esc(String(i.qty))}</span></div>`

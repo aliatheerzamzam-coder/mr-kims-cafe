@@ -242,16 +242,15 @@ setInterval(() => {
 
 // ─── 고객 세션 (DB 기반, 30일 TTL) ───────────────────────────────────────────
 const CUSTOMER_SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30일
-const VERIFY_TTL = 10 * 60 * 1000; // 인증코드 10분
 
 function requireCustomer(req, res, next) {
   const token = req.headers['x-customer-token'];
-  if (!token) return res.status(401).json({ error: '로그인이 필요합니다' });
+  if (!token) return res.status(401).json({ error: 'Login required / تسجيل الدخول مطلوب' });
   const row = db.prepare('SELECT * FROM customer_sessions WHERE token=?').get(token);
-  if (!row) return res.status(401).json({ error: '세션이 없습니다. 다시 로그인하세요' });
+  if (!row) return res.status(401).json({ error: 'Session not found. Please log in again / الجلسة غير موجودة. يرجى تسجيل الدخول مجدداً' });
   if (Date.now() - row.created_at > CUSTOMER_SESSION_TTL) {
     db.prepare('DELETE FROM customer_sessions WHERE token=?').run(token);
-    return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인하세요' });
+    return res.status(401).json({ error: 'Session expired. Please log in again / انتهت الجلسة. يرجى تسجيل الدخول مجدداً' });
   }
   // 슬라이딩 세션: 사용할 때마다 TTL 갱신
   db.prepare('UPDATE customer_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
@@ -397,46 +396,14 @@ app.get('/api/qr-image', requireCashierOrAdmin, async (req, res) => {
 
 // ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
 
-// 전화번호 인증코드 요청
-app.post('/api/customers/verify-request', (req, res) => {
-  const { phone } = req.body;
-  if (!phone || phone.trim().length < 7)
-    return res.status(400).json({ error: '전화번호를 입력하세요' });
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  db.prepare('INSERT OR REPLACE INTO phone_verifications (phone, code, created_at) VALUES (?,?,?)')
-    .run(phone.trim(), code, Date.now());
-  console.log(`[VERIFY] ${phone} → ${code}`);
-  // 캐셔에 SSE 알림
-  broadcastSSE({ type: 'verify_request', phone: phone.trim(), code });
-  // WhatsApp 자동 발송 (ULTRAMSG 설정 시)
-  const waMsg = `🔐 رمز التحقق الخاص بك في مستر كيمز: *${code}*\nYour Mr. Kim's CAFE verification code: *${code}*\n\nصالح لمدة 10 دقائق / Valid for 10 minutes.`;
-  sendWhatsApp(phone.trim(), waMsg);
-  res.json({ success: true });
-});
-
-// 인증코드 확인
-app.post('/api/customers/verify-confirm', (req, res) => {
-  const { phone, code } = req.body;
-  if (!phone || !code) return res.status(400).json({ error: '입력값 누락' });
-  const row = db.prepare('SELECT * FROM phone_verifications WHERE phone=?').get(phone.trim());
-  if (!row) return res.status(400).json({ error: '인증 요청을 먼저 해주세요' });
-  if (Date.now() - row.created_at > VERIFY_TTL)
-    return res.status(400).json({ error: '인증코드가 만료되었습니다. 다시 요청하세요' });
-  if (row.code !== String(code).trim())
-    return res.status(400).json({ error: '인증코드가 틀렸습니다' });
-  db.prepare('DELETE FROM phone_verifications WHERE phone=?').run(phone.trim());
-  // 10분짜리 임시 verify_token 발급
-  const verifyToken = crypto.randomBytes(24).toString('hex') + ':' + phone.trim();
-  res.json({ success: true, verify_token: verifyToken });
-});
-
 // 회원가입
 app.post('/api/customers/register', (req, res) => {
   const { name, email, phone, password, birthdate } = req.body;
   if (!name || !email || !phone || !password)
-    return res.status(400).json({ error: '모든 필드를 입력하세요' });
+    return res.status(400).json({ error: 'Please fill in all fields / يرجى ملء جميع الحقول' });
   if (password.length < 8)
-    return res.status(400).json({ error: '비밀번호는 8자 이상이어야 합니다' });
+    return res.status(400).json({ error: 'Password must be at least 8 characters / يجب أن تكون كلمة المرور 8 أحرف على الأقل' });
+
   const hash = crypto.createHash('sha256').update(password).digest('hex');
   try {
     const r = db.prepare(
@@ -449,20 +416,20 @@ app.post('/api/customers/register', (req, res) => {
     res.json({ success: true, token, customer });
   } catch (e) {
     if (e.message.includes('UNIQUE')) {
-      if (e.message.includes('email')) return res.status(409).json({ error: '이미 사용 중인 이메일입니다' });
-      if (e.message.includes('phone')) return res.status(409).json({ error: '이미 가입된 전화번호입니다' });
+      if (e.message.includes('email')) return res.status(409).json({ error: 'Email already in use / البريد الإلكتروني مستخدم بالفعل' });
+      if (e.message.includes('phone')) return res.status(409).json({ error: 'Phone number already registered / رقم الهاتف مسجل بالفعل' });
     }
-    res.status(500).json({ error: '회원가입 실패' });
+    res.status(500).json({ error: 'Registration failed / فشل التسجيل' });
   }
 });
 
 // 로그인
 app.post('/api/customers/login', (req, res) => {
   const { phone, password } = req.body;
-  if (!phone || !password) return res.status(400).json({ error: '전화번호와 비밀번호를 입력하세요' });
+  if (!phone || !password) return res.status(400).json({ error: 'Phone number and password are required / رقم الهاتف وكلمة المرور مطلوبان' });
   const hash = crypto.createHash('sha256').update(password).digest('hex');
   const customer = db.prepare('SELECT * FROM customers WHERE phone=? AND password=?').get(phone.trim(), hash);
-  if (!customer) return res.status(401).json({ error: '전화번호 또는 비밀번호가 틀렸습니다' });
+  if (!customer) return res.status(401).json({ error: 'Incorrect phone number or password / رقم الهاتف أو كلمة المرور غير صحيحة' });
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO customer_sessions (token, customer_id, created_at) VALUES (?,?,?)').run(token, customer.id, Date.now());
   const { password: _, ...safe } = customer;
@@ -504,21 +471,15 @@ app.post('/api/customers/favorites', requireCustomer, (req, res) => {
   }
 });
 
-// 미인증 전화번호 목록 (캐셔 대시보드용)
-app.get('/api/customers/pending-verifications', (req, res) => {
-  const rows = db.prepare('SELECT phone, code, created_at FROM phone_verifications ORDER BY created_at DESC').all();
-  res.json(rows);
-});
-
 // ─── ORDERS ───────────────────────────────────────────────────────────────────
 
 // 주문 생성 (웹사이트 → 서버)
 app.post('/api/orders', optionalCustomer, (req, res) => {
   let { type, tableNum, customerName, customerPhone, arrivalTime, items, total } = req.body;
   if (!type || !items?.length || total == null)
-    return res.status(400).json({ error: '주문 데이터가 올바르지 않습니다' });
+    return res.status(400).json({ error: 'Invalid order data / بيانات الطلب غير صحيحة' });
   if (type === 'pickup' && !arrivalTime)
-    return res.status(400).json({ error: '픽업 주문은 도착 예정 시간이 필요합니다' });
+    return res.status(400).json({ error: 'Pickup orders require an arrival time / طلبات الاستلام تتطلب وقت الوصول' });
   if (type === 'dine') {
     const { dineToken } = req.body;
     if (!dineToken) return res.status(403).json({ error: 'QR_REQUIRED' });
@@ -526,8 +487,8 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
     if (!tableRow) return res.status(403).json({ error: 'QR_INVALID' });
   }
 
-  // 로그인 고객 정보 자동 채움: 픽업 주문 시 이름/전화 누락이면 고객 DB에서 가져옴
-  if (req.customerId && type === 'pickup' && (!customerName || !customerPhone)) {
+  // 로그인 고객 정보 자동 채움: 로그인 상태면 이름/전화 누락 시 고객 DB에서 가져옴
+  if (req.customerId && (!customerName || !customerPhone)) {
     const customer = db.prepare('SELECT name, phone FROM customers WHERE id=?').get(req.customerId);
     if (customer) {
       if (!customerName)  customerName  = customer.name;
@@ -555,7 +516,7 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
     res.json({ success: true, order });
   } catch (e) {
     console.error('주문 생성 오류:', e);
-    res.status(500).json({ error: '주문 저장에 실패했습니다' });
+    res.status(500).json({ error: 'Failed to place order. Please try again / فشل في إرسال الطلب. يرجى المحاولة مجدداً' });
   }
 });
 
@@ -588,18 +549,13 @@ app.get('/api/orders', (req, res) => {
 });
 
 // 주문 상태 변경 (캐셔 → 서버)
-app.put('/api/orders/:id/status', (req, res) => {
+app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
   const { status } = req.body;
   if (!['new', 'making', 'done', 'cancelled'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태' });
 
-  // 캐셔 이름 추적 (선택적 — 토큰 없어도 동작)
-  let cashierName = null;
-  const cashierToken = req.headers['x-cashier-token'];
-  if (cashierToken) {
-    const row = db.prepare('SELECT c.name FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
-    if (row) cashierName = row.name;
-  }
+  // 캐셔 이름은 requireCashierOrAdmin 미들웨어가 req.cashierName에 설정
+  const cashierName = req.cashierName || null;
 
   try {
     if (cashierName) {
