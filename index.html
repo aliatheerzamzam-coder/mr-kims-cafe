@@ -2749,6 +2749,10 @@
       // 테이블 번호 자동 세팅
       const tableInput = document.getElementById('input-table');
       if (tableInput && dineInTable) tableInput.value = dineInTable;
+      // QR 스캔으로 들어온 경우 Dine-in 자동 선택
+      document.getElementById('checkout-modal').classList.add('open');
+      selectType('dine');
+      return;
     }
     document.getElementById('checkout-modal').classList.add('open');
   }
