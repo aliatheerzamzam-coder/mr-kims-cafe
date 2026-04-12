@@ -2739,7 +2739,7 @@
       dineBtn.style.opacity = '0.55';
       dineBtn.style.cursor = 'pointer';
       dineBtn.style.pointerEvents = '';
-      dineBtn.title = '매장 안에서만 이용 가능 · In-store only';
+      dineBtn.title = 'In-store only';
     } else {
       dineBtn.disabled = false;
       dineBtn.style.opacity = '';
@@ -2765,7 +2765,10 @@
 
   function selectType(type) {
     if (type === 'dine' && !dineInToken) {
-      showToast('🪑 매장 안에서만 작동하는 기능입니다 · In-store only — scan the table QR code');
+      const _dineLang = document.getElementById('html-root').getAttribute('lang');
+      showToast(_dineLang === 'ar'
+        ? '🪑 هذه الخاصية متاحة داخل المطعم فقط — امسح رمز QR على الطاولة'
+        : '🪑 In-store only — scan the table QR code');
       return;
     }
     selectedType = type;
