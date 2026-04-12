@@ -3062,6 +3062,7 @@
     }
 
     let savedOrder = null;
+    let orderError = null;
     try {
       const headers = { 'Content-Type': 'application/json', ...authHeader() };
       const res = await fetch('/api/orders', {
@@ -3082,9 +3083,27 @@
       if (res.ok) {
         const data = await res.json();
         savedOrder = data.order;
+      } else {
+        const d = await res.json().catch(() => ({}));
+        orderError = d.error || 'ORDER_FAILED';
       }
     } catch (e) {
+      orderError = 'NETWORK_ERROR';
       console.warn('Order API unavailable:', e);
+    }
+
+    btn.disabled = false;
+
+    if (orderError === 'QR_REQUIRED' || orderError === 'QR_INVALID') {
+      const lang = document.getElementById('html-root').getAttribute('lang');
+      showToast(lang === 'ar'
+        ? '❌ رمز QR غير صالح — امسح رمز QR الموجود على الطاولة مجدداً'
+        : '❌ Invalid QR code — please re-scan the table QR code');
+      return;
+    }
+    if (orderError) {
+      showToast('❌ فشل إرسال الطلب / Failed to place order');
+      return;
     }
 
     cart = [];
@@ -3105,8 +3124,6 @@
     } else {
       showToast('✅ Order placed!');
     }
-
-    btn.disabled = false;
   }
 
   function showToast(msg) {
