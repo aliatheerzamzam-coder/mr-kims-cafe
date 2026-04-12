@@ -2529,7 +2529,8 @@
 
     localStorage.removeItem('kims-lang');
     localStorage.removeItem('kims-lang-v2');
-    localStorage.setItem('kims-lang-v3', lang);
+    localStorage.removeItem('kims-lang-v3');
+    sessionStorage.setItem('kims-lang', lang);
 
     if (document.getElementById('cal-month-label')) renderCal();
   }
@@ -3833,7 +3834,7 @@
   /* ─── Init ─── */
   document.addEventListener('DOMContentLoaded', async () => {
     // Detect language
-    const saved = localStorage.getItem('kims-lang-v3');
+    const saved = sessionStorage.getItem('kims-lang');
     setLang(saved || 'ar');
 
     // Default to Drinks group on load
