@@ -1,9 +1,26 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 const https = require('https');
 const QRCode = require('qrcode');
+
+// ─── 비밀번호 해싱 유틸 (bcrypt, SHA-256 레거시 지원) ─────────────────────────
+const BCRYPT_ROUNDS = 10;
+
+function hashPassword(plain) {
+  return bcrypt.hashSync(plain, BCRYPT_ROUNDS);
+}
+
+function verifyPassword(plain, stored) {
+  if (stored.startsWith('$2')) {
+    // bcrypt 형식
+    return bcrypt.compareSync(plain, stored);
+  }
+  // 레거시 SHA-256
+  return crypto.createHash('sha256').update(plain).digest('hex') === stored;
+}
 
 // ─── WhatsApp 자동 발송 (UltraMsg) ─────────────────────────────────────────────
 // 환경변수: ULTRAMSG_INSTANCE, ULTRAMSG_TOKEN
@@ -283,6 +300,17 @@ setInterval(() => {
   db.prepare('DELETE FROM customer_sessions WHERE created_at < ?').run(cutoff);
 }, 60 * 60 * 1000);
 
+// 만료된 dine 세션 정리 (1시간마다)
+setInterval(() => {
+  db.prepare('DELETE FROM dine_sessions WHERE expires_at < ?').run(Date.now());
+}, 60 * 60 * 1000);
+
+// 만료된 전화번호 인증 코드 정리 (1시간마다, 5분 TTL)
+const PHONE_VERIFY_TTL = 5 * 60 * 1000; // 5분
+setInterval(() => {
+  db.prepare('DELETE FROM phone_verifications WHERE created_at < ?').run(Date.now() - PHONE_VERIFY_TTL);
+}, 60 * 60 * 1000);
+
 // ─── SSE 클라이언트 목록 (캐셔 실시간 알림용) ───────────────────────────────────
 const sseClients = new Set();
 
@@ -299,9 +327,12 @@ app.use(express.static(path.join(__dirname)));
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
-  const hash = crypto.createHash('sha256').update(req.body.password || '').digest('hex');
   const stored = db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get();
-  if (stored?.value === hash) {
+  if (stored && verifyPassword(req.body.password || '', stored.value)) {
+    // 레거시 SHA-256이면 bcrypt로 재해싱
+    if (!stored.value.startsWith('$2')) {
+      db.prepare("UPDATE settings SET value=? WHERE key='admin_pw'").run(hashPassword(req.body.password));
+    }
     const token = crypto.randomBytes(32).toString('hex');
     db.prepare('INSERT INTO admin_sessions (token, created_at) VALUES (?,?)').run(token, Date.now());
     res.json({ success: true, token });
@@ -319,8 +350,7 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
   const { newPassword } = req.body;
   if (!newPassword || newPassword.length < 4)
     return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다' });
-  const hash = crypto.createHash('sha256').update(newPassword).digest('hex');
-  db.prepare("UPDATE settings SET value=? WHERE key='admin_pw'").run(hash);
+  db.prepare("UPDATE settings SET value=? WHERE key='admin_pw'").run(hashPassword(newPassword));
   res.json({ success: true });
 });
 
@@ -329,9 +359,13 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
 app.post('/api/cashier/login', (req, res) => {
   const { name, password } = req.body;
   if (!name || !password) return res.status(400).json({ error: '이름과 비밀번호를 입력하세요' });
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
-  const cashier = db.prepare('SELECT * FROM cashiers WHERE name=? AND password=?').get(name.trim(), hash);
-  if (!cashier) return res.status(401).json({ error: '이름 또는 비밀번호가 틀렸습니다' });
+  const cashier = db.prepare('SELECT * FROM cashiers WHERE name=?').get(name.trim());
+  if (!cashier || !verifyPassword(password, cashier.password))
+    return res.status(401).json({ error: '이름 또는 비밀번호가 틀렸습니다' });
+  // 레거시 SHA-256이면 bcrypt로 재해싱
+  if (!cashier.password.startsWith('$2')) {
+    db.prepare('UPDATE cashiers SET password=? WHERE id=?').run(hashPassword(password), cashier.id);
+  }
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO cashier_sessions (token, cashier_id, created_at) VALUES (?,?,?)').run(token, cashier.id, Date.now());
   res.json({ success: true, token, name: cashier.name });
@@ -352,9 +386,8 @@ app.post('/api/cashiers', requireAuth, (req, res) => {
   const { name, password } = req.body;
   if (!name || !password) return res.status(400).json({ error: '이름과 비밀번호를 입력하세요' });
   if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다' });
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
   try {
-    const r = db.prepare('INSERT INTO cashiers (name, password, created_at) VALUES (?,?,?)').run(name.trim(), hash, Date.now());
+    const r = db.prepare('INSERT INTO cashiers (name, password, created_at) VALUES (?,?,?)').run(name.trim(), hashPassword(password), Date.now());
     res.json({ success: true, id: r.lastInsertRowid, name: name.trim() });
   } catch (e) {
     res.status(400).json({ error: '이미 존재하는 이름입니다' });
@@ -443,11 +476,10 @@ app.post('/api/customers/register', (req, res) => {
   if (password.length < 8)
     return res.status(400).json({ error: 'Password must be at least 8 characters / يجب أن تكون كلمة المرور 8 أحرف على الأقل' });
 
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
   try {
     const r = db.prepare(
       'INSERT INTO customers (name, email, phone, password, birthdate) VALUES (?,?,?,?,?)'
-    ).run(name.trim(), email.trim().toLowerCase(), phone.trim(), hash, birthdate || null);
+    ).run(name.trim(), email.trim().toLowerCase(), phone.trim(), hashPassword(password), birthdate || null);
     const token = crypto.randomBytes(32).toString('hex');
     db.prepare('INSERT INTO customer_sessions (token, customer_id, created_at) VALUES (?,?,?)')
       .run(token, r.lastInsertRowid, Date.now());
@@ -466,9 +498,13 @@ app.post('/api/customers/register', (req, res) => {
 app.post('/api/customers/login', (req, res) => {
   const { phone, password } = req.body;
   if (!phone || !password) return res.status(400).json({ error: 'Phone number and password are required / رقم الهاتف وكلمة المرور مطلوبان' });
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
-  const customer = db.prepare('SELECT * FROM customers WHERE phone=? AND password=?').get(phone.trim(), hash);
-  if (!customer) return res.status(401).json({ error: 'Incorrect phone number or password / رقم الهاتف أو كلمة المرور غير صحيحة' });
+  const customer = db.prepare('SELECT * FROM customers WHERE phone=?').get(phone.trim());
+  if (!customer || !verifyPassword(password, customer.password))
+    return res.status(401).json({ error: 'Incorrect phone number or password / رقم الهاتف أو كلمة المرور غير صحيحة' });
+  // 레거시 SHA-256이면 bcrypt로 재해싱
+  if (!customer.password.startsWith('$2')) {
+    db.prepare('UPDATE customers SET password=? WHERE id=?').run(hashPassword(password), customer.id);
+  }
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO customer_sessions (token, customer_id, created_at) VALUES (?,?,?)').run(token, customer.id, Date.now());
   const { password: _, ...safe } = customer;
@@ -561,7 +597,7 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
 });
 
 // 주문 목록 조회
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', requireCashierOrAdmin, (req, res) => {
   const { date, status } = req.query;
   let sql = 'SELECT * FROM orders';
   const params = [];
@@ -668,6 +704,8 @@ app.post('/api/ingredients', requireAuth, (req, res) => {
 
 app.put('/api/ingredients/:id', requireAuth, (req, res) => {
   const { name_ko, name_ar, unit, min_qty, cost_per_unit } = req.body;
+  const existing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: '재료를 찾을 수 없습니다' });
   db.prepare(
     'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=? WHERE id=?'
   ).run(name_ko, name_ar || '', unit, min_qty, cost_per_unit, req.params.id);
@@ -675,6 +713,8 @@ app.put('/api/ingredients/:id', requireAuth, (req, res) => {
 });
 
 app.delete('/api/ingredients/:id', requireAuth, (req, res) => {
+  const existing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: '재료를 찾을 수 없습니다' });
   db.prepare('DELETE FROM ingredients WHERE id=?').run(req.params.id);
   res.json({ success: true });
 });

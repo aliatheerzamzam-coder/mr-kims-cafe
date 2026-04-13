@@ -101,7 +101,7 @@ test.describe('주문 → 캐셔 연동 검증', () => {
   });
 
   test('주문 생성 후 캐셔(주문 목록)에 즉시 반영', async () => {
-    const beforeOrders = await getOrders();
+    const beforeOrders = await getOrders({}, { adminToken });
     const beforeCount = beforeOrders.length;
 
     // 새 주문 생성
@@ -116,7 +116,7 @@ test.describe('주문 → 캐셔 연동 검증', () => {
     createdOrderId = orderData.order.id;
 
     // 즉시 주문 목록 조회 (캐셔가 GET /api/orders 로 조회하는 것과 동일)
-    const afterOrders = await getOrders();
+    const afterOrders = await getOrders({}, { adminToken });
     expect(afterOrders.length).toBe(beforeCount + 1);
 
     const found = afterOrders.find(o => o.id === createdOrderId);

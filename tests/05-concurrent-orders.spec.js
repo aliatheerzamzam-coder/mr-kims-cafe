@@ -7,13 +7,23 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { createOrder, getOrders, apiRequest } = require('./helpers/api');
+const { createOrder, getOrders, apiRequest, adminLogin } = require('./helpers/api');
 
 const SAMPLE_ITEMS = [
   { key: 'americano', name: '아메리카노', price: 3000, qty: 1 }
 ];
 
 test.describe('동시 주문 처리 (데이터 충돌 검증)', () => {
+  let adminToken;
+
+  test.beforeAll(async () => {
+    adminToken = await adminLogin();
+  });
+
+  test.afterAll(async () => {
+    await apiRequest('POST', '/api/auth/logout', null, { 'x-auth-token': adminToken });
+  });
+
   test('5개 주문 동시 생성 시 모두 성공 및 고유 num 보장', async () => {
     const N = 5;
     const promises = Array.from({ length: N }, (_, i) =>
@@ -49,7 +59,7 @@ test.describe('동시 주문 처리 (데이터 충돌 검증)', () => {
 
   test('10개 주문 동시 생성 - 번호 연속성 확인', async () => {
     const N = 10;
-    const beforeOrders = await getOrders();
+    const beforeOrders = await getOrders({}, { adminToken });
     const maxNumBefore = beforeOrders.length > 0
       ? Math.max(...beforeOrders.map(o => o.num))
       : 0;

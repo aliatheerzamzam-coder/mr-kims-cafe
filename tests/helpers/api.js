@@ -78,10 +78,13 @@ async function recordDailySales(sale_date, sales, adminToken) {
   return apiRequest('POST', '/api/daily-sales', { sale_date, sales }, { 'x-auth-token': adminToken });
 }
 
-// 주문 목록 조회
-async function getOrders(params = {}) {
+// 주문 목록 조회 (캐셔 또는 관리자 토큰 필요)
+async function getOrders(params = {}, { adminToken = null, cashierToken = null } = {}) {
   const qs = new URLSearchParams(params).toString();
-  const { data } = await apiRequest('GET', `/api/orders${qs ? '?' + qs : ''}`);
+  const headers = {};
+  if (adminToken) headers['x-auth-token'] = adminToken;
+  if (cashierToken) headers['x-cashier-token'] = cashierToken;
+  const { data } = await apiRequest('GET', `/api/orders${qs ? '?' + qs : ''}`, null, headers);
   return Array.isArray(data) ? data : [];
 }
 

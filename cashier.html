@@ -804,7 +804,7 @@
   async function loadOrders() {
     const today = localDateStr();
     try {
-      const res = await fetch(`/api/orders?date=${today}`);
+      const res = await fetch(`/api/orders?date=${today}`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       orders = await res.json();
       renderOrders();
@@ -824,7 +824,7 @@
     listEl.innerHTML = `<div class="history-empty">جارٍ التحميل…</div>`;
     summaryEl.innerHTML = '';
     try {
-      const res = await fetch(`/api/orders?date=${date}`);
+      const res = await fetch(`/api/orders?date=${date}`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       window._historyOrders = data;
