@@ -4,7 +4,9 @@
   "description": "Mr. Kim's Cafe - 창고 관리 시스템",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "playwright test",
+    "test:report": "playwright test --reporter=html && playwright show-report test-results/html"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -13,5 +15,20 @@
     "better-sqlite3": "^12.8.0",
     "express": "^4.18.2",
     "qrcode": "^1.5.4"
-  }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliatheerzamzam-coder/mr-kims-cafe.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aliatheerzamzam-coder/mr-kims-cafe/issues"
+  },
+  "homepage": "https://github.com/aliatheerzamzam-coder/mr-kims-cafe#readme"
 }
