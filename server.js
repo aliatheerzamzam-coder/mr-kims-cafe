@@ -194,12 +194,45 @@ db.exec(`
     created_at INTEGER NOT NULL,
     FOREIGN KEY (cashier_id) REFERENCES cashiers(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS customer_stamps (
+    customer_id   INTEGER PRIMARY KEY,
+    total_earned  INTEGER NOT NULL DEFAULT 0,
+    total_redeemed INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS stamp_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    type        TEXT NOT NULL,
+    amount      INTEGER NOT NULL DEFAULT 1,
+    order_id    TEXT,
+    note        TEXT,
+    created_at  INTEGER NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS reservations (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id  INTEGER,
+    name         TEXT NOT NULL,
+    phone        TEXT NOT NULL,
+    date         TEXT NOT NULL,
+    time         TEXT NOT NULL,
+    party_size   INTEGER NOT NULL DEFAULT 2,
+    notes        TEXT,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    created_at   INTEGER NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+  );
 `);
 
 // 기존 DB 호환 마이그레이션
 try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)'); } catch (_) {}
 try { db.exec('ALTER TABLE orders ADD COLUMN arrival_time TEXT'); } catch (_) {}
 try { db.exec('ALTER TABLE orders ADD COLUMN cashier_name TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE reservations ADD COLUMN table_num TEXT'); } catch (_) {}
 
 // 기본 데이터
 if (!db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get()) {
@@ -865,6 +898,135 @@ app.get('/api/daily-sales', (req, res) => {
   } else {
     res.json(db.prepare('SELECT * FROM daily_sales ORDER BY sale_date DESC, menu_item LIMIT 300').all());
   }
+});
+
+// ─── STAMPS ───────────────────────────────────────────────────────────────────
+
+// 내 스탬프 조회
+app.get('/api/customers/stamps', requireCustomer, (req, res) => {
+  let row = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(req.customerId);
+  if (!row) {
+    db.prepare('INSERT OR IGNORE INTO customer_stamps (customer_id, total_earned, total_redeemed) VALUES (?,0,0)').run(req.customerId);
+    row = { customer_id: req.customerId, total_earned: 0, total_redeemed: 0 };
+  }
+  const available = row.total_earned - row.total_redeemed;
+  const history = db.prepare('SELECT * FROM stamp_history WHERE customer_id=? ORDER BY created_at DESC LIMIT 30').all(req.customerId);
+  res.json({ total_earned: row.total_earned, total_redeemed: row.total_redeemed, available, history });
+});
+
+// 스탬프 적립 (주문 완료 시 캐셔가 호출)
+app.post('/api/stamps/earn', requireCashierOrAdmin, (req, res) => {
+  let { customer_id, phone, order_id, amount } = req.body;
+  // phone으로 조회 가능 (캐셔 UI에서 전화번호로 적립 시)
+  if (!customer_id && phone) {
+    const c = db.prepare('SELECT id FROM customers WHERE phone=?').get(phone.trim());
+    if (!c) return res.status(404).json({ error: '회원 없음 — 가입된 전화번호를 확인하세요' });
+    customer_id = c.id;
+  }
+  if (!customer_id) return res.status(400).json({ error: 'customer_id 또는 phone 필요' });
+  const n = Math.max(1, parseInt(amount) || 1);
+
+  db.prepare('INSERT OR IGNORE INTO customer_stamps (customer_id, total_earned, total_redeemed) VALUES (?,0,0)').run(customer_id);
+  db.prepare('UPDATE customer_stamps SET total_earned = total_earned + ? WHERE customer_id=?').run(n, customer_id);
+  db.prepare('INSERT INTO stamp_history (customer_id, type, amount, order_id, created_at) VALUES (?,?,?,?,?)').run(customer_id, 'earn', n, order_id || null, Date.now());
+
+  const row = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer_id);
+  res.json({ success: true, total_earned: row.total_earned, total_redeemed: row.total_redeemed, available: row.total_earned - row.total_redeemed });
+});
+
+// 무료 음료 사용 (캐셔가 호출 — 10스탬프 = 1회)
+app.post('/api/stamps/redeem', requireCashierOrAdmin, (req, res) => {
+  let { customer_id, phone } = req.body;
+  if (!customer_id && phone) {
+    const c = db.prepare('SELECT id FROM customers WHERE phone=?').get(phone.trim());
+    if (!c) return res.status(404).json({ error: '회원 없음 — 가입된 전화번호를 확인하세요' });
+    customer_id = c.id;
+  }
+  if (!customer_id) return res.status(400).json({ error: 'customer_id 또는 phone 필요' });
+
+  db.prepare('INSERT OR IGNORE INTO customer_stamps (customer_id, total_earned, total_redeemed) VALUES (?,0,0)').run(customer_id);
+  const row = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer_id);
+  const available = row.total_earned - row.total_redeemed;
+  if (available < 10) return res.status(400).json({ error: `스탬프 부족 (현재 ${available}개, 10개 필요)` });
+
+  db.prepare('UPDATE customer_stamps SET total_redeemed = total_redeemed + 10 WHERE customer_id=?').run(customer_id);
+  db.prepare('INSERT INTO stamp_history (customer_id, type, amount, note, created_at) VALUES (?,?,?,?,?)').run(customer_id, 'redeem', 10, '무료 음료 사용', Date.now());
+
+  const updated = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer_id);
+  res.json({ success: true, total_earned: updated.total_earned, total_redeemed: updated.total_redeemed, available: updated.total_earned - updated.total_redeemed });
+});
+
+// 스탬프 현황 조회 (캐셔 — 고객 전화번호로 검색)
+app.get('/api/stamps/lookup', requireCashierOrAdmin, (req, res) => {
+  const { phone } = req.query;
+  if (!phone) return res.status(400).json({ error: 'phone 필요' });
+  const customer = db.prepare('SELECT id, name, phone FROM customers WHERE phone=?').get(phone.trim());
+  if (!customer) return res.status(404).json({ error: '회원 없음' });
+
+  let row = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer.id);
+  if (!row) row = { total_earned: 0, total_redeemed: 0 };
+  res.json({ customer, total_earned: row.total_earned, total_redeemed: row.total_redeemed, available: row.total_earned - row.total_redeemed });
+});
+
+// ─── RESERVATIONS ─────────────────────────────────────────────────────────────
+
+// 예약 생성 (고객 — 로그인 옵션)
+app.post('/api/reservations', optionalCustomer, (req, res) => {
+  const { name, phone, date, time, party_size, notes, table_num } = req.body;
+  if (!name || !phone || !date || !time)
+    return res.status(400).json({ error: 'Name, phone, date and time are required / الاسم والهاتف والتاريخ والوقت مطلوبة' });
+  if (party_size && (party_size < 1 || party_size > 20))
+    return res.status(400).json({ error: 'Party size must be 1–20' });
+
+  // 같은 날짜/시간 중복 방지 (최대 4팀 허용)
+  const existing = db.prepare("SELECT COUNT(*) as cnt FROM reservations WHERE date=? AND time=? AND status != 'cancelled'").get(date, time);
+  if (existing.cnt >= 4)
+    return res.status(409).json({ error: 'This time slot is fully booked. Please choose another time / هذا الوقت محجوز بالكامل. يرجى اختيار وقت آخر' });
+
+  const r = db.prepare(
+    'INSERT INTO reservations (customer_id, name, phone, date, time, party_size, notes, table_num, status, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)'
+  ).run(req.customerId || null, name.trim(), phone.trim(), date, time, party_size || 2, notes || null, table_num || null, 'pending', Date.now());
+
+  const reservation = db.prepare('SELECT * FROM reservations WHERE id=?').get(r.lastInsertRowid);
+  broadcastSSE({ type: 'new_reservation', reservation });
+  res.json({ success: true, reservation });
+});
+
+// 예약 목록 (캐셔/관리자)
+app.get('/api/reservations', requireCashierOrAdmin, (req, res) => {
+  const { date, status } = req.query;
+  let sql = 'SELECT * FROM reservations';
+  const params = [];
+  const conds = [];
+  if (date) { conds.push('date = ?'); params.push(date); }
+  if (status) { conds.push('status = ?'); params.push(status); }
+  if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
+  sql += ' ORDER BY date ASC, time ASC';
+  res.json(db.prepare(sql).all(...params));
+});
+
+// 예약 상태 변경 (캐셔)
+app.put('/api/reservations/:id/status', requireCashierOrAdmin, (req, res) => {
+  const { status } = req.body;
+  if (!['pending', 'confirmed', 'cancelled'].includes(status))
+    return res.status(400).json({ error: '유효하지 않은 상태' });
+  db.prepare('UPDATE reservations SET status=? WHERE id=?').run(status, req.params.id);
+  const reservation = db.prepare('SELECT * FROM reservations WHERE id=?').get(req.params.id);
+  if (!reservation) return res.status(404).json({ error: '예약 없음' });
+  broadcastSSE({ type: 'reservation_updated', reservation });
+  res.json({ success: true, reservation });
+});
+
+// 날짜별 예약 가능 슬롯 조회 (공개)
+app.get('/api/reservations/availability', (req, res) => {
+  const { date } = req.query;
+  if (!date) return res.status(400).json({ error: 'date 필요' });
+  const ALL_SLOTS = ['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+  const rows = db.prepare("SELECT time, COUNT(*) as count FROM reservations WHERE date=? AND status != 'cancelled' GROUP BY time").all(date);
+  const slotMap = {};
+  rows.forEach(r => { slotMap[r.time] = r.count; });
+  const slots = ALL_SLOTS.map(t => ({ time: t, count: slotMap[t] || 0 }));
+  res.json({ slots });
 });
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────

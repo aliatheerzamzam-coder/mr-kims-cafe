@@ -522,9 +522,11 @@
 
 <!-- Tabs -->
 <div class="page-tabs">
-  <button class="page-tab active" id="tab-orders"  onclick="switchTab('orders')">📋 الطلبات الحالية</button>
-  <button class="page-tab"        id="tab-history" onclick="switchTab('history')">🗂️ سجل الطلبات</button>
-  <button class="page-tab"        id="tab-qr"      onclick="switchTab('qr')">🪑 QR الطاولات</button>
+  <button class="page-tab active" id="tab-orders"       onclick="switchTab('orders')">📋 الطلبات الحالية</button>
+  <button class="page-tab"        id="tab-history"      onclick="switchTab('history')">🗂️ سجل الطلبات</button>
+  <button class="page-tab"        id="tab-reservations" onclick="switchTab('reservations')">📅 الحجوزات</button>
+  <button class="page-tab"        id="tab-stamps"       onclick="switchTab('stamps')">☕ الطوابع</button>
+  <button class="page-tab"        id="tab-qr"           onclick="switchTab('qr')">🪑 QR الطاولات</button>
 </div>
 
 <!-- ── Tab: Current Orders ── -->
@@ -551,6 +553,73 @@
   </div>
 </div>
 
+
+<!-- ── Tab: Reservations ── -->
+<div class="tab-pane" id="pane-reservations">
+  <div style="padding:20px 24px">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+      <label style="font-size:0.8rem;font-weight:800;color:#555;">📅 التاريخ:</label>
+      <input type="date" id="res-filter-date" style="padding:8px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;" />
+      <button onclick="loadReservations()" style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;">عرض</button>
+      <span id="res-count-badge" style="background:#e8f5ee;color:#367d4d;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:800;"></span>
+    </div>
+    <div id="reservations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+      <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض الحجوزات</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Stamps ── -->
+<div class="tab-pane" id="pane-stamps">
+  <div style="padding:20px 24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:720px;">
+
+      <!-- Earn stamp -->
+      <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <div style="font-size:1.1rem;font-weight:900;margin-bottom:6px;">☕ منح طابع</div>
+        <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">بعد إتمام الطلب، أدخل رقم هاتف العميل</div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.78rem;font-weight:800;color:#555;display:block;margin-bottom:5px;">📱 رقم الهاتف / Customer Phone</label>
+          <input type="text" id="stamp-earn-phone" placeholder="07xx xxx xxxx"
+            style="width:100%;padding:10px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.78rem;font-weight:800;color:#555;display:block;margin-bottom:5px;">🆔 رقم الطلب (اختياري)</label>
+          <input type="text" id="stamp-earn-order" placeholder="ORD-xxx"
+            style="width:100%;padding:10px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;" />
+        </div>
+        <div id="stamp-earn-msg" style="font-size:0.82rem;min-height:18px;margin-bottom:8px;"></div>
+        <button onclick="earnStamp()"
+          style="width:100%;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:12px;font-size:0.95rem;font-weight:900;cursor:pointer;font-family:inherit;">
+          ☕ منح طابع
+        </button>
+      </div>
+
+      <!-- Redeem free drink -->
+      <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <div style="font-size:1.1rem;font-weight:900;margin-bottom:6px;">🎁 استرداد مشروب مجاني</div>
+        <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">عندما يطلب العميل مشروبه المجاني (10 طوابع)</div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.78rem;font-weight:800;color:#555;display:block;margin-bottom:5px;">📱 رقم الهاتف / Customer Phone</label>
+          <input type="text" id="stamp-redeem-phone" placeholder="07xx xxx xxxx"
+            style="width:100%;padding:10px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;" />
+        </div>
+        <div id="stamp-redeem-info" style="background:#f0f9f4;border-radius:8px;padding:10px 14px;font-size:0.85rem;min-height:42px;margin-bottom:10px;color:#555;"></div>
+        <div id="stamp-redeem-msg" style="font-size:0.82rem;min-height:18px;margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="lookupStamps()"
+            style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:10px;font-size:0.88rem;font-weight:800;cursor:pointer;font-family:inherit;">
+            🔍 بحث
+          </button>
+          <button onclick="redeemStamp()"
+            style="flex:2;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.88rem;font-weight:900;cursor:pointer;font-family:inherit;">
+            🎁 استرداد
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ── Tab: Table QR Codes ── -->
 <div class="tab-pane" id="pane-qr">
@@ -613,6 +682,11 @@
       const dateInput = document.getElementById('history-date');
       if (!dateInput.value) dateInput.value = localDateStr();
       loadHistory();
+    }
+    if (tab === 'reservations') {
+      const dateInput = document.getElementById('res-filter-date');
+      if (!dateInput.value) dateInput.value = localDateStr();
+      loadReservations();
     }
     if (tab === 'qr') loadTableQRs();
   }
@@ -810,6 +884,137 @@
       renderOrders();
     } catch (e) {
       console.warn('주문 로드 실패, 재시도 예정');
+    }
+  }
+
+  /* ─── Reservations tab ─── */
+  async function loadReservations() {
+    const date = document.getElementById('res-filter-date').value;
+    if (!date) return;
+    const listEl = document.getElementById('reservations-list');
+    listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">جارٍ التحميل…</div>';
+    try {
+      const res = await fetch(`/api/reservations?date=${date}`, { headers: cashierHeaders() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const badge = document.getElementById('res-count-badge');
+      badge.textContent = `${data.length} حجز`;
+      if (data.length === 0) {
+        listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">لا توجد حجوزات في هذا التاريخ</div>';
+        return;
+      }
+      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
+      const statusLabel = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
+      listEl.innerHTML = data.map(r => `
+        <div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.07);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:900;font-size:1rem;">${esc(r.time)}</span>
+            <span style="background:${statusColor[r.status]||'#888'}22;color:${statusColor[r.status]||'#888'};
+              border-radius:20px;padding:3px 12px;font-size:0.78rem;font-weight:800;">${statusLabel[r.status]||r.status}</span>
+          </div>
+          <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
+          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 ${esc(r.phone)}</div>
+          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 ${esc(String(r.party_size))}명</div>
+          ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            ${r.status==='pending' ? `
+              <button onclick="updateReservationStatus(${r.id},'confirmed')"
+                style="flex:1;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✅ تأكيد</button>
+              <button onclick="updateReservationStatus(${r.id},'cancelled')"
+                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
+            ` : r.status==='confirmed' ? `
+              <button onclick="updateReservationStatus(${r.id},'completed')"
+                style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">☑ وصل</button>
+              <button onclick="updateReservationStatus(${r.id},'cancelled')"
+                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      document.getElementById('reservations-list').innerHTML = '<div style="color:#e53e3e;padding:32px;text-align:center;grid-column:1/-1;">فشل تحميل البيانات</div>';
+    }
+  }
+
+  async function updateReservationStatus(id, status) {
+    try {
+      const res = await fetch(`/api/reservations/${id}/status`, {
+        method: 'PUT',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error();
+      loadReservations();
+    } catch (e) {
+      alert('فشل تحديث الحجز');
+    }
+  }
+
+  /* ─── Stamps tab ─── */
+  async function earnStamp() {
+    const phone = document.getElementById('stamp-earn-phone').value.trim();
+    const orderId = document.getElementById('stamp-earn-order').value.trim();
+    const msgEl = document.getElementById('stamp-earn-msg');
+    msgEl.style.color = '#e53e3e';
+    msgEl.textContent = '';
+    if (!phone) { msgEl.textContent = 'أدخل رقم الهاتف'; return; }
+    try {
+      const res = await fetch('/api/stamps/earn', {
+        method: 'POST',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ phone, order_id: orderId || undefined })
+      });
+      const data = await res.json();
+      if (!res.ok) { msgEl.textContent = data.error || 'فشل منح الطابع'; return; }
+      msgEl.style.color = '#367d4d';
+      msgEl.textContent = `✅ تم منح الطابع! الإجمالي: ${data.total_earned} طابع`;
+      document.getElementById('stamp-earn-phone').value = '';
+      document.getElementById('stamp-earn-order').value = '';
+    } catch (e) {
+      msgEl.textContent = 'خطأ في الاتصال';
+    }
+  }
+
+  async function lookupStamps() {
+    const phone = document.getElementById('stamp-redeem-phone').value.trim();
+    const infoEl = document.getElementById('stamp-redeem-info');
+    const msgEl = document.getElementById('stamp-redeem-msg');
+    msgEl.textContent = '';
+    if (!phone) { infoEl.textContent = 'أدخل رقم الهاتف أولاً'; return; }
+    try {
+      const res = await fetch(`/api/stamps/lookup?phone=${encodeURIComponent(phone)}`, { headers: cashierHeaders() });
+      const data = await res.json();
+      if (!res.ok) { infoEl.style.color = '#e53e3e'; infoEl.textContent = data.error || 'لم يُعثر على العميل'; return; }
+      infoEl.style.color = '#333';
+      const free = Math.floor(data.available / 10);
+      infoEl.innerHTML = `👤 <strong>${esc(data.name)}</strong><br>
+        طوابع متاحة: <strong style="color:#367d4d">${data.available}</strong>
+        ${free > 0 ? `<br>🎁 مشروب مجاني: <strong style="color:#f59e0b">${free}</strong>` : ''}`;
+    } catch (e) {
+      infoEl.textContent = 'خطأ في الاتصال';
+    }
+  }
+
+  async function redeemStamp() {
+    const phone = document.getElementById('stamp-redeem-phone').value.trim();
+    const msgEl = document.getElementById('stamp-redeem-msg');
+    msgEl.style.color = '#e53e3e';
+    msgEl.textContent = '';
+    if (!phone) { msgEl.textContent = 'أدخل رقم الهاتف أولاً'; return; }
+    if (!confirm('هل تريد استرداد 10 طوابع مقابل مشروب مجاني؟')) return;
+    try {
+      const res = await fetch('/api/stamps/redeem', {
+        method: 'POST',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ phone })
+      });
+      const data = await res.json();
+      if (!res.ok) { msgEl.textContent = data.error || 'فشل الاسترداد'; return; }
+      msgEl.style.color = '#367d4d';
+      msgEl.textContent = `🎉 تم الاسترداد! الطوابع المتبقية: ${data.available}`;
+      document.getElementById('stamp-redeem-info').innerHTML = `المتبقي: <strong>${data.available}</strong> طابع`;
+    } catch (e) {
+      msgEl.textContent = 'خطأ في الاتصال';
     }
   }
 

@@ -1156,6 +1156,169 @@
     .group-tab[data-group="favorites"].show { display: inline-flex; }
 
     /* =========================================
+       STAMP CARD
+    ========================================= */
+    .stamp-card {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    .stamp-card-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+    .stamp-card-sub {
+      font-size: 0.78rem;
+      opacity: 0.7;
+      margin-bottom: 16px;
+    }
+    .stamp-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .stamp-dot {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: all 0.25s;
+    }
+    .stamp-dot.filled {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.8);
+    }
+    .stamp-dot.free {
+      background: var(--star);
+      border-color: var(--star);
+      font-size: 0.9rem;
+    }
+    .stamp-progress-bar {
+      height: 5px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .stamp-progress-fill {
+      height: 100%;
+      background: rgba(255,255,255,0.85);
+      border-radius: 10px;
+      transition: width 0.5s var(--ease);
+    }
+    .stamp-count-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      opacity: 0.85;
+    }
+    .stamp-history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--off-white);
+      font-size: 0.82rem;
+    }
+    .stamp-history-item:last-child { border-bottom: none; }
+    .stamp-history-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .stamp-history-icon.earn { background: var(--green-pale); color: var(--green); }
+    .stamp-history-icon.redeem { background: #fff3cd; color: #856404; }
+
+    /* =========================================
+       RESERVATION SECTION
+    ========================================= */
+    .reserve-section {
+      background: var(--off-white);
+      padding: 80px 40px;
+    }
+    .reserve-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .reserve-form {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+      margin-top: 28px;
+    }
+    .reserve-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 540px) { .reserve-grid { grid-template-columns: 1fr; } }
+    .reserve-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--text-mid);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .reserve-input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      transition: border-color 0.2s;
+      background: var(--white);
+    }
+    .reserve-input:focus { outline: none; border-color: var(--green); }
+    .reserve-time-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+    @media (max-width: 480px) { .reserve-time-grid { grid-template-columns: repeat(3, 1fr); } }
+    .reserve-time-btn {
+      padding: 9px 4px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--white);
+      color: var(--text-mid);
+      transition: all 0.2s;
+    }
+    .reserve-time-btn:hover { border-color: var(--green); color: var(--green); }
+    .reserve-time-btn.selected { background: var(--green); border-color: var(--green); color: #fff; }
+    .reserve-time-btn:disabled { opacity: 0.4; cursor: default; }
+    .reserve-success {
+      text-align: center;
+      padding: 32px 20px;
+      display: none;
+    }
+    .reserve-success-icon { font-size: 3rem; margin-bottom: 12px; }
+    .reserve-success h3 { font-size: 1.2rem; font-weight: 900; color: var(--green); margin-bottom: 8px; }
+    .reserve-success p { font-size: 0.88rem; color: var(--text-mid); }
+
+    /* =========================================
        ORDER STATUS MODAL
     ========================================= */
     .status-modal-overlay {
@@ -1845,6 +2008,7 @@
 
   <ul class="nav-links" id="nav-links">
     <li><a href="#menu">      <span class="en">Menu</span><span class="ar">القائمة</span></a></li>
+    <li><a href="#reserve">   <span class="en">Reserve a Table</span><span class="ar">احجز طاولة</span></a></li>
     <li><a href="#meeting">   <span class="en">Meeting Room</span><span class="ar">غرفة الاجتماعات</span></a></li>
     <li><a href="#about">     <span class="en">About Us</span><span class="ar">من نحن</span></a></li>
     <li><a href="#contact">   <span class="en">Contact</span><span class="ar">تواصل معنا</span></a></li>
@@ -2114,6 +2278,11 @@
     <span class="ar">مشروبك المثالي على بُعد نقرة واحدة</span>
   </h2>
   <div class="order-btns">
+    <a href="#reserve" class="btn-book" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+      🪑
+      <span class="en">Reserve a Table</span>
+      <span class="ar">احجز طاولة</span>
+    </a>
     <a href="#contact" class="btn-white-ghost">
       📍
       <span class="en">Find Our Store</span>
@@ -2126,6 +2295,128 @@
 <!-- ============================================================
      MEETING ROOM
 ============================================================ -->
+<!-- ============================================================
+     TABLE RESERVATION SECTION
+============================================================ -->
+<section class="reserve-section section-pad" id="reserve">
+  <div class="reserve-inner">
+    <div class="section-head" style="text-align:center;margin-bottom:40px;">
+      <p class="section-eyebrow">
+        <span class="en">Skip the wait</span>
+        <span class="ar">تجنب الانتظار</span>
+      </p>
+      <h2 class="section-title">
+        <span class="en">Reserve a Table</span>
+        <span class="ar">احجز طاولة</span>
+      </h2>
+      <p class="section-desc" style="text-align:center;margin:0 auto;">
+        <span class="en">Book your spot in advance. We'll have your table ready when you arrive.</span>
+        <span class="ar">احجز مكانك مسبقاً. سيكون طاولتك جاهزة عند وصولك.</span>
+      </p>
+    </div>
+
+    <!-- Success state -->
+    <div class="reserve-success" id="reserve-success">
+      <div class="reserve-success-icon">🎉</div>
+      <h3><span class="en">Reservation Confirmed!</span><span class="ar">تم تأكيد الحجز!</span></h3>
+      <p id="reserve-success-msg"></p>
+      <button onclick="resetReserveForm()" style="margin-top:18px;padding:10px 28px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-family:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">
+        <span class="en">Make Another Reservation</span><span class="ar">حجز آخر</span>
+      </button>
+    </div>
+
+    <!-- Form -->
+    <div class="reserve-form" id="reserve-form-wrap">
+      <!-- Row 1: Date + Party Size -->
+      <div class="reserve-grid">
+        <div>
+          <label class="reserve-label">
+            <span class="en">📅 Date</span><span class="ar">📅 التاريخ</span>
+          </label>
+          <input type="date" id="res-date" class="reserve-input" oninput="loadReserveSlots()" />
+        </div>
+        <div>
+          <label class="reserve-label">
+            <span class="en">👥 Party Size</span><span class="ar">👥 عدد الأشخاص</span>
+          </label>
+          <select id="res-party" class="reserve-input">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6+</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 2: Time Slots (appears after date selected) -->
+      <div id="res-slots-wrap" style="margin-bottom:14px;display:none;">
+        <label class="reserve-label">
+          <span class="en">⏰ Choose a Time</span><span class="ar">⏰ اختر الوقت</span>
+        </label>
+        <div class="reserve-time-grid" id="res-slots"></div>
+      </div>
+
+      <!-- Row 3: Contact Info — always visible -->
+      <div id="res-info-wrap">
+        <div class="reserve-grid">
+          <div>
+            <label class="reserve-label">
+              <span class="en">👤 Name</span><span class="ar">👤 الاسم</span>
+            </label>
+            <input type="text" id="res-name" class="reserve-input"
+              placeholder="Your name / اسمك" />
+          </div>
+          <div>
+            <label class="reserve-label">
+              <span class="en">📱 Phone</span><span class="ar">📱 الهاتف</span>
+            </label>
+            <input type="tel" id="res-phone" class="reserve-input"
+              placeholder="07xx xxx xxxx" />
+          </div>
+        </div>
+        <div class="reserve-grid">
+          <div>
+            <label class="reserve-label">
+              <span class="en">🪑 Table (optional)</span><span class="ar">🪑 الطاولة (اختياري)</span>
+            </label>
+            <select id="res-table" class="reserve-input">
+              <option value=""><span class="en">Any table</span><span class="ar">أي طاولة</span></option>
+              <option value="1">Table 1</option>
+              <option value="2">Table 2</option>
+              <option value="3">Table 3</option>
+              <option value="4">Table 4</option>
+              <option value="5">Table 5</option>
+              <option value="6">Table 6</option>
+              <option value="7">Table 7</option>
+              <option value="8">Table 8</option>
+            </select>
+          </div>
+          <div>
+            <label class="reserve-label">
+              <span class="en">📝 Notes (optional)</span><span class="ar">📝 ملاحظات (اختياري)</span>
+            </label>
+            <input type="text" id="res-notes" class="reserve-input"
+              placeholder="Birthday, anniversary… / عيد ميلاد، ذكرى سنوية…" />
+          </div>
+        </div>
+
+        <div id="res-error" style="color:var(--red);font-size:0.82rem;min-height:18px;margin-bottom:8px;"></div>
+
+        <button class="btn-book" id="btn-reserve" onclick="submitReservation()" style="width:100%;font-size:1rem;">
+          <span class="en">🪑 Reserve Table</span>
+          <span class="ar">🪑 احجز الطاولة</span>
+        </button>
+        <p style="text-align:center;font-size:0.78rem;color:var(--text-soft);margin-top:10px;">
+          <span class="en">Free to reserve · No deposit required</span>
+          <span class="ar">الحجز مجاني · لا يلزم دفع مقدم</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="meeting-section section-pad" id="meeting">
   <div class="section-head" style="text-align:center;margin-bottom:48px;">
     <p class="section-eyebrow">
@@ -3471,6 +3762,8 @@
       document.getElementById('profile-name-short').textContent = authState.customer.name.split(' ')[0];
       // 즐겨찾기 탭 표시
       document.querySelector('.group-tab[data-group="favorites"]').classList.add('show');
+      // 예약 폼 자동 채움
+      prefillResContactIfLoggedIn();
     } else {
       document.querySelector('.group-tab[data-group="favorites"]').classList.remove('show');
     }
@@ -3615,10 +3908,11 @@
   }
 
   function switchProfileTab(tab) {
-    ['orders','favs'].forEach(t => {
+    ['orders','stamps','favs'].forEach(t => {
       document.getElementById('ptab-'+t).classList.toggle('active', t === tab);
       document.getElementById('ppane-'+t).classList.toggle('active', t === tab);
     });
+    if (tab === 'stamps') loadStamps();
   }
 
   async function loadProfileData() {
@@ -3630,6 +3924,197 @@
       renderOrderHistory(data.orders);
     } catch (_) {}
     renderFavsList();
+  }
+
+  async function loadStamps() {
+    if (!authState.token) return;
+    try {
+      const res = await fetch('/api/customers/stamps', { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json();
+      renderStamps(data);
+    } catch (_) {}
+  }
+
+  function renderStamps(data) {
+    const el = document.getElementById('stamps-content');
+    const l = document.getElementById('html-root').lang;
+    const isAr = l === 'ar';
+    const { total_earned, total_redeemed, available, history } = data;
+
+    // Progress within current set of 10
+    const progress = available % 10;
+    const freeDrinks = Math.floor(available / 10);
+
+    // Build 10 stamp dots
+    let dots = '';
+    for (let i = 0; i < 10; i++) {
+      if (i < progress) {
+        dots += `<div class="stamp-dot filled">☕</div>`;
+      } else if (i === 9 && progress === 9) {
+        dots += `<div class="stamp-dot free">🎁</div>`;
+      } else {
+        dots += `<div class="stamp-dot"></div>`;
+      }
+    }
+
+    const histHtml = (history && history.length) ? history.map(h => {
+      const d = new Date(h.created_at).toLocaleDateString(isAr ? 'ar-IQ' : 'en-GB');
+      const isEarn = h.type === 'earn';
+      const icon = isEarn ? '☕' : '🎁';
+      const label = isEarn
+        ? (isAr ? `+${h.amount} طابع` : `+${h.amount} stamp`)
+        : (isAr ? `استُخدم مشروب مجاني` : `Free drink redeemed`);
+      return `<div class="stamp-history-item">
+        <div class="stamp-history-icon ${h.type}">${icon}</div>
+        <div style="flex:1"><div style="font-weight:700">${label}</div><div style="color:var(--text-soft);font-size:0.75rem">${d}</div></div>
+      </div>`;
+    }).join('') : `<div style="color:var(--text-soft);text-align:center;padding:16px 0;font-size:0.82rem">${isAr ? 'لا سجل بعد' : 'No history yet'}</div>`;
+
+    el.innerHTML = `
+      <div class="stamp-card">
+        <div class="stamp-card-title">${isAr ? 'بطاقة المكافآت' : 'Loyalty Stamps'}</div>
+        <div class="stamp-card-sub">${isAr ? '١٠ طوابع = مشروب مجاني' : '10 stamps = 1 free drink'}</div>
+        <div class="stamp-grid">${dots}</div>
+        <div class="stamp-progress-bar">
+          <div class="stamp-progress-fill" style="width:${progress * 10}%"></div>
+        </div>
+        <div class="stamp-count-row">
+          <span>${isAr ? `${progress}/١٠` : `${progress}/10`}</span>
+          ${freeDrinks > 0 ? `<span style="font-weight:800;color:#ffe57f">🎁 ${freeDrinks} ${isAr ? 'مشروب مجاني!' : 'free drink!'}</span>` : ''}
+          <span>${isAr ? `المجموع: ${total_earned}` : `Total earned: ${total_earned}`}</span>
+        </div>
+      </div>
+      ${freeDrinks > 0 ? `<div style="background:#fff3cd;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;font-size:0.85rem;font-weight:700;color:#856404;text-align:center;">
+        🎁 ${isAr ? `لديك ${freeDrinks} مشروب مجاني! أخبر الكاشير عند طلبك` : `You have ${freeDrinks} free drink! Tell the cashier when ordering`}
+      </div>` : ''}
+      <div style="font-size:0.78rem;font-weight:800;color:var(--text-soft);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">${isAr ? 'السجل' : 'History'}</div>
+      ${histHtml}
+    `;
+  }
+
+  /* ─── TABLE RESERVATION ─── */
+  let resSlotSelected = null;
+
+  function getResDateMin() {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  }
+
+  (function initResDate() {
+    const inp = document.getElementById('res-date');
+    if (inp) inp.min = getResDateMin();
+  })();
+
+  async function loadReserveSlots() {
+    const date = document.getElementById('res-date').value;
+    if (!date) return;
+    resSlotSelected = null;
+    document.getElementById('res-slots-wrap').style.display = 'none';
+    document.getElementById('res-info-wrap').style.display = 'none';
+
+    try {
+      const res = await fetch(`/api/reservations/availability?date=${encodeURIComponent(date)}`);
+      const data = await res.json();
+      const grid = document.getElementById('res-slots');
+      const isAr = document.getElementById('html-root').lang === 'ar';
+      grid.innerHTML = data.slots.map(s => {
+        const full = s.count >= 4;
+        return `<button class="reserve-time-btn" ${full ? 'disabled' : ''}
+          onclick="selectResSlot('${s.time}', this)">
+          ${s.time}${full ? (isAr ? '<br><small>ممتلئ</small>' : '<br><small>Full</small>') : ''}
+        </button>`;
+      }).join('');
+      document.getElementById('res-slots-wrap').style.display = 'block';
+    } catch (_) {}
+  }
+
+  function selectResSlot(time, btn) {
+    resSlotSelected = time;
+    document.querySelectorAll('.reserve-time-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function prefillResContactIfLoggedIn() {
+    if (authState.token && authState.user) {
+      const nameEl = document.getElementById('res-name');
+      const phoneEl = document.getElementById('res-phone');
+      if (nameEl && !nameEl.value) nameEl.value = authState.user.name || '';
+      if (phoneEl && !phoneEl.value) phoneEl.value = authState.user.phone || '';
+    }
+  }
+
+  async function submitReservation() {
+    const date = document.getElementById('res-date').value;
+    const party = document.getElementById('res-party').value;
+    const name = document.getElementById('res-name').value.trim();
+    const phone = document.getElementById('res-phone').value.trim();
+    const notes = document.getElementById('res-notes').value.trim();
+    const tableNum = document.getElementById('res-table').value.trim();
+    const errEl = document.getElementById('res-error');
+    const isAr = document.getElementById('html-root').lang === 'ar';
+    errEl.textContent = '';
+
+    if (!date) {
+      errEl.textContent = isAr ? 'يرجى اختيار تاريخ' : 'Please select a date.';
+      return;
+    }
+    if (!resSlotSelected) {
+      errEl.textContent = isAr ? 'يرجى اختيار وقت' : 'Please select a time slot.';
+      return;
+    }
+    if (!name) {
+      errEl.textContent = isAr ? 'يرجى إدخال اسمك' : 'Please enter your name.';
+      return;
+    }
+    if (!phone) {
+      errEl.textContent = isAr ? 'يرجى إدخال رقم هاتفك' : 'Please enter your phone number.';
+      return;
+    }
+
+    const btn = document.getElementById('btn-reserve');
+    btn.disabled = true;
+
+    try {
+      const headers = { 'Content-Type': 'application/json', ...authHeader() };
+      const res = await fetch('/api/reservations', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ date, time: resSlotSelected, party_size: Number(party), name, phone, notes, table_num: tableNum || undefined })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || (isAr ? 'فشل الحجز، حاول مجدداً' : 'Reservation failed, please try again.');
+        btn.disabled = false;
+        return;
+      }
+      // Show success
+      document.getElementById('reserve-form-wrap').style.display = 'none';
+      const successEl = document.getElementById('reserve-success');
+      successEl.style.display = 'block';
+      const timeLabel = resSlotSelected;
+      document.getElementById('reserve-success-msg').innerHTML = isAr
+        ? `${name} — ${date} الساعة ${timeLabel}<br>سنكون بانتظارك! 🫶`
+        : `${name} — ${date} at ${timeLabel}<br>We'll be waiting for you! 🫶`;
+    } catch (_) {
+      errEl.textContent = isAr ? 'خطأ في الاتصال، حاول مجدداً' : 'Connection error, please try again.';
+      btn.disabled = false;
+    }
+  }
+
+  function resetReserveForm() {
+    document.getElementById('reserve-success').style.display = 'none';
+    document.getElementById('reserve-form-wrap').style.display = 'block';
+    document.getElementById('res-date').value = '';
+    document.getElementById('res-slots-wrap').style.display = 'none';
+    document.getElementById('res-name').value = '';
+    document.getElementById('res-phone').value = '';
+    document.getElementById('res-table').value = '';
+    document.getElementById('res-notes').value = '';
+    document.getElementById('res-error').textContent = '';
+    resSlotSelected = null;
+    document.getElementById('btn-reserve').disabled = false;
+    prefillResContactIfLoggedIn();
   }
 
   function renderOrderHistory(orders) {
@@ -4249,12 +4734,20 @@
       <button class="profile-tab active" id="ptab-orders"  onclick="switchProfileTab('orders')">
         🧾 <span class="en">Orders</span><span class="ar">طلباتي</span>
       </button>
+      <button class="profile-tab"        id="ptab-stamps"  onclick="switchProfileTab('stamps')">
+        ☕ <span class="en">Stamps</span><span class="ar">الطوابع</span>
+      </button>
       <button class="profile-tab"        id="ptab-favs"    onclick="switchProfileTab('favs')">
         ⭐ <span class="en">Favorites</span><span class="ar">المفضلة</span>
       </button>
     </div>
     <div class="profile-pane active" id="ppane-orders">
       <div id="order-history-list"><div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
+        <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
+      </div></div>
+    </div>
+    <div class="profile-pane" id="ppane-stamps">
+      <div id="stamps-content"><div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
         <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
       </div></div>
     </div>
