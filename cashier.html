@@ -250,6 +250,26 @@
     }
     .new-order-flash.show { transform: translateX(-50%) translateY(0); }
 
+    /* New reservation notification */
+    .new-res-flash {
+      position: fixed;
+      top: 80px; right: 24px;
+      transform: translateY(-200px);
+      background: #1a5c38;
+      color: #fff;
+      padding: 16px 20px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      z-index: 1000;
+      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      min-width: 260px;
+      max-width: 320px;
+    }
+    .new-res-flash.show { transform: translateY(0); }
+    .new-res-flash-title { font-weight: 900; font-size: 1rem; margin-bottom: 8px; }
+    .new-res-flash-row { font-size: 0.83rem; opacity: 0.9; margin-bottom: 3px; }
+
     /* ─── Tabs ─── */
     .page-tabs {
       display: flex;
@@ -473,18 +493,26 @@
 <!-- 로그인 오버레이 -->
 <div id="loginOverlay">
   <div class="login-box">
-    <h2>🏪 캐셔 로그인</h2>
+    <h2>🏪 Cashier Login / تسجيل الدخول</h2>
     <p>Mr. Kim's Café — كاشير</p>
-    <input type="text" id="loginName" placeholder="이름 (Name)" autocomplete="username" />
-    <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password"
+    <input type="text" id="loginName" placeholder="Name / الاسم" autocomplete="username" />
+    <input type="password" id="loginPw" placeholder="Password / كلمة المرور" autocomplete="current-password"
       onkeydown="if(event.key==='Enter') doCashierLogin()" />
-    <button id="loginBtn" onclick="doCashierLogin()">로그인</button>
+    <button id="loginBtn" onclick="doCashierLogin()">Login / دخول</button>
     <div class="login-err" id="loginErr"></div>
   </div>
 </div>
 
 <div id="print-area"></div>
 <div class="new-order-flash" id="new-flash">🔔 طلب جديد!</div>
+<div class="new-res-flash" id="res-flash">
+  <div class="new-res-flash-title">📅 New Reservation! / حجز جديد!</div>
+  <div class="new-res-flash-row" id="res-flash-name"></div>
+  <div class="new-res-flash-row" id="res-flash-phone"></div>
+  <div class="new-res-flash-row" id="res-flash-datetime"></div>
+  <div class="new-res-flash-row" id="res-flash-party"></div>
+  <div class="new-res-flash-row" id="res-flash-table"></div>
+</div>
 
 <!-- Header -->
 <div class="header">
@@ -496,7 +524,7 @@
     <span style="font-size:0.78rem;opacity:0.8;">مباشر<span class="conn-dot" id="conn-dot"></span></span>
     <span class="cashier-badge" id="cashier-badge"></span>
     <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 الصوت: تشغيل</button>
-    <button class="btn-logout" onclick="doCashierLogout()">로그아웃</button>
+    <button class="btn-logout" onclick="doCashierLogout()">Logout / خروج</button>
   </div>
 </div>
 
@@ -848,6 +876,38 @@
     setTimeout(() => flash.classList.remove('show'), 3000);
   }
 
+  /* ─── New reservation notification ─── */
+  function playReservationSound() {
+    if (!soundOn) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // 맑은 3단 상승음 (예약 전용)
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'triangle';
+        gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.25);
+        osc.start(ctx.currentTime + i * 0.15);
+        osc.stop(ctx.currentTime + i * 0.15 + 0.25);
+      });
+    } catch (_) {}
+  }
+
+  function showNewReservationFlash(r) {
+    playReservationSound();
+    document.getElementById('res-flash-name').textContent    = `👤 ${r.name}`;
+    document.getElementById('res-flash-phone').textContent   = `📱 ${r.phone}`;
+    document.getElementById('res-flash-datetime').textContent = `🗓 ${r.date}  ${r.time}`;
+    document.getElementById('res-flash-party').textContent   = `👥 ${r.party_size} guests`;
+    document.getElementById('res-flash-table').textContent   = r.table_num ? `🪑 Table: ${r.table_num}` : '';
+    const flash = document.getElementById('res-flash');
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 6000);
+  }
+
   /* ─── Print receipt ─── */
   function printReceipt(id) {
     const allOrders = [...orders, ...(window._historyOrders || [])];
@@ -914,7 +974,7 @@
           </div>
           <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
           <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 ${esc(r.phone)}</div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 ${esc(String(r.party_size))}명</div>
+          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 ${esc(String(r.party_size))} guests</div>
           ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
           <div style="display:flex;gap:8px;margin-top:10px;">
             ${r.status==='pending' ? `
@@ -986,7 +1046,7 @@
       const data = await res.json();
       if (!res.ok) { infoEl.style.color = '#e53e3e'; infoEl.textContent = data.error || 'لم يُعثر على العميل'; return; }
       infoEl.style.color = '#333';
-      const free = Math.floor(data.available / 10);
+      const free = Math.floor(data.available / 9);
       infoEl.innerHTML = `👤 <strong>${esc(data.name)}</strong><br>
         طوابع متاحة: <strong style="color:#367d4d">${data.available}</strong>
         ${free > 0 ? `<br>🎁 مشروب مجاني: <strong style="color:#f59e0b">${free}</strong>` : ''}`;
@@ -1001,7 +1061,7 @@
     msgEl.style.color = '#e53e3e';
     msgEl.textContent = '';
     if (!phone) { msgEl.textContent = 'أدخل رقم الهاتف أولاً'; return; }
-    if (!confirm('هل تريد استرداد 10 طوابع مقابل مشروب مجاني؟')) return;
+    if (!confirm('هل تريد استرداد 9 طوابع مقابل مشروب مجاني؟')) return;
     try {
       const res = await fetch('/api/stamps/redeem', {
         method: 'POST',
@@ -1102,6 +1162,11 @@
       } else if (msg.type === 'order_updated') {
         const idx = orders.findIndex(o => o.id === msg.order.id);
         if (idx !== -1) { orders[idx] = msg.order; renderOrders(); }
+      } else if (msg.type === 'new_reservation') {
+        showNewReservationFlash(msg.reservation);
+        if (currentTab === 'reservations') loadReservations();
+      } else if (msg.type === 'reservation_updated') {
+        if (currentTab === 'reservations') loadReservations();
       }
     };
     es.onerror = () => {
@@ -1131,8 +1196,8 @@
     const err  = document.getElementById('loginErr');
     const btn  = document.getElementById('loginBtn');
     err.textContent = '';
-    if (!name || !pw) { err.textContent = '이름과 비밀번호를 입력하세요'; return; }
-    btn.disabled = true; btn.textContent = '로그인 중...';
+    if (!name || !pw) { err.textContent = 'Enter name and password / أدخل الاسم وكلمة المرور'; return; }
+    btn.disabled = true; btn.textContent = 'Logging in... / جاري الدخول';
     try {
       const res = await fetch('/api/cashier/login', {
         method: 'POST',
@@ -1148,12 +1213,12 @@
         document.getElementById('loginOverlay').style.display = 'none';
         updateCashierBadge();
       } else {
-        err.textContent = d.error || '로그인 실패';
+        err.textContent = d.error || 'Login failed / فشل تسجيل الدخول';
       }
     } catch (e) {
-      err.textContent = '서버에 연결할 수 없습니다';
+      err.textContent = 'Cannot connect to server / لا يمكن الاتصال بالخادم';
     }
-    btn.disabled = false; btn.textContent = '로그인';
+    btn.disabled = false; btn.textContent = 'Login / دخول';
   }
 
   async function doCashierLogout() {
@@ -1182,7 +1247,7 @@
       const r = await fetch('/api/table-tokens', { headers: cashierHeaders() });
       if (r.status === 401) { list.innerHTML = '<div style="color:#e53e3e;padding:20px">⚠️ يجب تسجيل الدخول أولاً</div>'; return; }
       const tokens = await r.json();
-      if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">테이블 없음. QR을 생성해주세요.</div>'; return; }
+      if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">No tables yet. Generate a QR code. / لا توجد طاولات. أنشئ رمز QR.</div>'; return; }
       list.innerHTML = '';
       for (const t of tokens) {
         const url = `${BASE_URL}/?table=${t.table_num}&t=${t.token}`;
@@ -1216,34 +1281,34 @@
         list.appendChild(card);
       }
     } catch(e) {
-      list.innerHTML = `<div style="color:#e53e3e;padding:20px">불러오기 실패: ${e.message}</div>`;
+      list.innerHTML = `<div style="color:#e53e3e;padding:20px">Load failed: ${e.message}</div>`;
     }
   }
 
   async function generateTableQR() {
     const tableNum = document.getElementById('qr-table-input').value.trim();
     if (!tableNum || isNaN(tableNum) || tableNum < 1) {
-      alert('테이블 번호를 입력하세요 / أدخل رقم الطاولة');
+      alert('أدخل رقم الطاولة / Enter table number');
       return;
     }
     const btn = document.querySelector('[onclick="generateTableQR()"]');
-    if (btn) { btn.disabled = true; btn.textContent = '생성 중...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating... / جاري الإنشاء'; }
     try {
       const r = await fetch('/api/table-tokens', {
         method: 'POST',
         headers: cashierHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ tableNum: String(tableNum) })
       });
-      if (r.status === 401) { alert('로그인이 필요합니다. 다시 로그인해주세요.'); location.reload(); return; }
+      if (r.status === 401) { alert('Session expired. Please log in again. / انتهت الجلسة. سجّل الدخول مجدداً.'); location.reload(); return; }
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        alert('생성 실패: ' + (d.error || r.status));
+        alert('Failed to create: ' + (d.error || r.status));
         return;
       }
       document.getElementById('qr-table-input').value = '';
       await loadTableQRs();
     } catch (e) {
-      alert('네트워크 오류. 서버 연결을 확인하세요.\n' + e.message);
+      alert('Network error. Check server connection.\nخطأ في الشبكة. تحقق من الاتصال.\n' + e.message);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '➕ إنشاء QR / Generate QR'; }
     }
@@ -1270,7 +1335,7 @@
   async function printTableQR(tableNum, url) {
     const encodedUrl = encodeURIComponent(url);
     const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
-    if (!qrRes.ok) { alert('QR 이미지 생성 실패'); return; }
+    if (!qrRes.ok) { alert('Failed to generate QR image / فشل إنشاء رمز QR'); return; }
     const { dataUrl } = await qrRes.json();
     const win = window.open('', '_blank');
     win.document.write(`

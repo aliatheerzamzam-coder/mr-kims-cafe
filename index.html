@@ -1241,6 +1241,46 @@
     }
     .stamp-history-icon.earn { background: var(--green-pale); color: var(--green); }
     .stamp-history-icon.redeem { background: #fff3cd; color: #856404; }
+    .stamp-level-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 20px;
+      padding: 5px 12px 5px 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      letter-spacing: 0.02em;
+    }
+    .stamp-level-icon { font-size: 1.1rem; }
+    .stamp-stats-row {
+      display: flex;
+      gap: 0;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .stamp-stat-item {
+      flex: 1;
+      text-align: center;
+    }
+    .stamp-stat-item + .stamp-stat-item {
+      border-left: 1px solid rgba(255,255,255,0.2);
+    }
+    .stamp-stat-num {
+      font-size: 1.4rem;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+    .stamp-stat-label {
+      font-size: 0.6rem;
+      opacity: 0.65;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
     /* =========================================
        RESERVATION SECTION
@@ -2277,12 +2317,14 @@
     <span class="en">Your perfect drink is one tap away</span>
     <span class="ar">مشروبك المثالي على بُعد نقرة واحدة</span>
   </h2>
-  <div class="order-btns">
-    <a href="#reserve" class="btn-book" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+  <div style="text-align:center;margin-bottom:16px;">
+    <a href="#reserve" class="btn-book" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;width:auto;padding:15px 32px;">
       🪑
       <span class="en">Reserve a Table</span>
       <span class="ar">احجز طاولة</span>
     </a>
+  </div>
+  <div class="order-btns">
     <a href="#contact" class="btn-white-ghost">
       📍
       <span class="en">Find Our Store</span>
@@ -2381,17 +2423,8 @@
             <label class="reserve-label">
               <span class="en">🪑 Table (optional)</span><span class="ar">🪑 الطاولة (اختياري)</span>
             </label>
-            <select id="res-table" class="reserve-input">
-              <option value=""><span class="en">Any table</span><span class="ar">أي طاولة</span></option>
-              <option value="1">Table 1</option>
-              <option value="2">Table 2</option>
-              <option value="3">Table 3</option>
-              <option value="4">Table 4</option>
-              <option value="5">Table 5</option>
-              <option value="6">Table 6</option>
-              <option value="7">Table 7</option>
-              <option value="8">Table 8</option>
-            </select>
+            <input type="text" id="res-table" class="reserve-input"
+              placeholder="e.g. 3 / مثال: ٣" />
           </div>
           <div>
             <label class="reserve-label">
@@ -2603,7 +2636,7 @@
             <div class="c-title en">Our Location</div>
             <div class="c-title ar">موقعنا</div>
             <div class="c-detail en">Salikh, 600 Street, Baghdad<br>Open 7 days a week</div>
-            <div class="c-detail ar">سالخ، شارع ٦٠٠، بغداد<br>مفتوح ٧ أيام في الأسبوع</div>
+            <div class="c-detail ar">الصليخ، شارع ٦٠٠، بغداد<br>مفتوح ٧ أيام في الأسبوع</div>
           </div>
         </div>
 
@@ -2612,8 +2645,8 @@
           <div>
             <div class="c-title en">Opening Hours</div>
             <div class="c-title ar">ساعات العمل</div>
-            <div class="c-detail en">Mon – Sun: 7:00 AM – 1:00 AM</div>
-            <div class="c-detail ar">الاثنين – الأحد: ٧ ص – ١ ص</div>
+            <div class="c-detail en">Sat – Fri: 7:00 AM – 1:00 AM</div>
+            <div class="c-detail ar">السبت - الجمعة: ٧ ص – ١ ص</div>
           </div>
         </div>
 
@@ -2623,7 +2656,7 @@
             <div class="c-title en">Call Us</div>
             <div class="c-title ar">اتصل بنا</div>
             <div class="c-detail">
-              <a href="tel:+9640775006011" class="c-link">+964 0775 006 0011</a>
+              <a href="tel:+9647750060011" class="c-link" dir="ltr">+964 775 006 0011</a>
             </div>
           </div>
         </div>
@@ -3782,9 +3815,10 @@
     resetSignupForm();
   }
 
-  document.getElementById('auth-overlay').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('auth-overlay')) closeAuthModal();
-  });
+  (function() {
+    const ov = document.getElementById('auth-overlay');
+    if (ov) ov.addEventListener('click', (e) => { if (e.target === ov) closeAuthModal(); });
+  })();
 
   function switchAuthTab(tab) {
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
@@ -3908,11 +3942,55 @@
   }
 
   function switchProfileTab(tab) {
-    ['orders','stamps','favs'].forEach(t => {
+    ['orders','stamps','favs','reservations'].forEach(t => {
       document.getElementById('ptab-'+t).classList.toggle('active', t === tab);
       document.getElementById('ppane-'+t).classList.toggle('active', t === tab);
     });
     if (tab === 'stamps') loadStamps();
+    if (tab === 'reservations') loadMyReservations();
+  }
+
+  async function loadMyReservations() {
+    if (!authState.token) return;
+    const el = document.getElementById('my-reservations-list');
+    const isAr = document.getElementById('html-root').lang === 'ar';
+    el.innerHTML = `<div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
+      <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
+    </div>`;
+    try {
+      const res = await fetch('/api/customers/reservations', { headers: authHeader() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!data.length) {
+        el.innerHTML = `<div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
+          <span class="en">No reservations yet</span><span class="ar">لا توجد حجوزات بعد</span>
+        </div>`;
+        return;
+      }
+      const statusEn = { pending:'Pending', confirmed:'Confirmed', cancelled:'Cancelled', completed:'Completed' };
+      const statusAr = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
+      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
+      el.innerHTML = data.map(r => {
+        const color = statusColor[r.status] || '#888';
+        const label = isAr ? (statusAr[r.status] || r.status) : (statusEn[r.status] || r.status);
+        const dateStr = new Date(r.date).toLocaleDateString(isAr ? 'ar-IQ' : 'en-GB', { year:'numeric', month:'short', day:'numeric' });
+        return `<div style="background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-weight:800;font-size:0.95rem;">${dateStr} — ${r.time}</span>
+            <span style="background:${color}22;color:${color};border-radius:20px;padding:2px 10px;font-size:0.75rem;font-weight:800;">${label}</span>
+          </div>
+          <div style="font-size:0.83rem;color:var(--text-soft);">
+            👥 ${r.party_size} <span class="en">guests</span><span class="ar">أشخاص</span>
+            ${r.table_num ? ` · 🪑 <span class="en">Table</span><span class="ar">طاولة</span> ${r.table_num}` : ''}
+            ${r.notes ? `<br>📝 ${r.notes}` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    } catch (_) {
+      el.innerHTML = `<div style="color:var(--red);font-size:0.85rem;text-align:center;padding:16px 0;">
+        <span class="en">Failed to load</span><span class="ar">فشل التحميل</span>
+      </div>`;
+    }
   }
 
   async function loadProfileData() {
@@ -3942,20 +4020,40 @@
     const isAr = l === 'ar';
     const { total_earned, total_redeemed, available, history } = data;
 
-    // Progress within current set of 10
-    const progress = available % 10;
-    const freeDrinks = Math.floor(available / 10);
+    // Progress within current set of 9
+    const progress = available % 9;
+    const freeDrinks = Math.floor(available / 9);
 
-    // Build 10 stamp dots
+    // All-time stats (never reset)
+    const totalFreeEver = Math.floor(total_redeemed / 9);
+    const levels = [
+      { min: 5,  icon: '👑', en: 'Legend',   ar: 'أسطوري' },
+      { min: 3,  icon: '💎', en: 'Platinum', ar: 'بلاتيني' },
+      { min: 2,  icon: '⭐', en: 'Gold',     ar: 'ذهبي' },
+      { min: 1,  icon: '🥈', en: 'Silver',   ar: 'فضي' },
+      { min: 0,  icon: '🥉', en: 'Bronze',   ar: 'برونزي' },
+    ];
+    const lv = levels.find(l => totalFreeEver >= l.min);
+    const lvName = isAr ? lv.ar : lv.en;
+    const nextLv = levels.slice().reverse().find(l => l.min > totalFreeEver);
+    const nextMsg = nextLv
+      ? (isAr ? `${nextLv.min - totalFreeEver} أكواب حتى ${nextLv.ar} ${nextLv.icon}` : `${nextLv.min - totalFreeEver} more to ${nextLv.en} ${nextLv.icon}`)
+      : (isAr ? 'أعلى مستوى! 🎉' : 'Max level reached! 🎉');
+
+    // Build 9 stamp dots + 1 free slot (10 total)
     let dots = '';
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 9; i++) {
       if (i < progress) {
         dots += `<div class="stamp-dot filled">☕</div>`;
-      } else if (i === 9 && progress === 9) {
-        dots += `<div class="stamp-dot free">🎁</div>`;
       } else {
         dots += `<div class="stamp-dot"></div>`;
       }
+    }
+    // 10th slot: Free!
+    if (progress === 0 && freeDrinks > 0) {
+      dots += `<div class="stamp-dot free">🎁</div>`;
+    } else {
+      dots += `<div class="stamp-dot free" style="opacity:${progress === 0 ? 0.3 : Math.min(progress/9*0.7+0.3, 1)}">Free!</div>`;
     }
 
     const histHtml = (history && history.length) ? history.map(h => {
@@ -3974,15 +4072,33 @@
     el.innerHTML = `
       <div class="stamp-card">
         <div class="stamp-card-title">${isAr ? 'بطاقة المكافآت' : 'Loyalty Stamps'}</div>
-        <div class="stamp-card-sub">${isAr ? '١٠ طوابع = مشروب مجاني' : '10 stamps = 1 free drink'}</div>
+        <div class="stamp-level-badge">
+          <span class="stamp-level-icon">${lv.icon}</span>
+          <span>${lvName}</span>
+        </div>
+        <div class="stamp-card-sub" style="margin-bottom:14px">${isAr ? '٩ طوابع = مشروب مجاني' : '9 stamps = 1 free drink'}</div>
         <div class="stamp-grid">${dots}</div>
         <div class="stamp-progress-bar">
-          <div class="stamp-progress-fill" style="width:${progress * 10}%"></div>
+          <div class="stamp-progress-fill" style="width:${Math.round(progress / 9 * 100)}%"></div>
         </div>
         <div class="stamp-count-row">
-          <span>${isAr ? `${progress}/١٠` : `${progress}/10`}</span>
+          <span>${isAr ? `${progress}/٩` : `${progress}/9`}</span>
           ${freeDrinks > 0 ? `<span style="font-weight:800;color:#ffe57f">🎁 ${freeDrinks} ${isAr ? 'مشروب مجاني!' : 'free drink!'}</span>` : ''}
-          <span>${isAr ? `المجموع: ${total_earned}` : `Total earned: ${total_earned}`}</span>
+          <span style="opacity:0.6;font-size:0.7rem">${nextMsg}</span>
+        </div>
+        <div class="stamp-stats-row">
+          <div class="stamp-stat-item">
+            <div class="stamp-stat-num">${total_earned}</div>
+            <div class="stamp-stat-label">${isAr ? 'إجمالي الطوابع' : 'Total Stamps'}</div>
+          </div>
+          <div class="stamp-stat-item">
+            <div class="stamp-stat-num">${totalFreeEver}</div>
+            <div class="stamp-stat-label">${isAr ? 'مشروبات مجانية' : 'Free Drinks'}</div>
+          </div>
+          <div class="stamp-stat-item">
+            <div class="stamp-stat-num">${total_earned + totalFreeEver}</div>
+            <div class="stamp-stat-label">${isAr ? 'إجمالي الزيارات' : 'Total Visits'}</div>
+          </div>
         </div>
       </div>
       ${freeDrinks > 0 ? `<div style="background:#fff3cd;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;font-size:0.85rem;font-weight:700;color:#856404;text-align:center;">
@@ -4011,7 +4127,6 @@
     if (!date) return;
     resSlotSelected = null;
     document.getElementById('res-slots-wrap').style.display = 'none';
-    document.getElementById('res-info-wrap').style.display = 'none';
 
     try {
       const res = await fetch(`/api/reservations/availability?date=${encodeURIComponent(date)}`);
@@ -4036,11 +4151,11 @@
   }
 
   function prefillResContactIfLoggedIn() {
-    if (authState.token && authState.user) {
+    if (authState.token && authState.customer) {
       const nameEl = document.getElementById('res-name');
       const phoneEl = document.getElementById('res-phone');
-      if (nameEl && !nameEl.value) nameEl.value = authState.user.name || '';
-      if (phoneEl && !phoneEl.value) phoneEl.value = authState.user.phone || '';
+      if (nameEl && !nameEl.value) nameEl.value = authState.customer.name || '';
+      if (phoneEl && !phoneEl.value) phoneEl.value = authState.customer.phone || '';
     }
   }
 
@@ -4092,6 +4207,7 @@
       document.getElementById('reserve-form-wrap').style.display = 'none';
       const successEl = document.getElementById('reserve-success');
       successEl.style.display = 'block';
+      successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const timeLabel = resSlotSelected;
       document.getElementById('reserve-success-msg').innerHTML = isAr
         ? `${name} — ${date} الساعة ${timeLabel}<br>سنكون بانتظارك! 🫶`
@@ -4740,6 +4856,9 @@
       <button class="profile-tab"        id="ptab-favs"    onclick="switchProfileTab('favs')">
         ⭐ <span class="en">Favorites</span><span class="ar">المفضلة</span>
       </button>
+      <button class="profile-tab"        id="ptab-reservations" onclick="switchProfileTab('reservations')">
+        📅 <span class="en">Reservations</span><span class="ar">الحجوزات</span>
+      </button>
     </div>
     <div class="profile-pane active" id="ppane-orders">
       <div id="order-history-list"><div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
@@ -4755,6 +4874,13 @@
       <div id="favs-list"><div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
         <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
       </div></div>
+    </div>
+    <div class="profile-pane" id="ppane-reservations">
+      <div id="my-reservations-list" style="padding:4px 0;">
+        <div style="color:var(--text-soft);font-size:0.85rem;text-align:center;padding:32px 0;">
+          <span class="en">Loading…</span><span class="ar">جارٍ التحميل…</span>
+        </div>
+      </div>
     </div>
     <div style="padding:0 24px 20px; flex-shrink:0;">
       <button class="btn-logout" onclick="doLogout()">

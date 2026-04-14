@@ -558,6 +558,14 @@ app.get('/api/customers/me', requireCustomer, (req, res) => {
   res.json({ customer, orders: orders.map(parseOrder) });
 });
 
+// 내 예약 목록 (고객)
+app.get('/api/customers/reservations', requireCustomer, (req, res) => {
+  const rows = db.prepare(
+    "SELECT * FROM reservations WHERE customer_id=? ORDER BY date DESC, time DESC LIMIT 20"
+  ).all(req.customerId);
+  res.json(rows);
+});
+
 // 즐겨찾기 목록
 app.get('/api/customers/favorites', requireCustomer, (req, res) => {
   const favs = db.prepare('SELECT * FROM favorites WHERE customer_id=? ORDER BY id DESC').all(req.customerId);
@@ -931,10 +939,10 @@ app.post('/api/stamps/earn', requireCashierOrAdmin, (req, res) => {
   db.prepare('INSERT INTO stamp_history (customer_id, type, amount, order_id, created_at) VALUES (?,?,?,?,?)').run(customer_id, 'earn', n, order_id || null, Date.now());
 
   const row = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer_id);
-  res.json({ success: true, total_earned: row.total_earned, total_redeemed: row.total_redeemed, available: row.total_earned - row.total_redeemed });
+  res.json({ success: true, stamps_earned: n, total_earned: row.total_earned, total_redeemed: row.total_redeemed, available: row.total_earned - row.total_redeemed });
 });
 
-// 무료 음료 사용 (캐셔가 호출 — 10스탬프 = 1회)
+// 무료 음료 사용 (캐셔가 호출 — 9스탬프 = 1회)
 app.post('/api/stamps/redeem', requireCashierOrAdmin, (req, res) => {
   let { customer_id, phone } = req.body;
   if (!customer_id && phone) {
@@ -947,10 +955,10 @@ app.post('/api/stamps/redeem', requireCashierOrAdmin, (req, res) => {
   db.prepare('INSERT OR IGNORE INTO customer_stamps (customer_id, total_earned, total_redeemed) VALUES (?,0,0)').run(customer_id);
   const row = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer_id);
   const available = row.total_earned - row.total_redeemed;
-  if (available < 10) return res.status(400).json({ error: `스탬프 부족 (현재 ${available}개, 10개 필요)` });
+  if (available < 9) return res.status(400).json({ error: `스탬프 부족 (현재 ${available}개, 9개 필요)` });
 
-  db.prepare('UPDATE customer_stamps SET total_redeemed = total_redeemed + 10 WHERE customer_id=?').run(customer_id);
-  db.prepare('INSERT INTO stamp_history (customer_id, type, amount, note, created_at) VALUES (?,?,?,?,?)').run(customer_id, 'redeem', 10, '무료 음료 사용', Date.now());
+  db.prepare('UPDATE customer_stamps SET total_redeemed = total_redeemed + 9 WHERE customer_id=?').run(customer_id);
+  db.prepare('INSERT INTO stamp_history (customer_id, type, amount, note, created_at) VALUES (?,?,?,?,?)').run(customer_id, 'redeem', 9, '무료 음료 사용', Date.now());
 
   const updated = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(customer_id);
   res.json({ success: true, total_earned: updated.total_earned, total_redeemed: updated.total_redeemed, available: updated.total_earned - updated.total_redeemed });
