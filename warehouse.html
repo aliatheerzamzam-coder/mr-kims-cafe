@@ -121,6 +121,17 @@ tr:hover td{background:#fafcfb}
 /* ── RECIPE ITEM ROW ── */
 .recipe-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.4rem 0;border-bottom:1px solid #f0f4f2}
 .recipe-row:last-child{border-bottom:none}
+.ing-search-wrap{position:relative}
+.ing-search-input{width:100%;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none;box-sizing:border-box}
+.ing-search-input:focus{border-color:var(--green)}
+.ing-search-input.selected{border-color:var(--green);background:#f0faf4}
+.ing-dropdown{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:2px solid var(--green);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;z-index:9999;display:none}
+.ing-dropdown.open{display:block}
+.ing-dropdown-item{padding:.45rem .7rem;cursor:pointer;font-size:.85rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.ing-dropdown-item:hover,.ing-dropdown-item.active{background:var(--off)}
+.ing-dropdown-item .ing-name{font-weight:500}
+.ing-dropdown-item .ing-unit{font-size:.78rem;color:var(--soft)}
+.ing-no-result{padding:.6rem .7rem;font-size:.83rem;color:var(--soft);text-align:center}
 
 /* ── DAILY SALES ── */
 .sales-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem}
@@ -160,8 +171,57 @@ tr:hover td{background:#fafcfb}
 .modal .btn-bar{margin-top:1.25rem;justify-content:flex-end}
 .hidden{display:none!important}
 
+/* ── NAV BADGE ── */
+.nav-badge{background:var(--red);color:#fff;border-radius:9999px;padding:0 5px;font-size:.68rem;font-weight:900;margin-left:.3rem;vertical-align:middle;display:inline-block;line-height:1.5;animation:pulse-badge 1.5s ease-in-out infinite}
+@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── REPORT CHART ── */
+.chart-wrap{background:var(--white);border-radius:var(--r-md);padding:1.5rem;box-shadow:var(--sh-xs);margin-bottom:1rem;overflow-x:auto}
+.chart-canvas{display:block;max-width:100%}
+.filter-bar{display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end}
+
+/* ── BUDGET TRACKER ── */
+.budget-bar-bg{background:#e2e8f0;border-radius:var(--r-pill);height:12px;overflow:hidden;margin:.5rem 0}
+.budget-bar-fill{height:100%;border-radius:var(--r-pill);background:var(--green);transition:width .6s var(--ease)}
+.budget-bar-fill.warn{background:var(--orange)}
+.budget-bar-fill.danger{background:var(--red)}
+
+/* ── SUPPLIER CARD ── */
+.supplier-card{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;padding:.75rem 1rem;background:var(--off);border-radius:var(--r-sm);border-left:3px solid var(--green);margin-bottom:.5rem}
+.supplier-card .sup-name{font-weight:800;font-size:.95rem}
+.supplier-card .sup-detail{font-size:.8rem;color:var(--soft);margin-top:.15rem}
+
+/* ── COST SUMMARY GRID ── */
+.cost-menu-card{background:var(--off);border-radius:var(--r-sm);padding:.75rem 1rem;border-left:3px solid var(--green)}
+.cost-menu-card .menu-name{font-weight:800;font-size:.95rem;margin-bottom:.25rem}
+.cost-menu-card .menu-cost{font-size:1.1rem;font-weight:900;color:var(--green)}
+.cost-menu-card .menu-sub{font-size:.75rem;color:var(--soft);margin-top:.15rem}
+
 @media(max-width:600px){main{padding:1rem}.form-grid{grid-template-columns:1fr}}
+
+/* ── LOW STOCK HIGHLIGHT ── */
+.ing-row-low{background:#fff5f5!important;border-left:4px solid var(--red)}
+.ing-row-low .ing-qty{color:var(--red)!important;font-weight:800}
+.badge-low{background:var(--red);color:#fff;font-size:.7rem;font-weight:800;padding:.1rem .45rem;border-radius:var(--r-pill);margin-left:.35rem}
+
+/* ── SALES CHART SECTION ── */
+.chart-card{background:var(--white);border-radius:var(--r-md);padding:1.5rem;box-shadow:var(--sh-xs);margin-bottom:1rem}
+.chart-card h3{font-size:1rem;font-weight:800;color:var(--green);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.chart-period-btns{display:flex;gap:.4rem;margin-left:auto}
+.chart-period-btns button{border:2px solid var(--green);background:transparent;color:var(--green);border-radius:var(--r-pill);padding:.2rem .65rem;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s}
+.chart-period-btns button.active{background:var(--green);color:#fff}
+.chart-stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem}
+.chart-stat{background:var(--off);border-radius:var(--r-sm);padding:.9rem 1rem;text-align:center}
+.chart-stat .cs-num{font-size:1.4rem;font-weight:900;color:var(--green)}
+.chart-stat .cs-lbl{font-size:.72rem;color:var(--soft);margin-top:.15rem}
+.top5-list{display:flex;flex-direction:column;gap:.4rem}
+.top5-item{display:flex;align-items:center;gap:.6rem;font-size:.9rem}
+.top5-rank{font-size:.8rem;font-weight:800;color:var(--soft);min-width:1.4rem;text-align:center}
+.top5-bar-wrap{flex:1;background:#e8f5ee;border-radius:var(--r-pill);height:8px;overflow:hidden}
+.top5-bar{height:100%;background:var(--green);border-radius:var(--r-pill);transition:width .5s var(--ease)}
+.top5-qty{font-size:.8rem;font-weight:700;color:var(--mid);min-width:2.5rem;text-align:right}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -196,6 +256,7 @@ tr:hover td{background:#fafcfb}
   <button onclick="showTab('adjust',this)" data-i18n="nav_adjust">📦 입출고</button>
   <button onclick="showTab('daily',this)" data-i18n="nav_daily">🛒 일일 판매</button>
   <button onclick="showTab('history',this)" data-i18n="nav_history">📜 기록</button>
+  <button onclick="showTab('report',this)" data-i18n="nav_report">📈 소비 리포트</button>
   <button onclick="showTab('settings',this)" data-i18n="nav_settings">⚙️ 설정</button>
 </nav>
 
@@ -208,6 +269,47 @@ tr:hover td{background:#fafcfb}
     <button class="btn btn-outline btn-sm" onclick="loadDashboard()" data-i18n="btn_refresh">🔄 새로고침</button>
   </div>
   <div class="stat-grid" id="statGrid"></div>
+  <!-- 예산 트래커 -->
+  <div class="card" id="budgetTrackerCard" style="margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+      <h3 style="margin:0" data-i18n="budget_title">💳 이번 달 구매 예산</h3>
+      <button class="btn btn-outline btn-sm" onclick="openBudgetModal()" data-i18n="budget_btn_set">목표 설정</button>
+    </div>
+    <div id="budgetTrackerBody"></div>
+  </div>
+  <div class="card hidden" id="budgetModalCard" style="max-width:380px;margin-bottom:1rem">
+    <h4 data-i18n="budget_modal_title" style="margin:0 0 .75rem">월 예산 목표 (IQD)</h4>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <input type="number" id="budgetInput" min="0" step="1000" data-i18n-ph="budget_ph" placeholder="예: 500000">
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-primary btn-sm" onclick="saveBudget()" data-i18n="btn_save">저장</button>
+      <button class="btn btn-outline btn-sm" onclick="closeBudgetModal()" data-i18n="btn_cancel">취소</button>
+    </div>
+  </div>
+  <!-- 판매 현황 차트 -->
+  <div class="chart-card">
+    <h3>
+      📈 <span data-i18n="sales_chart_title">판매 현황</span>
+      <div class="chart-period-btns">
+        <button class="active" onclick="setSalesPeriod('day',this)" data-i18n="period_day">오늘</button>
+        <button onclick="setSalesPeriod('week',this)" data-i18n="period_week">주간</button>
+        <button onclick="setSalesPeriod('month',this)" data-i18n="period_month">월간</button>
+      </div>
+    </h3>
+    <div class="chart-stats-row" id="salesStatsRow"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="chart_daily_orders">일별 주문 수</div>
+        <canvas id="salesChart" height="180"></canvas>
+      </div>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="chart_top5">베스트셀러 TOP 5</div>
+        <div class="top5-list" id="top5List"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="lowStockSection" class="hidden">
     <div class="card">
       <h3 data-i18n="low_stock_title">⚠️ 재고 부족 경고</h3>
@@ -235,21 +337,7 @@ tr:hover td{background:#fafcfb}
     <h2 data-i18n="tab_ing_title">🧪 재료 관리</h2>
     <button class="btn btn-primary btn-sm" onclick="openIngModal()" data-i18n="btn_add_ing">+ 재료 추가</button>
   </div>
-  <div class="card">
-    <div class="tbl-wrap"><table>
-      <thead><tr>
-        <th data-i18n="col_name_ko">재료명 (KO)</th>
-        <th data-i18n="col_name_ar">아랍어 (AR)</th>
-        <th data-i18n="col_unit">단위</th>
-        <th data-i18n="col_cur_qty">현재 재고</th>
-        <th data-i18n="col_min_qty">최소 재고</th>
-        <th data-i18n="col_cost">단위 원가 (IQD)</th>
-        <th data-i18n="col_status">상태</th>
-        <th data-i18n="col_manage">관리</th>
-      </tr></thead>
-      <tbody id="ingTb"></tbody>
-    </table></div>
-  </div>
+  <div id="ingCategoryContainer"></div>
 </div>
 
 <!-- ───────────── 3. 레시피 & 원가 ───────────── -->
@@ -282,6 +370,11 @@ tr:hover td{background:#fafcfb}
     </div>
     <div id="costResult" class="hidden cost-box" style="margin-top:1rem"></div>
   </div>
+  <!-- 전체 원가 요약 -->
+  <div class="card" style="margin-top:1rem">
+    <h3 data-i18n="all_cost_title">📊 전체 메뉴 원가 요약</h3>
+    <div id="allCostGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-top:.75rem"></div>
+  </div>
 </div>
 
 <!-- ───────────── 4. 입출고 ───────────── -->
@@ -303,7 +396,7 @@ tr:hover td{background:#fafcfb}
       </div>
       <div class="form-group">
         <label data-i18n="label_qty">수량</label>
-        <input type="number" id="adjQty" min="0" step="0.01" placeholder="0">
+        <input type="number" id="adjQty" min="1" max="9999" step="0.01" placeholder="0">
       </div>
       <div class="form-group">
         <label data-i18n="label_reason">사유 (선택)</label>
@@ -341,7 +434,10 @@ tr:hover td{background:#fafcfb}
 <div class="tab-panel" id="tab-history">
   <div class="sec-head">
     <h2 data-i18n="tab_history_title">📜 입출고 기록</h2>
-    <button class="btn btn-outline btn-sm" onclick="loadHistory()" data-i18n="btn_refresh">🔄 새로고침</button>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-outline btn-sm" onclick="exportHistoryCSV()" data-i18n="btn_export_csv">📥 엑셀 내보내기</button>
+      <button class="btn btn-outline btn-sm" onclick="loadHistory()" data-i18n="btn_refresh">🔄 새로고침</button>
+    </div>
   </div>
   <div class="card">
     <div class="tbl-wrap"><table>
@@ -395,6 +491,69 @@ tr:hover td{background:#fafcfb}
       <button class="btn btn-primary" onclick="addCashier()" data-i18n="btn_add">추가</button>
     </div>
   </div>
+
+  <!-- 공급업체 관리 -->
+  <div class="card" style="max-width:520px;margin-top:1.5rem">
+    <h3 data-i18n="supplier_title">🚚 공급업체 연락처</h3>
+    <div id="supplierList" style="margin-bottom:1rem"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem">
+    <h4 data-i18n="supplier_add_title" style="margin:0 0 .75rem">새 공급업체 추가</h4>
+    <div class="form-grid">
+      <div class="form-group">
+        <label data-i18n="label_sup_name">업체명</label>
+        <input type="text" id="supName" data-i18n-ph="ph_sup_name" placeholder="예: 서울 식자재">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_sup_phone">전화번호</label>
+        <input type="tel" id="supPhone" data-i18n-ph="ph_sup_phone" placeholder="예: 010-1234-5678">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_sup_item">담당 품목</label>
+        <input type="text" id="supItem" data-i18n-ph="ph_sup_item" placeholder="예: 유제품, 커피">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_sup_note">메모</label>
+        <input type="text" id="supNote" data-i18n-ph="ph_sup_note" placeholder="선택 사항">
+      </div>
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="addSupplier()" data-i18n="btn_add">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── 8. 소비 리포트 ───────────── -->
+<div class="tab-panel" id="tab-report">
+  <div class="sec-head">
+    <h2 data-i18n="nav_report">📈 소비 리포트</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadReport()" data-i18n="btn_refresh">🔄 새로고침</button>
+  </div>
+  <div class="card filter-bar" style="padding:.75rem 1rem">
+    <div class="form-group" style="margin:0">
+      <label data-i18n="report_period_lbl">기간</label>
+      <select id="reportPeriod" onchange="loadReport()">
+        <option value="week" data-i18n-opt="report_week">이번 주</option>
+        <option value="month" selected data-i18n-opt="report_month">이번 달</option>
+        <option value="3month" data-i18n-opt="report_3month">최근 3개월</option>
+      </select>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <h3 data-i18n="report_chart_title">📊 재료 소비량 TOP 10 (출고 기준)</h3>
+    <canvas id="reportChart" class="chart-canvas" height="320"></canvas>
+  </div>
+  <div class="card">
+    <h3 data-i18n="report_table_title">📋 재료별 입출고 요약</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th data-i18n="col_ingredient">재료</th>
+        <th data-i18n="report_col_in">총 입고</th>
+        <th data-i18n="report_col_out">총 출고</th>
+        <th data-i18n="report_col_net">순 변동</th>
+      </tr></thead>
+      <tbody id="reportTb"></tbody>
+    </table></div>
+  </div>
 </div>
 
 </main>
@@ -427,6 +586,18 @@ tr:hover td{background:#fafcfb}
         </select>
       </div>
       <div class="form-group">
+        <label>종류 (비워두면 이름에서 자동)</label>
+        <input id="ingCategory" list="catOptionList" placeholder="예: 시럽">
+        <datalist id="catOptionList">
+          <option value="시럽">
+          <option value="소스">
+          <option value="스무디">
+          <option value="파우더">
+          <option value="과육">
+          <option value="기타">
+        </datalist>
+      </div>
+      <div class="form-group">
         <label data-i18n="label_cur_qty">현재 재고</label>
         <input type="number" id="ingCurQty" min="0" step="0.01" placeholder="0">
       </div>
@@ -437,6 +608,14 @@ tr:hover td{background:#fafcfb}
       <div class="form-group">
         <label data-i18n="label_unit_cost">단위당 원가 (IQD)</label>
         <input type="number" id="ingCost" min="0" step="1" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_box_qty">박스당 수량 (0 = 미사용)</label>
+        <input type="number" id="ingBoxQty" min="0" step="1" placeholder="예: 6">
+      </div>
+      <div class="form-group">
+        <label>병/봉 용량 mL·g (0 = 미설정)</label>
+        <input type="number" id="ingCapacityMl" min="0" step="1" placeholder="예: 1000">
       </div>
     </div>
     <div id="ingModalMsg"></div>
@@ -451,9 +630,21 @@ tr:hover td{background:#fafcfb}
 <div class="modal-overlay hidden" id="recipeModal">
   <div class="modal">
     <h3 data-i18n="modal_recipe_title">레시피 추가 / 수정</h3>
-    <div class="form-group" style="margin-bottom:1rem">
-      <label data-i18n="label_menu_name">메뉴명 *</label>
-      <input id="recipeMenuName" data-i18n-ph="ph_menu_name" placeholder="예: 아이스 라떼">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+      <div class="form-group" style="margin-bottom:0">
+        <label data-i18n="label_menu_name">메뉴명 *</label>
+        <input id="recipeMenuName" data-i18n-ph="ph_menu_name" placeholder="예: 아이스 라떼">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>메뉴 종류</label>
+        <input id="recipeCategory" list="menuCatList" placeholder="예: 음료">
+        <datalist id="menuCatList">
+          <option value="음료">
+          <option value="스무디">
+          <option value="디저트">
+          <option value="기타">
+        </datalist>
+      </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <label data-i18n="label_ing_list" style="font-size:.8rem;font-weight:700;color:var(--mid)">재료 목록</label>
@@ -558,6 +749,7 @@ const TRANSLATIONS = {
     badge_in:'📥 입고', badge_out:'📤 출고',
     err_load_data:'데이터를 불러오지 못했습니다',
     ing_empty:'재료 없음. 재료를 추가해주세요.',
+    label_box_qty:'박스당 수량 (0 = 미사용)',
     status_out:'재고없음', status_low:'부족', status_ok:'정상',
     err_load_retry:'불러오기 실패. 새로고침 해주세요.',
     modal_ing_edit_title:'재료 수정',
@@ -594,6 +786,47 @@ const TRANSLATIONS = {
     cashier_add_fail:'추가 실패',
     cashier_add_net:'추가 실패. 네트워크를 확인하세요.',
     confirm_del_cashier:'캐셔를 삭제하시겠습니까?',
+    // 소비 리포트
+    nav_report:'📈 소비 리포트',
+    report_period_lbl:'기간', report_week:'이번 주', report_month:'이번 달', report_3month:'최근 3개월',
+    report_chart_title:'📊 재료 소비량 TOP 10 (출고 기준)',
+    report_table_title:'📋 재료별 입출고 요약',
+    report_col_in:'총 입고', report_col_out:'총 출고', report_col_net:'순 변동',
+    report_empty:'해당 기간에 입출고 기록이 없습니다.',
+    report_loading:'데이터 불러오는 중...',
+    // 예산 트래커
+    budget_title:'💳 이번 달 구매 예산',
+    budget_btn_set:'목표 설정',
+    budget_modal_title:'월 예산 목표 (IQD)',
+    budget_ph:'예: 500000',
+    budget_no_goal:'아직 예산 목표가 설정되지 않았습니다.',
+    budget_spent:'이번 달 지출 (추정)',
+    budget_goal:'목표',
+    budget_remaining:'남은 예산',
+    btn_cancel:'취소',
+    // 공급업체
+    supplier_title:'🚚 공급업체 연락처',
+    supplier_add_title:'새 공급업체 추가',
+    label_sup_name:'업체명', ph_sup_name:'예: 서울 식자재',
+    label_sup_phone:'전화번호', ph_sup_phone:'예: 010-1234-5678',
+    label_sup_item:'담당 품목', ph_sup_item:'예: 유제품, 커피',
+    label_sup_note:'메모', ph_sup_note:'선택 사항',
+    supplier_empty:'등록된 공급업체가 없습니다.',
+    err_sup_name:'업체명을 입력하세요',
+    confirm_del_supplier:'공급업체를 삭제할까요?',
+    // 전체 원가 요약
+    all_cost_title:'📊 전체 메뉴 원가 요약',
+    all_cost_loading:'원가 계산 중...',
+    all_cost_empty:'레시피가 없습니다.',
+    all_cost_ing_count:'개 재료',
+    // CSV 내보내기
+    btn_export_csv:'📥 엑셀 내보내기',
+    export_empty:'내보낼 기록이 없습니다.',
+    // 네트워크 에러 / 401
+    err_network:'인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.',
+    err_session:'세션이 만료되었습니다. 다시 로그인해주세요.',
+    // 유효성 검사
+    err_qty_range:'수량은 1 이상 9999 이하로 입력해주세요.',
   },
   ar: {
     brand_sub:'إدارة المخزن', badge_admin:'🔑 مدير', btn_logout:'خروج',
@@ -684,6 +917,47 @@ const TRANSLATIONS = {
     cashier_add_fail:'فشل الإضافة',
     cashier_add_net:'فشل الإضافة. تحقق من الشبكة.',
     confirm_del_cashier:'هل تريد حذف هذا الكاشير؟',
+    // تقرير الاستهلاك
+    nav_report:'📈 تقرير الاستهلاك',
+    report_period_lbl:'الفترة', report_week:'هذا الأسبوع', report_month:'هذا الشهر', report_3month:'آخر 3 أشهر',
+    report_chart_title:'📊 أعلى 10 مواد استهلاكاً (الصادرة)',
+    report_table_title:'📋 ملخص الوارد والصادر لكل مادة',
+    report_col_in:'إجمالي الوارد', report_col_out:'إجمالي الصادر', report_col_net:'صافي التغيير',
+    report_empty:'لا توجد سجلات في هذه الفترة.',
+    report_loading:'جارٍ تحميل البيانات...',
+    // متتبع الميزانية
+    budget_title:'💳 ميزانية الشراء الشهرية',
+    budget_btn_set:'تعيين الهدف',
+    budget_modal_title:'هدف الميزانية الشهرية (IQD)',
+    budget_ph:'مثال: 500000',
+    budget_no_goal:'لم يتم تعيين هدف ميزانية بعد.',
+    budget_spent:'الإنفاق هذا الشهر (تقديري)',
+    budget_goal:'الهدف',
+    budget_remaining:'المتبقي',
+    btn_cancel:'إلغاء',
+    // الموردون
+    supplier_title:'🚚 جهات اتصال الموردين',
+    supplier_add_title:'إضافة مورد جديد',
+    label_sup_name:'اسم المورد', ph_sup_name:'مثال: شركة المواد الغذائية',
+    label_sup_phone:'رقم الهاتف', ph_sup_phone:'مثال: 07701234567',
+    label_sup_item:'المواد المورَّدة', ph_sup_item:'مثال: منتجات الألبان، القهوة',
+    label_sup_note:'ملاحظة', ph_sup_note:'اختياري',
+    supplier_empty:'لا يوجد موردون مسجّلون.',
+    err_sup_name:'أدخل اسم المورد',
+    confirm_del_supplier:'هل تريد حذف هذا المورد؟',
+    // ملخص تكلفة الكل
+    all_cost_title:'📊 ملخص تكلفة جميع القوائم',
+    all_cost_loading:'جارٍ حساب التكاليف...',
+    all_cost_empty:'لا توجد وصفات.',
+    all_cost_ing_count:'مادة',
+    // تصدير CSV
+    btn_export_csv:'📥 تصدير Excel',
+    export_empty:'لا توجد سجلات للتصدير.',
+    // أخطاء الشبكة / 401
+    err_network:'تحقق من اتصالك بالإنترنت وحاول مرة أخرى.',
+    err_session:'انتهت الجلسة. يرجى تسجيل الدخول مجدداً.',
+    // التحقق من الصحة
+    err_qty_range:'يجب أن تكون الكمية بين 1 و 9999.',
   }
 };
 
@@ -740,7 +1014,8 @@ function applyLang(lang) {
       else if (id === 'adjust')      loadAdjust();
       else if (id === 'daily')       loadDaily();
       else if (id === 'history')     loadHistory();
-      else if (id === 'settings')    loadCashiers();
+      else if (id === 'report')      loadReport();
+      else if (id === 'settings')  { loadCashiers(); loadSuppliers(); }
     }
   }
 }
@@ -808,7 +1083,7 @@ async function doLogin() {
       body: JSON.stringify({ password: pw })
     });
     const d = await r.json();
-    if (d.success) {
+    if (d.success && d.token) {
       token = d.token;
       sessionStorage.setItem('wh_token', token);
       document.getElementById('loginOverlay').style.display = 'none';
@@ -832,6 +1107,21 @@ async function doLogout() {
 }
 
 function hdr() { return { 'Content-Type': 'application/json', 'x-auth-token': token }; }
+
+// 공통 API fetch — 401 자동 로그아웃, 네트워크 오류 throw
+async function apiFetch(url, options) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (_) {
+    throw new Error('network');
+  }
+  if (res.status === 401) {
+    await doLogout();
+    throw new Error('unauthorized');
+  }
+  return res;
+}
 
 // ── Enter 키 전역 처리 ─────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -869,7 +1159,8 @@ function showTab(id, btn) {
   if (id === 'adjust')      loadAdjust();
   if (id === 'daily')       loadDaily();
   if (id === 'history')     loadHistory();
-  if (id === 'settings')    loadCashiers();
+  if (id === 'settings')  { loadCashiers(); loadSuppliers(); }
+  if (id === 'report')      loadReport();
 }
 
 // ══════════════════════════════════════════════
@@ -877,7 +1168,7 @@ function showTab(id, btn) {
 // ══════════════════════════════════════════════
 async function init() {
   await loadIngredients(false);
-  loadDashboard();
+  await loadDashboard();
 }
 
 // ══════════════════════════════════════════════
@@ -885,7 +1176,9 @@ async function init() {
 // ══════════════════════════════════════════════
 async function loadDashboard() {
   try {
-    const d = await fetch('/api/dashboard').then(r => r.json());
+    const resp = await fetch('/api/dashboard', { headers: hdr() });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const d = await resp.json();
     ingredients = d.ingredients;
 
     const total = d.ingredients.length;
@@ -920,8 +1213,88 @@ async function loadDashboard() {
     const tb = document.getElementById('recentHistTb');
     tb.innerHTML = '';
     d.recent_history.forEach(h => tb.appendChild(buildHistRow(h)));
+
+    updateLowStockBadge(low);
+    loadBudgetTracker();
+    loadSalesChart(currentSalesPeriod);
   } catch (e) {
     document.getElementById('statGrid').innerHTML = `<div class="alert alert-danger">${t('err_load_data')}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+// 판매 차트
+// ══════════════════════════════════════════════
+let salesChartInstance = null;
+let currentSalesPeriod = 'day';
+
+function setSalesPeriod(period, btn) {
+  document.querySelectorAll('.chart-period-btns button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSalesPeriod = period;
+  loadSalesChart(period);
+}
+
+async function loadSalesChart(period) {
+  try {
+    const resp = await fetch(`/api/sales/summary?period=${period}`, { headers: hdr() });
+    if (!resp.ok) return;
+    const d = await resp.json();
+
+    // 통계 카드
+    const statsRow = document.getElementById('salesStatsRow');
+    if (statsRow) {
+      statsRow.innerHTML = `
+        <div class="chart-stat"><div class="chart-stat-val">${(d.totals?.total_revenue || 0).toLocaleString()}</div><div class="chart-stat-label">IQD</div></div>
+        <div class="chart-stat"><div class="chart-stat-val">${d.totals?.total_orders || 0}</div><div class="chart-stat-label">${period === 'day' ? '오늘 주문' : period === 'week' ? '주간 주문' : '월간 주문'}</div></div>
+        <div class="chart-stat"><div class="chart-stat-val">${(d.today?.revenue || 0).toLocaleString()}</div><div class="chart-stat-label">오늘 매출</div></div>
+        <div class="chart-stat"><div class="chart-stat-val">${d.today?.order_count || 0}</div><div class="chart-stat-label">오늘 주문수</div></div>
+      `;
+    }
+
+    // 바 차트
+    const canvas = document.getElementById('salesChart');
+    if (canvas && d.daily && d.daily.length) {
+      const labels = d.daily.map(r => r.day);
+      const revenues = d.daily.map(r => r.revenue);
+      if (salesChartInstance) salesChartInstance.destroy();
+      salesChartInstance = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'IQD',
+            data: revenues,
+            backgroundColor: 'rgba(16,185,129,.7)',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { font: { size: 10 } } },
+            y: { ticks: { font: { size: 10 }, callback: v => v.toLocaleString() } }
+          }
+        }
+      });
+    }
+
+    // TOP5 리스트
+    const top5 = document.getElementById('top5List');
+    if (top5 && d.top5 && d.top5.length) {
+      const maxQty = Math.max(...d.top5.map(r => r.total_qty), 1);
+      top5.innerHTML = d.top5.map(r => `
+        <div class="top5-item">
+          <div class="top5-name">${esc(r.menu_item)}</div>
+          <div class="top5-bar-wrap"><div class="top5-bar" style="width:${Math.round(r.total_qty / maxQty * 100)}%"></div></div>
+          <div class="top5-qty">${r.total_qty}잔</div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    // 차트 로드 실패 시 무시
   }
 }
 
@@ -951,52 +1324,109 @@ function buildHistRow(h, showActions = false) {
 // ══════════════════════════════════════════════
 // 재료 관리
 // ══════════════════════════════════════════════
+const CATEGORY_ORDER = ['시럽', '소스', '스무디', '파우더', '과육', '기타'];
+const CATEGORY_EMOJI = { '시럽': '🍯', '소스': '🥣', '스무디': '🥤', '파우더': '🌿', '과육': '🍋', '기타': '📦' };
+const CATEGORY_AR = { '시럽': 'سيروب', '소스': 'صوص', '스무디': 'سموذي', '파우더': 'مسحوق', '과육': 'عصير', '기타': 'أخرى' };
+
+function fmtQty(i) {
+  const qty = i.current_qty;
+  const unit = i.unit;
+  const bq = i.box_qty;
+  if (bq && bq > 0 && qty > 0) {
+    const boxes = Math.floor(qty / bq);
+    const rem = qty % bq;
+    if (boxes > 0 && rem > 0) return `${boxes}박스 ${qty}${unit}`;
+    if (boxes > 0) return `${boxes}박스 ${qty}${unit}`;
+    return `${qty}${unit}`;
+  }
+  return `${qty} ${unit}`;
+}
+
 async function loadIngredients(render = true) {
   try {
-    const d = await fetch('/api/ingredients').then(r => r.json());
+    const resp = await apiFetch('/api/ingredients', { headers: hdr() });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const d = await resp.json();
     ingredients = d;
     if (!render) return;
 
-    const tb = document.getElementById('ingTb');
+    const container = document.getElementById('ingCategoryContainer');
     if (!d.length) {
-      tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--soft);padding:1.5rem">${t('ing_empty')}</td></tr>`;
+      container.innerHTML = `<div class="card"><p style="text-align:center;color:var(--soft);padding:1.5rem">${t('ing_empty')}</p></div>`;
       return;
     }
-    tb.innerHTML = '';
+
+    // 카테고리별 그룹핑
+    const groups = {};
     d.forEach(i => {
-      const status = i.current_qty === 0
-        ? `<span class="badge badge-danger">${t('status_out')}</span>`
-        : i.current_qty <= i.min_qty
-          ? `<span class="badge badge-warn">${t('status_low')}</span>`
-          : `<span class="badge badge-ok">${t('status_ok')}</span>`;
-      const cls = i.current_qty === 0 ? 'qty-danger' : i.current_qty <= i.min_qty ? 'qty-warn' : 'qty-ok';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><b>${esc(i.name_ko)}</b></td>
-        <td class="ar">${esc(i.name_ar || '-')}</td>
-        <td>${esc(i.unit)}</td>
-        <td class="${cls}">${esc(String(i.current_qty))} ${esc(i.unit)}</td>
-        <td>${esc(String(i.min_qty))} ${esc(i.unit)}</td>
-        <td>${i.cost_per_unit.toLocaleString()} IQD</td>
-        <td>${status}</td>
-        <td style="white-space:nowrap">
-          <button class="btn btn-outline btn-sm" data-ing-id="${i.id}">${t('btn_edit')}</button>
-          <button class="btn btn-danger btn-sm" data-del-id="${i.id}" data-del-name="${esc(i.name_ko)}">${t('btn_delete')}</button>
-        </td>
-      `;
-      tr.querySelector('[data-ing-id]').addEventListener('click', () => editIng(i));
-      tr.querySelector('[data-del-id]').addEventListener('click', () => delIng(i.id, i.name_ko));
-      tb.appendChild(tr);
+      const cat = i.category || '기타';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(i);
     });
+
+    const orderedCats = [...CATEGORY_ORDER.filter(c => groups[c]), ...Object.keys(groups).filter(c => !CATEGORY_ORDER.includes(c))];
+
+    container.innerHTML = orderedCats.map(cat => {
+      const items = groups[cat];
+      const emoji = CATEGORY_EMOJI[cat] || '📦';
+      const rows = items.map(i => {
+        const status = i.current_qty === 0
+          ? `<span class="badge badge-danger">${t('status_out')}</span>`
+          : i.current_qty <= i.min_qty
+            ? `<span class="badge badge-warn">${t('status_low')}</span>`
+            : `<span class="badge badge-ok">${t('status_ok')}</span>`;
+        const cls = i.current_qty === 0 ? 'qty-danger' : i.current_qty <= i.min_qty ? 'qty-warn' : 'qty-ok';
+        const rowCls = i.current_qty <= i.min_qty ? ' class="ing-row-low"' : '';
+        return `<tr${rowCls} data-ing-id="${i.id}" data-del-id="${i.id}" data-del-name="${esc(i.name_ko)}">
+          <td><b>${esc(i.name_ko)}</b></td>
+          <td class="ar">${esc(i.name_ar || '-')}</td>
+          <td class="${cls} ing-qty">${fmtQty(i)}</td>
+          <td>${esc(String(i.min_qty))} ${esc(i.unit)}</td>
+          <td>${i.cost_per_unit.toLocaleString()} IQD</td>
+          <td>${status}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-outline btn-sm" data-action="edit" data-ing-idx="${d.indexOf(i)}">${t('btn_edit')}</button>
+            <button class="btn btn-danger btn-sm" data-action="del" data-ing-id="${i.id}" data-ing-name="${esc(i.name_ko)}">${t('btn_delete')}</button>
+          </td>
+        </tr>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:1rem">
+        <h3 style="margin-bottom:.75rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(${items.length}종)</span></h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th data-i18n="col_name_ko">재료명</th>
+            <th data-i18n="col_name_ar">아랍어</th>
+            <th data-i18n="col_cur_qty">현재 재고</th>
+            <th data-i18n="col_min_qty">최소 재고</th>
+            <th data-i18n="col_cost">단위 원가</th>
+            <th data-i18n="col_status">상태</th>
+            <th data-i18n="col_manage">관리</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+    }).join('');
+
+    // 이벤트 바인딩
+    container.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      const idx = parseInt(btn.dataset.ingIdx);
+      btn.addEventListener('click', () => editIng(d[idx]));
+    });
+    container.querySelectorAll('[data-action="del"]').forEach(btn => {
+      btn.addEventListener('click', () => delIng(btn.dataset.ingId, btn.dataset.ingName));
+    });
+
   } catch (e) {
-    document.getElementById('ingTb').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load_retry')}</td></tr>`;
+    if (render) {
+      document.getElementById('ingCategoryContainer').innerHTML = `<div class="card"><p style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load_retry')}</p></div>`;
+    }
   }
 }
 
 function openIngModal() {
   document.getElementById('ingModalTitle').textContent = t('modal_ing_title');
   document.getElementById('ingId').value = '';
-  ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost'].forEach(id => document.getElementById(id).value = '');
+  ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost', 'ingBoxQty', 'ingCapacityMl', 'ingCategory'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ingUnit').value = '병';
   document.getElementById('ingModalMsg').innerHTML = '';
   document.getElementById('ingModal').classList.remove('hidden');
@@ -1011,6 +1441,9 @@ function editIng(i) {
   document.getElementById('ingCurQty').value = i.current_qty;
   document.getElementById('ingMinQty').value = i.min_qty;
   document.getElementById('ingCost').value = i.cost_per_unit;
+  document.getElementById('ingBoxQty').value = i.box_qty || 0;
+  document.getElementById('ingCapacityMl').value = i.capacity_ml || 0;
+  document.getElementById('ingCategory').value = i.category || '';
   document.getElementById('ingModalMsg').innerHTML = '';
   document.getElementById('ingModal').classList.remove('hidden');
 }
@@ -1023,7 +1456,10 @@ async function saveIngredient() {
     unit: document.getElementById('ingUnit').value,
     current_qty: parseFloat(document.getElementById('ingCurQty').value) || 0,
     min_qty: parseFloat(document.getElementById('ingMinQty').value) || 1,
-    cost_per_unit: parseFloat(document.getElementById('ingCost').value) || 0
+    cost_per_unit: parseFloat(document.getElementById('ingCost').value) || 0,
+    box_qty: parseInt(document.getElementById('ingBoxQty').value) || 0,
+    capacity_ml: parseInt(document.getElementById('ingCapacityMl').value) || 0,
+    category: document.getElementById('ingCategory').value.trim() || undefined
   };
   if (!body.name_ko) {
     document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${t('err_ing_name')}</div>`;
@@ -1058,7 +1494,9 @@ async function delIng(id, name) {
 // ══════════════════════════════════════════════
 async function loadRecipes() {
   try {
-    const d = await fetch('/api/recipes').then(r => r.json());
+    const resp = await fetch('/api/recipes', { headers: hdr() });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const d = await resp.json();
     recipes = d;
 
     const grouped = {};
@@ -1074,38 +1512,58 @@ async function loadRecipes() {
     if (!menuNames.length) {
       tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">${t('recipe_empty')}</td></tr>`;
     } else {
+      // menu_category별로 다시 그룹핑
+      const byCategory = {};
       menuNames.forEach(menu => {
-        const items = grouped[menu];
-        const totalCost = items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0);
-        items.forEach((item, idx) => {
-          const tr = document.createElement('tr');
-          let html = '';
-          if (idx === 0) {
-            html += `<td rowspan="${items.length}"><b>${esc(menu)}</b></td>`;
-          }
-          html += `
-            <td>${esc(item.name_ko)}</td>
-            <td>${esc(String(item.quantity))} ${esc(item.unit)}</td>
-            <td>${esc(item.unit)}</td>
-            <td>${Math.round(item.quantity * item.cost_per_unit).toLocaleString()} IQD</td>
-          `;
-          if (idx === 0) {
+        const cat = (grouped[menu][0] && grouped[menu][0].menu_category) ? grouped[menu][0].menu_category : '기타';
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(menu);
+      });
+
+      const MENU_CAT_EMOJI = { '음료': '☕', '스무디': '🥤', '디저트': '🍰', '기타': '📦' };
+
+      Object.keys(byCategory).forEach(cat => {
+        const catMenus = byCategory[cat];
+        const emoji = MENU_CAT_EMOJI[cat] || '📋';
+
+        // 카테고리 헤더 행
+        const headerTr = document.createElement('tr');
+        headerTr.innerHTML = `<td colspan="6" style="background:var(--bg2,#f4f4f0);padding:.5rem .75rem;font-weight:700;color:var(--green);border-top:2px solid var(--green)">${emoji} ${esc(cat)} <span style="font-size:.8rem;color:var(--soft);font-weight:400">(${catMenus.length}종)</span></td>`;
+        tb.appendChild(headerTr);
+
+        catMenus.forEach(menu => {
+          const items = grouped[menu];
+          const totalCost = items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0);
+          items.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            let html = '';
+            if (idx === 0) {
+              html += `<td rowspan="${items.length}"><b>${esc(menu)}</b></td>`;
+            }
             html += `
-              <td rowspan="${items.length}" style="text-align:center">
-                <div style="font-weight:800;color:var(--green)">${Math.round(totalCost).toLocaleString()} IQD</div>
-                <div style="display:flex;gap:.3rem;justify-content:center;margin-top:.4rem">
-                  <button class="btn btn-outline btn-sm" data-edit-menu="${esc(menu)}">${t('btn_edit')}</button>
-                  <button class="btn btn-danger btn-sm" data-del-menu="${esc(menu)}">${t('btn_delete')}</button>
-                </div>
-              </td>
+              <td>${esc(item.name_ko)}</td>
+              <td>${esc(String(item.quantity))} ${esc(item.unit)}</td>
+              <td>${esc(item.unit)}</td>
+              <td>${Math.round(item.quantity * item.cost_per_unit).toLocaleString()} IQD</td>
             `;
-          }
-          tr.innerHTML = html;
-          if (idx === 0) {
-            tr.querySelector('[data-edit-menu]').addEventListener('click', () => editRecipe(menu));
-            tr.querySelector('[data-del-menu]').addEventListener('click', () => delRecipe(menu));
-          }
-          tb.appendChild(tr);
+            if (idx === 0) {
+              html += `
+                <td rowspan="${items.length}" style="text-align:center">
+                  <div style="font-weight:800;color:var(--green)">${Math.round(totalCost).toLocaleString()} IQD</div>
+                  <div style="display:flex;gap:.3rem;justify-content:center;margin-top:.4rem">
+                    <button class="btn btn-outline btn-sm" data-edit-menu="${esc(menu)}">${t('btn_edit')}</button>
+                    <button class="btn btn-danger btn-sm" data-del-menu="${esc(menu)}">${t('btn_delete')}</button>
+                  </div>
+                </td>
+              `;
+            }
+            tr.innerHTML = html;
+            if (idx === 0) {
+              tr.querySelector('[data-edit-menu]').addEventListener('click', () => editRecipe(menu));
+              tr.querySelector('[data-del-menu]').addEventListener('click', () => delRecipe(menu));
+            }
+            tb.appendChild(tr);
+          });
         });
       });
     }
@@ -1119,6 +1577,8 @@ async function loadRecipes() {
       opt.textContent = m;
       sel.appendChild(opt);
     });
+
+    loadAllCosts(grouped);
   } catch (e) {
     document.getElementById('recipeTb').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load')}</td></tr>`;
   }
@@ -1126,6 +1586,7 @@ async function loadRecipes() {
 
 function openRecipeModal() {
   document.getElementById('recipeMenuName').value = '';
+  document.getElementById('recipeCategory').value = '';
   document.getElementById('recipeRows').innerHTML = '';
   document.getElementById('recipeModalMsg').innerHTML = '';
   addRecipeRow();
@@ -1134,6 +1595,8 @@ function openRecipeModal() {
 
 function editRecipe(menu) {
   document.getElementById('recipeMenuName').value = menu;
+  const first = recipes.find(r => r.menu_item === menu);
+  document.getElementById('recipeCategory').value = (first && first.menu_category && first.menu_category !== '기타') ? first.menu_category : (first ? first.menu_category : '');
   document.getElementById('recipeRows').innerHTML = '';
   document.getElementById('recipeModalMsg').innerHTML = '';
   recipes.filter(r => r.menu_item === menu).forEach(item => addRecipeRow(item.ingredient_id, item.quantity));
@@ -1144,21 +1607,99 @@ function addRecipeRow(ingId = '', qty = '') {
   const div = document.createElement('div');
   div.className = 'recipe-row';
 
-  const sel = document.createElement('select');
-  sel.className = 'rec-ing';
-  sel.style.cssText = 'padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none';
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = t('opt_select_ing_lbl');
-  sel.appendChild(defaultOpt);
-  ingredients.forEach(i => {
-    const opt = document.createElement('option');
-    opt.value = i.id;
-    opt.textContent = `${i.name_ko} (${i.unit})`;
-    if (i.id == ingId) opt.selected = true;
-    sel.appendChild(opt);
+  // ── searchable ingredient picker ──
+  const wrap = document.createElement('div');
+  wrap.className = 'ing-search-wrap';
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'ing-search-input';
+  searchInput.autocomplete = 'off';
+  searchInput.placeholder = t('opt_select_ing_lbl');
+
+  // hidden value holder — still named rec-ing so saveRecipe() works unchanged
+  const hiddenId = document.createElement('input');
+  hiddenId.type = 'hidden';
+  hiddenId.className = 'rec-ing';
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'ing-dropdown';
+
+  // if editing an existing row, pre-fill
+  if (ingId) {
+    const existing = ingredients.find(i => i.id == ingId);
+    if (existing) {
+      searchInput.value = `${existing.name_ko} (${existing.unit})`;
+      searchInput.classList.add('selected');
+      hiddenId.value = existing.id;
+    }
+  }
+
+  function renderDropdown(query) {
+    const q = query.toLowerCase();
+    const filtered = q
+      ? ingredients.filter(i =>
+          i.name_ko.toLowerCase().includes(q) ||
+          (i.name_ar && i.name_ar.includes(q)) ||
+          (i.unit && i.unit.toLowerCase().includes(q))
+        )
+      : ingredients;
+
+    dropdown.innerHTML = '';
+    if (!filtered.length) {
+      dropdown.innerHTML = `<div class="ing-no-result">검색 결과 없음</div>`;
+    } else {
+      filtered.forEach(i => {
+        const item = document.createElement('div');
+        item.className = 'ing-dropdown-item';
+        item.innerHTML = `<span class="ing-name">${i.name_ko}</span><span class="ing-unit">${i.unit}</span>`;
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          searchInput.value = `${i.name_ko} (${i.unit})`;
+          searchInput.classList.add('selected');
+          hiddenId.value = i.id;
+          dropdown.classList.remove('open');
+        });
+        dropdown.appendChild(item);
+      });
+    }
+    dropdown.classList.add('open');
+  }
+
+  searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
+  searchInput.addEventListener('input', () => {
+    hiddenId.value = '';
+    searchInput.classList.remove('selected');
+    renderDropdown(searchInput.value);
+  });
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => dropdown.classList.remove('open'), 150);
+  });
+  searchInput.addEventListener('keydown', e => {
+    const items = [...dropdown.querySelectorAll('.ing-dropdown-item')];
+    const active = dropdown.querySelector('.ing-dropdown-item.active');
+    let idx = items.indexOf(active);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (active) active.classList.remove('active');
+      items[(idx + 1) % items.length]?.classList.add('active');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (active) active.classList.remove('active');
+      items[(idx - 1 + items.length) % items.length]?.classList.add('active');
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (active) active.dispatchEvent(new MouseEvent('mousedown'));
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+    }
   });
 
+  wrap.appendChild(searchInput);
+  wrap.appendChild(hiddenId);
+  wrap.appendChild(dropdown);
+
+  // ── qty input ──
   const qtyInput = document.createElement('input');
   qtyInput.type = 'number';
   qtyInput.className = 'rec-qty';
@@ -1173,7 +1714,7 @@ function addRecipeRow(ingId = '', qty = '') {
   delBtn.textContent = '✕';
   delBtn.addEventListener('click', () => div.remove());
 
-  div.appendChild(sel);
+  div.appendChild(wrap);
   div.appendChild(qtyInput);
   div.appendChild(delBtn);
   document.getElementById('recipeRows').appendChild(div);
@@ -1181,6 +1722,7 @@ function addRecipeRow(ingId = '', qty = '') {
 
 async function saveRecipe() {
   const menu = document.getElementById('recipeMenuName').value.trim();
+  const menu_category = document.getElementById('recipeCategory').value.trim() || '기타';
   const msgEl = document.getElementById('recipeModalMsg');
   if (!menu) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_menu_name')}</div>`; return; }
 
@@ -1214,7 +1756,7 @@ async function saveRecipe() {
     const r = await fetch('/api/recipes', {
       method: 'POST',
       headers: hdr(),
-      body: JSON.stringify({ menu_item: menu, items: rawItems })
+      body: JSON.stringify({ menu_item: menu, items: rawItems, menu_category })
     }).then(r => r.json());
     if (r.success) { closeModal('recipeModal'); loadRecipes(); }
     else msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
@@ -1296,13 +1838,18 @@ async function submitAdjust() {
     msgEl.innerHTML = `<div class="alert alert-danger">${t('err_adj_input')}</div>`;
     return;
   }
+  if (quantity > 9999) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_qty_range')}</div>`;
+    return;
+  }
   lockBtn('adjBtn');
   try {
-    const r = await fetch('/api/inventory/adjust', {
+    const res = await apiFetch('/api/inventory/adjust', {
       method: 'POST',
       headers: hdr(),
       body: JSON.stringify({ ingredient_id, change_type, quantity, reason })
-    }).then(r => r.json());
+    });
+    const r = await res.json();
 
     if (r.success) {
       msgEl.innerHTML = `<div class="alert alert-success">✅ ${t('adj_success')}: <b>${esc(String(r.new_qty))}</b></div>`;
@@ -1314,7 +1861,9 @@ async function submitAdjust() {
       msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
     }
   } catch (e) {
-    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_req_net')}</div>`;
+    if (e.message !== 'unauthorized') {
+      msgEl.innerHTML = `<div class="alert alert-danger">${t('err_network')}</div>`;
+    }
   } finally {
     unlockBtn('adjBtn');
   }
@@ -1334,12 +1883,25 @@ function loadDaily() {
 
 function addSaleRow() {
   const container = document.getElementById('saleRows');
+  const listId = 'saleMenuList';
+
+  // datalist 없으면 생성
+  if (!document.getElementById(listId)) {
+    const dl = document.createElement('datalist');
+    dl.id = listId;
+    document.body.appendChild(dl);
+  }
+  // recipes에서 메뉴명 목록 채우기
+  const dl = document.getElementById(listId);
+  const menuNames = [...new Set(recipes.map(r => r.menu_item))];
+  dl.innerHTML = menuNames.map(m => `<option value="${esc(m)}">`).join('');
+
   const row = document.createElement('div');
   row.className = 'sale-row';
   row.style.cssText = 'display:flex;gap:.5rem;align-items:center';
   row.innerHTML = `
-    <input type="text" class="sale-menu" placeholder="${t('ph_sale_menu')}" style="flex:1;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-family:inherit">
-    <input type="number" class="sale-qty" min="1" step="1" placeholder="0" style="width:80px;padding:.45rem .5rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;font-family:inherit">
+    <input type="text" class="sale-menu" list="${listId}" placeholder="${t('ph_sale_menu')}" style="flex:1;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-family:inherit" autocomplete="off">
+    <input type="number" class="sale-qty" min="1" max="9999" step="1" placeholder="0" style="width:80px;padding:.45rem .5rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;font-family:inherit">
     <button class="btn btn-sm" style="padding:.35rem .6rem;background:var(--red);color:#fff;border-radius:6px;flex-shrink:0" onclick="this.closest('.sale-row').remove()">✕</button>
   `;
   container.appendChild(row);
@@ -1362,13 +1924,17 @@ async function submitSales() {
 
   if (!sales.length) { msgEl.innerHTML = `<div class="alert alert-warn">${t('err_no_sale_rows')}</div>`; return; }
 
+  const outOfRange = sales.some(s => s.quantity < 1 || s.quantity > 9999);
+  if (outOfRange) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_qty_range')}</div>`; return; }
+
   lockBtn('saleBtn');
   try {
-    const r = await fetch('/api/daily-sales', {
+    const res = await apiFetch('/api/daily-sales', {
       method: 'POST',
       headers: hdr(),
       body: JSON.stringify({ sale_date: date, sales })
-    }).then(r => r.json());
+    });
+    const r = await res.json();
 
     if (r.success) {
       let html = `<div class="alert alert-success">✅ ${sales.length}${t('sales_success')}</div>`;
@@ -1383,7 +1949,9 @@ async function submitSales() {
       msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
     }
   } catch (e) {
-    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
+    if (e.message !== 'unauthorized') {
+      msgEl.innerHTML = `<div class="alert alert-danger">${t('err_network')}</div>`;
+    }
   } finally {
     unlockBtn('saleBtn');
   }
@@ -1394,7 +1962,9 @@ async function submitSales() {
 // ══════════════════════════════════════════════
 async function loadHistory() {
   try {
-    const d = await fetch('/api/inventory/history?limit=200').then(r => r.json());
+    const resp = await fetch('/api/inventory/history?limit=200', { headers: hdr() });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const d = await resp.json();
     _histCache = d;
     const tb = document.getElementById('histTb');
     tb.innerHTML = '';
@@ -1406,6 +1976,31 @@ async function loadHistory() {
   } catch (e) {
     document.getElementById('histTb').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load')}</td></tr>`;
   }
+}
+
+function exportHistoryCSV() {
+  if (!_histCache.length) { alert(t('export_empty')); return; }
+  const escape = v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
+  };
+  const header = ['재료명', '구분', '수량', '사유', '일시'].join(',');
+  const rows = _histCache.map(h => {
+    const type = h.change_type === 'in' ? '입고' : '출고';
+    const dt = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'))
+      .toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    return [h.ingredient_name, type, h.quantity, h.reason || '', dt].map(escape).join(',');
+  });
+  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `입출고기록_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function openHistEditModal(id) {
@@ -1503,7 +2098,9 @@ async function loadCashiers() {
   const listEl = document.getElementById('cashier-list');
   if (!listEl) return;
   try {
-    const data = await fetch('/api/cashiers', { headers: hdr() }).then(r => r.json());
+    const cashiersResp = await fetch('/api/cashiers', { headers: hdr() });
+    if (!cashiersResp.ok) throw new Error(`HTTP ${cashiersResp.status}`);
+    const data = await cashiersResp.json();
     if (!data.length) {
       listEl.innerHTML = `<p style="color:var(--soft);font-size:.9em">${t('cashier_empty')}</p>`;
       return;
@@ -1530,7 +2127,7 @@ async function addCashier() {
       headers: { ...hdr(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, password: pw })
     }).then(r => r.json());
-    if (r.id) {
+    if (r.success) {
       msgEl.innerHTML = `<div class="alert alert-success">${t('cashier_added')}</div>`;
       document.getElementById('newCashierName').value = '';
       document.getElementById('newCashierPw').value = '';
@@ -1552,6 +2149,310 @@ async function deleteCashier(id, name) {
   } catch (e) {
     alert(t('err_del'));
   }
+}
+
+// ══════════════════════════════════════════════
+// 재고 부족 뱃지
+// ══════════════════════════════════════════════
+function updateLowStockBadge(count) {
+  const navBtns = document.querySelectorAll('#mainNav button');
+  navBtns.forEach(btn => {
+    const old = btn.querySelector('.nav-badge');
+    if (old) old.remove();
+  });
+  if (count > 0) {
+    const dashBtn = document.querySelector('#mainNav button[onclick*="dashboard"]');
+    if (dashBtn) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      badge.textContent = count;
+      dashBtn.appendChild(badge);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// 예산 트래커
+// ══════════════════════════════════════════════
+function getBudget() {
+  return parseInt(localStorage.getItem('wh_monthly_budget') || '0', 10);
+}
+function openBudgetModal() {
+  document.getElementById('budgetInput').value = getBudget() || '';
+  document.getElementById('budgetModalCard').classList.remove('hidden');
+}
+function closeBudgetModal() {
+  document.getElementById('budgetModalCard').classList.add('hidden');
+}
+function saveBudget() {
+  const v = parseInt(document.getElementById('budgetInput').value, 10);
+  if (!isNaN(v) && v >= 0) {
+    localStorage.setItem('wh_monthly_budget', v);
+    closeBudgetModal();
+    loadBudgetTracker();
+  }
+}
+
+async function loadBudgetTracker() {
+  const body = document.getElementById('budgetTrackerBody');
+  if (!body) return;
+  const goal = getBudget();
+
+  try {
+    // 이번 달 입고 기록만 집계
+    const histResp = await fetch('/api/inventory/history?limit=2000', { headers: hdr() });
+    if (!histResp.ok) throw new Error(`HTTP ${histResp.status}`);
+    const hist = await histResp.json();
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let spent = 0;
+    hist.forEach(h => {
+      if (h.change_type !== 'in') return;
+      const d = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'));
+      if (d < monthStart) return;
+      // 재료 단위 원가 찾기
+      const ing = ingredients.find(i => i.name_ko === h.ingredient_name || i.name_ar === h.ingredient_name);
+      if (ing && ing.cost_per_unit) spent += h.quantity * ing.cost_per_unit;
+    });
+
+    if (!goal) {
+      body.innerHTML = `<p style="color:var(--soft);margin:0">${t('budget_no_goal')}</p>`;
+      return;
+    }
+
+    const pct = Math.min(100, (spent / goal) * 100);
+    const remaining = goal - spent;
+    const colorClass = pct >= 90 ? 'danger' : pct >= 70 ? 'warn' : '';
+
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:.35rem">
+        <span style="font-size:.82rem;color:var(--soft)">${t('budget_spent')}: <b style="color:var(--dark)">${Math.round(spent).toLocaleString()} IQD</b></span>
+        <span style="font-size:.82rem;color:var(--soft)">${t('budget_goal')}: <b>${Math.round(goal).toLocaleString()} IQD</b></span>
+      </div>
+      <div class="budget-bar-bg">
+        <div class="budget-bar-fill ${colorClass}" style="width:${pct.toFixed(1)}%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:.35rem">
+        <span style="font-size:.8rem;font-weight:700;color:${pct>=90?'var(--red)':pct>=70?'var(--orange)':'var(--green)'}">${pct.toFixed(1)}% ${t('budget_spent').split(' ')[0]}</span>
+        <span style="font-size:.8rem;color:var(--soft)">${t('budget_remaining')}: <b>${Math.max(0, Math.round(remaining)).toLocaleString()} IQD</b></span>
+      </div>
+    `;
+  } catch (e) {
+    body.innerHTML = `<p style="color:var(--soft);margin:0">${t('budget_no_goal')}</p>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+// 공급업체 관리 (localStorage)
+// ══════════════════════════════════════════════
+function getSuppliers() {
+  try { return JSON.parse(localStorage.getItem('wh_suppliers') || '[]'); }
+  catch { return []; }
+}
+function saveSuppliers(arr) {
+  localStorage.setItem('wh_suppliers', JSON.stringify(arr));
+}
+
+function loadSuppliers() {
+  const list = document.getElementById('supplierList');
+  if (!list) return;
+  const sups = getSuppliers();
+  if (!sups.length) {
+    list.innerHTML = `<p style="color:var(--soft);margin:0;font-size:.85rem">${t('supplier_empty')}</p>`;
+    return;
+  }
+  list.innerHTML = '';
+  sups.forEach((s, idx) => {
+    const card = document.createElement('div');
+    card.className = 'supplier-card';
+    card.innerHTML = `
+      <div>
+        <div class="sup-name">${esc(s.name)}</div>
+        <div class="sup-detail">📞 ${esc(s.phone || '-')}</div>
+        ${s.item ? `<div class="sup-detail">📦 ${esc(s.item)}</div>` : ''}
+        ${s.note ? `<div class="sup-detail">💬 ${esc(s.note)}</div>` : ''}
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteSupplier(${idx})" style="flex-shrink:0">${t('btn_delete')}</button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function addSupplier() {
+  const name = document.getElementById('supName').value.trim();
+  if (!name) { alert(t('err_sup_name')); return; }
+  const phone = document.getElementById('supPhone').value.trim();
+  const item  = document.getElementById('supItem').value.trim();
+  const note  = document.getElementById('supNote').value.trim();
+  const sups = getSuppliers();
+  sups.push({ name, phone, item, note });
+  saveSuppliers(sups);
+  ['supName','supPhone','supItem','supNote'].forEach(id => { document.getElementById(id).value = ''; });
+  loadSuppliers();
+}
+
+function deleteSupplier(idx) {
+  if (!confirm(t('confirm_del_supplier'))) return;
+  const sups = getSuppliers();
+  sups.splice(idx, 1);
+  saveSuppliers(sups);
+  loadSuppliers();
+}
+
+// ══════════════════════════════════════════════
+// 전체 메뉴 원가 요약
+// ══════════════════════════════════════════════
+function loadAllCosts(grouped) {
+  const grid = document.getElementById('allCostGrid');
+  if (!grid) return;
+  const menus = Object.keys(grouped);
+  if (!menus.length) {
+    grid.innerHTML = `<p style="color:var(--soft)">${t('all_cost_empty')}</p>`;
+    return;
+  }
+  grid.innerHTML = '';
+  menus.forEach(menu => {
+    const items = grouped[menu];
+    const totalCost = Math.round(items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0));
+    const card = document.createElement('div');
+    card.className = 'cost-menu-card';
+    card.innerHTML = `
+      <div class="menu-name">${esc(menu)}</div>
+      <div class="menu-cost">${totalCost.toLocaleString()} IQD</div>
+      <div class="menu-sub">${items.length} ${t('all_cost_ing_count')}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════
+// 소비 리포트
+// ══════════════════════════════════════════════
+function getReportDateRange() {
+  const period = document.getElementById('reportPeriod')?.value || 'month';
+  const now = new Date();
+  let start;
+  if (period === 'week') {
+    start = new Date(now);
+    start.setDate(now.getDate() - 7);
+  } else if (period === '3month') {
+    start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+  return start;
+}
+
+async function loadReport() {
+  const tb = document.getElementById('reportTb');
+  const canvas = document.getElementById('reportChart');
+  if (!tb || !canvas) return;
+  tb.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--soft)">${t('report_loading')}</td></tr>`;
+
+  try {
+    const hist = await fetch('/api/inventory/history?limit=2000', { headers: hdr() }).then(r => r.json());
+    const start = getReportDateRange();
+
+    const map = {};
+    hist.forEach(h => {
+      const d = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'));
+      if (d < start) return;
+      const name = h.ingredient_name;
+      if (!map[name]) map[name] = { in: 0, out: 0 };
+      if (h.change_type === 'in')  map[name].in  += h.quantity;
+      if (h.change_type === 'out') map[name].out += h.quantity;
+    });
+
+    const entries = Object.entries(map);
+    if (!entries.length) {
+      tb.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--soft);padding:1.5rem">${t('report_empty')}</td></tr>`;
+      canvas.height = 0;
+      return;
+    }
+
+    // 테이블 렌더링
+    tb.innerHTML = '';
+    entries.sort((a,b) => b[1].out - a[1].out).forEach(([name, v]) => {
+      const net = v.in - v.out;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${esc(name)}</td>
+        <td style="color:var(--green);font-weight:700">+${v.in.toFixed(2)}</td>
+        <td style="color:var(--red);font-weight:700">-${v.out.toFixed(2)}</td>
+        <td style="font-weight:700;color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}${net.toFixed(2)}</td>
+      `;
+      tb.appendChild(tr);
+    });
+
+    // TOP 10 차트
+    const top10 = entries.sort((a,b) => b[1].out - a[1].out).slice(0, 10);
+    drawBarChart(canvas, top10.map(([n]) => n), top10.map(([,v]) => v.out));
+  } catch (e) {
+    tb.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--red);padding:1rem">${t('err_load')}</td></tr>`;
+  }
+}
+
+function drawBarChart(canvas, labels, values) {
+  const maxVal = Math.max(...values, 1);
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 48;
+  const H = 300;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const padL = 10, padR = 10, padT = 20, padB = 56;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const n = labels.length;
+  const barW = Math.floor(chartW / n * 0.6);
+  const gap   = Math.floor(chartW / n * 0.4);
+
+  // grid lines
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH * (1 - i / 4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+  }
+
+  // bars
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#22c55e';
+  labels.forEach((lbl, i) => {
+    const x = padL + i * (barW + gap) + gap / 2;
+    const bH = (values[i] / maxVal) * chartH;
+    const y  = padT + chartH - bH;
+
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, barW, bH, [4,4,0,0])
+                  : ctx.rect(x, y, barW, bH);
+    ctx.fill();
+
+    // value label
+    ctx.fillStyle = '#374151';
+    ctx.font = `bold ${Math.min(11, barW * 0.45)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(values[i].toFixed(1), x + barW / 2, y - 4);
+
+    // x-axis label (truncated)
+    const maxChars = Math.max(4, Math.floor(barW / 6));
+    const short = lbl.length > maxChars ? lbl.slice(0, maxChars) + '…' : lbl;
+    ctx.fillStyle = '#6b7280';
+    ctx.font = `${Math.min(10, barW * 0.38)}px sans-serif`;
+    ctx.save();
+    ctx.translate(x + barW / 2, padT + chartH + 8);
+    ctx.rotate(-Math.PI / 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(short, 0, 0);
+    ctx.restore();
+  });
 }
 
 // ══════════════════════════════════════════════
