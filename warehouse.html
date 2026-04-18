@@ -337,6 +337,35 @@ tr:hover td{background:#fafcfb}
     <h2 data-i18n="tab_ing_title">🧪 재료 관리</h2>
     <button class="btn btn-primary btn-sm" onclick="openIngModal()" data-i18n="btn_add_ing">+ 재료 추가</button>
   </div>
+
+  <!-- 카테고리 관리 패널 -->
+  <div class="card" style="margin-bottom:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="toggleCatMgr()">
+      <span style="font-weight:700;font-size:.95rem">📂 카테고리 관리</span>
+      <span id="catMgrToggle" style="font-size:.8rem;color:var(--soft)">▼ 펼치기</span>
+    </div>
+    <div id="catMgrBody" class="hidden" style="margin-top:1rem">
+      <div id="catMgrList"></div>
+      <div style="display:grid;grid-template-columns:1fr 70px 1fr auto auto;gap:.5rem;align-items:end;margin-top:.75rem">
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem">카테고리명 (한국어) *</label>
+          <input id="newCatName" placeholder="예: 시럽">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem">이모지</label>
+          <input id="newCatEmoji" placeholder="🍯" style="text-align:center">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem">아랍어 이름</label>
+          <input id="newCatAr" class="ar" dir="rtl" placeholder="سيروب">
+        </div>
+        <button id="catSubmitBtn" class="btn btn-primary btn-sm" onclick="submitCatForm()" style="align-self:end">추가</button>
+        <button id="catCancelBtn" class="btn btn-outline btn-sm hidden" onclick="cancelEditCat()" style="align-self:end">취소</button>
+      </div>
+      <div id="catMgrMsg" style="font-size:.82rem;margin-top:.35rem;min-height:1.2em"></div>
+    </div>
+  </div>
+
   <div id="ingCategoryContainer"></div>
 </div>
 
@@ -1167,6 +1196,7 @@ function showTab(id, btn) {
 // 초기화
 // ══════════════════════════════════════════════
 async function init() {
+  syncCatDatalist();
   await loadIngredients(false);
   await loadDashboard();
 }
@@ -1324,9 +1354,34 @@ function buildHistRow(h, showActions = false) {
 // ══════════════════════════════════════════════
 // 재료 관리
 // ══════════════════════════════════════════════
-const CATEGORY_ORDER = ['시럽', '소스', '스무디', '파우더', '과육', '기타'];
-const CATEGORY_EMOJI = { '시럽': '🍯', '소스': '🥣', '스무디': '🥤', '파우더': '🌿', '과육': '🍋', '기타': '📦' };
-const CATEGORY_AR = { '시럽': 'سيروب', '소스': 'صوص', '스무디': 'سموذي', '파우더': 'مسحوق', '과육': 'عصير', '기타': 'أخرى' };
+const DEFAULT_CATEGORIES = [
+  { name: '시럽',   emoji: '🍯', nameAr: 'سيروب' },
+  { name: '소스',   emoji: '🥣', nameAr: 'صوص'   },
+  { name: '스무디', emoji: '🥤', nameAr: 'سموذي' },
+  { name: '파우더', emoji: '🌿', nameAr: 'مسحوق' },
+  { name: '과육',   emoji: '🍋', nameAr: 'عصير'  },
+  { name: '기타',   emoji: '📦', nameAr: 'أخرى'  },
+];
+function loadCatStore() {
+  try { return JSON.parse(localStorage.getItem('mr_kim_categories')) || DEFAULT_CATEGORIES; }
+  catch { return DEFAULT_CATEGORIES; }
+}
+function saveCatStore(cats) {
+  localStorage.setItem('mr_kim_categories', JSON.stringify(cats));
+}
+function syncCatConstants() {
+  const cats = loadCatStore();
+  CATEGORY_ORDER = cats.map(c => c.name);
+  CATEGORY_EMOJI = Object.fromEntries(cats.map(c => [c.name, c.emoji || '📦']));
+  CATEGORY_AR    = Object.fromEntries(cats.map(c => [c.name, c.nameAr || '']));
+}
+function syncCatDatalist() {
+  const dl = document.getElementById('catOptionList');
+  if (!dl) return;
+  dl.innerHTML = loadCatStore().map(c => `<option value="${esc(c.name)}">`).join('');
+}
+let CATEGORY_ORDER, CATEGORY_EMOJI, CATEGORY_AR;
+syncCatConstants();
 
 function fmtQty(i) {
   const qty = i.current_qty;
@@ -1421,6 +1476,141 @@ async function loadIngredients(render = true) {
       document.getElementById('ingCategoryContainer').innerHTML = `<div class="card"><p style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load_retry')}</p></div>`;
     }
   }
+}
+
+// ══════════════════════════════════════════════
+// 카테고리 관리
+// ══════════════════════════════════════════════
+let editingCatIdx = -1;
+
+function toggleCatMgr() {
+  const body = document.getElementById('catMgrBody');
+  const icon = document.getElementById('catMgrToggle');
+  body.classList.toggle('hidden');
+  icon.textContent = body.classList.contains('hidden') ? '▼ 펼치기' : '▲ 접기';
+  if (!body.classList.contains('hidden')) renderCatManager();
+}
+
+function renderCatManager() {
+  const cats = loadCatStore();
+  const list = document.getElementById('catMgrList');
+  if (!list) return;
+  if (!cats.length) {
+    list.innerHTML = '<p style="font-size:.82rem;color:var(--soft);margin-bottom:.5rem">카테고리 없음</p>';
+    return;
+  }
+  list.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-bottom:.25rem">
+    <thead><tr style="color:var(--soft);font-size:.76rem;border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:.2rem .4rem;width:2.5rem">이모지</th>
+      <th style="text-align:left;padding:.2rem .4rem">한국어</th>
+      <th style="text-align:left;padding:.2rem .4rem" class="ar" dir="rtl">عربي</th>
+      <th style="width:9rem"></th>
+    </tr></thead>
+    <tbody>${cats.map((c, idx) => `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:.3rem .4rem;text-align:center;font-size:1.1rem">${c.emoji || '📦'}</td>
+      <td style="padding:.3rem .4rem"><b>${esc(c.name)}</b></td>
+      <td style="padding:.3rem .4rem" class="ar" dir="rtl">${esc(c.nameAr || '')}</td>
+      <td style="padding:.3rem .4rem;text-align:right;white-space:nowrap">
+        ${idx > 0 ? `<button class="btn btn-outline btn-sm" style="padding:.1rem .35rem;min-width:0" onclick="moveCat(${idx},-1)">↑</button>` : '<span style="display:inline-block;width:1.9rem"></span>'}
+        ${idx < cats.length - 1 ? `<button class="btn btn-outline btn-sm" style="padding:.1rem .35rem;min-width:0" onclick="moveCat(${idx},1)">↓</button>` : '<span style="display:inline-block;width:1.9rem"></span>'}
+        <button class="btn btn-outline btn-sm" style="padding:.1rem .45rem;min-width:0" onclick="startEditCat(${idx})">✎</button>
+        <button class="btn btn-danger btn-sm" style="padding:.1rem .45rem;min-width:0" onclick="deleteCat(${idx})">✕</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function submitCatForm() {
+  if (editingCatIdx >= 0) saveEditCat(editingCatIdx);
+  else addCategory();
+}
+
+function addCategory() {
+  const name  = document.getElementById('newCatName').value.trim();
+  const emoji = document.getElementById('newCatEmoji').value.trim() || '📦';
+  const nameAr = document.getElementById('newCatAr').value.trim();
+  const msg   = document.getElementById('catMgrMsg');
+  if (!name) { msg.style.color = 'var(--red)'; msg.textContent = '카테고리명을 입력하세요'; return; }
+  const cats = loadCatStore();
+  if (cats.find(c => c.name === name)) { msg.style.color = 'var(--red)'; msg.textContent = '이미 있는 카테고리입니다'; return; }
+  cats.push({ name, emoji, nameAr });
+  saveCatStore(cats);
+  syncCatConstants();
+  syncCatDatalist();
+  document.getElementById('newCatName').value = '';
+  document.getElementById('newCatEmoji').value = '';
+  document.getElementById('newCatAr').value = '';
+  msg.style.color = 'var(--green)'; msg.textContent = `"${name}" 추가됨`;
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+  renderCatManager();
+  loadIngredients();
+}
+
+function startEditCat(idx) {
+  editingCatIdx = idx;
+  const c = loadCatStore()[idx];
+  document.getElementById('newCatName').value  = c.name;
+  document.getElementById('newCatEmoji').value = c.emoji || '';
+  document.getElementById('newCatAr').value    = c.nameAr || '';
+  document.getElementById('catSubmitBtn').textContent = '수정 저장';
+  document.getElementById('catCancelBtn').classList.remove('hidden');
+  const msg = document.getElementById('catMgrMsg');
+  msg.style.color = 'var(--soft)'; msg.textContent = `"${c.name}" 수정 중...`;
+  document.getElementById('newCatName').focus();
+}
+
+function saveEditCat(idx) {
+  const name   = document.getElementById('newCatName').value.trim();
+  const emoji  = document.getElementById('newCatEmoji').value.trim() || '📦';
+  const nameAr = document.getElementById('newCatAr').value.trim();
+  const msg    = document.getElementById('catMgrMsg');
+  if (!name) { msg.style.color = 'var(--red)'; msg.textContent = '카테고리명을 입력하세요'; return; }
+  const cats = loadCatStore();
+  if (name !== cats[idx].name && cats.find(c => c.name === name)) {
+    msg.style.color = 'var(--red)'; msg.textContent = '이미 있는 카테고리입니다'; return;
+  }
+  cats[idx] = { name, emoji, nameAr };
+  saveCatStore(cats);
+  syncCatConstants();
+  syncCatDatalist();
+  cancelEditCat();
+  msg.style.color = 'var(--green)'; msg.textContent = '수정됨';
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+  renderCatManager();
+  loadIngredients();
+}
+
+function cancelEditCat() {
+  editingCatIdx = -1;
+  document.getElementById('newCatName').value  = '';
+  document.getElementById('newCatEmoji').value = '';
+  document.getElementById('newCatAr').value    = '';
+  document.getElementById('catSubmitBtn').textContent = '추가';
+  document.getElementById('catCancelBtn').classList.add('hidden');
+}
+
+function deleteCat(idx) {
+  const cats = loadCatStore();
+  const name = cats[idx].name;
+  if (!confirm(`"${name}" 카테고리를 삭제하시겠습니까?\n이 카테고리의 재료들은 목록에서 맨 아래로 이동됩니다.`)) return;
+  cats.splice(idx, 1);
+  saveCatStore(cats);
+  syncCatConstants();
+  syncCatDatalist();
+  if (editingCatIdx === idx) cancelEditCat();
+  renderCatManager();
+  loadIngredients();
+}
+
+function moveCat(idx, dir) {
+  const cats = loadCatStore();
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= cats.length) return;
+  [cats[idx], cats[newIdx]] = [cats[newIdx], cats[idx]];
+  saveCatStore(cats);
+  syncCatConstants();
+  renderCatManager();
+  loadIngredients();
 }
 
 function openIngModal() {
