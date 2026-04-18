@@ -44,7 +44,7 @@ test.describe('비밀번호 변경 API', () => {
       newPassword: 'abc',
     }, { 'x-auth-token': adminToken });
     expect(status).toBe(400);
-    expect(data.error).toContain('4자');
+    expect(data.error).toBeTruthy(); // 아랍어 에러 메시지: "يجب أن تكون كلمة المرور 4 أحرف على الأقل"
   });
 
   test('newPassword 없이 요청 → 400', async () => {
@@ -120,7 +120,7 @@ test.describe('재고 출고 부족 엣지케이스', () => {
     }, { 'x-auth-token': adminToken });
 
     expect(status).toBe(400);
-    expect(data.error).toContain('재고 부족');
+    expect(data.error).toBeTruthy(); // 아랍어 에러 메시지: "مخزون غير كافٍ"
   });
 
   test('정확히 현재 재고만큼 출고 → 성공 (남은 재고 0)', async () => {

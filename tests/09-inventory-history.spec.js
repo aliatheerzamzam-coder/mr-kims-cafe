@@ -45,14 +45,14 @@ test.describe('재고 이력 삭제 → 재고 롤백', () => {
 
     expect(status).toBe(200);
     // 이력에서 방금 추가된 항목 ID 찾기
-    const { data: history } = await apiRequest('GET', '/api/inventory/history');
+    const { data: history } = await apiRequest('GET', '/api/inventory/history', null, { 'x-auth-token': adminToken });
     const found = history.find(h =>
       h.ingredient_id === ingredientId && h.change_type === 'in' && h.quantity === 100
     );
     expect(found).toBeTruthy();
     historyId = found.id;
 
-    const qty = await getIngredientQty(ingredientId);
+    const qty = await getIngredientQty(ingredientId, adminToken);
     expect(qty).toBe(initialQty + 100);
   });
 
@@ -62,7 +62,7 @@ test.describe('재고 이력 삭제 → 재고 롤백', () => {
   });
 
   test('이력 삭제 시 재고 롤백 (in → 감소)', async () => {
-    const beforeQty = await getIngredientQty(ingredientId);
+    const beforeQty = await getIngredientQty(ingredientId, adminToken);
 
     const { status, data } = await apiRequest(
       'DELETE', `/api/inventory/history/${historyId}`, null,
@@ -72,7 +72,7 @@ test.describe('재고 이력 삭제 → 재고 롤백', () => {
     expect(status).toBe(200);
     expect(data.success).toBe(true);
 
-    const afterQty = await getIngredientQty(ingredientId);
+    const afterQty = await getIngredientQty(ingredientId, adminToken);
     expect(afterQty).toBe(beforeQty - 100); // 입고 100 롤백 → 감소
   });
 
@@ -92,10 +92,10 @@ test.describe('재고 이력 삭제 → 재고 롤백', () => {
       reason: 'QA 출고 롤백 테스트',
     }, { 'x-auth-token': adminToken });
 
-    const beforeQty = await getIngredientQty(ingredientId);
+    const beforeQty = await getIngredientQty(ingredientId, adminToken);
 
     // 출고 이력 찾기
-    const { data: history } = await apiRequest('GET', '/api/inventory/history');
+    const { data: history } = await apiRequest('GET', '/api/inventory/history', null, { 'x-auth-token': adminToken });
     const outHistory = history.find(h =>
       h.ingredient_id === ingredientId && h.change_type === 'out' && h.quantity === 50
     );
@@ -106,7 +106,7 @@ test.describe('재고 이력 삭제 → 재고 롤백', () => {
       'x-auth-token': adminToken,
     });
 
-    const afterQty = await getIngredientQty(ingredientId);
+    const afterQty = await getIngredientQty(ingredientId, adminToken);
     expect(afterQty).toBe(beforeQty + 50); // 출고 50 롤백 → 증가
   });
 });
@@ -145,11 +145,11 @@ test.describe('재고 이력 수정 (PUT)', () => {
       reason: 'QA 수정 테스트 초기 입고',
     }, { 'x-auth-token': adminToken });
 
-    const qtyAfterIn = await getIngredientQty(ingredientId);
+    const qtyAfterIn = await getIngredientQty(ingredientId, adminToken);
     expect(qtyAfterIn).toBe(initialQty + 100);
 
     // 이력 조회
-    const { data: history } = await apiRequest('GET', '/api/inventory/history');
+    const { data: history } = await apiRequest('GET', '/api/inventory/history', null, { 'x-auth-token': adminToken });
     const record = history.find(h =>
       h.ingredient_id === ingredientId && h.change_type === 'in' && h.quantity === 100
     );
@@ -166,12 +166,12 @@ test.describe('재고 이력 수정 (PUT)', () => {
     expect(data.success).toBe(true);
 
     // 재고: (initialQty + 100) - 100 + 200 = initialQty + 200
-    const qtyAfterEdit = await getIngredientQty(ingredientId);
+    const qtyAfterEdit = await getIngredientQty(ingredientId, adminToken);
     expect(qtyAfterEdit).toBe(initialQty + 200);
   });
 
   test('인증 없이 이력 수정 → 401', async () => {
-    const { data: history } = await apiRequest('GET', '/api/inventory/history');
+    const { data: history } = await apiRequest('GET', '/api/inventory/history', null, { 'x-auth-token': adminToken });
     const record = history.find(h => h.ingredient_id === ingredientId);
     if (!record) return;
 
@@ -183,7 +183,7 @@ test.describe('재고 이력 수정 (PUT)', () => {
   });
 
   test('유효하지 않은 데이터로 수정 → 400', async () => {
-    const { data: history } = await apiRequest('GET', '/api/inventory/history');
+    const { data: history } = await apiRequest('GET', '/api/inventory/history', null, { 'x-auth-token': adminToken });
     const record = history.find(h => h.ingredient_id === ingredientId);
     if (!record) return;
 

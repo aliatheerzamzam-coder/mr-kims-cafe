@@ -119,7 +119,7 @@ tr:hover td{background:#fafcfb}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 
 /* ── RECIPE ITEM ROW ── */
-.recipe-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.4rem 0;border-bottom:1px solid #f0f4f2}
+.recipe-row{display:grid;grid-template-columns:1fr auto auto auto;gap:.5rem;align-items:center;padding:.4rem 0;border-bottom:1px solid #f0f4f2}
 .recipe-row:last-child{border-bottom:none}
 .ing-search-wrap{position:relative}
 .ing-search-input{width:100%;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;outline:none;box-sizing:border-box}
@@ -316,6 +316,12 @@ tr:hover td{background:#fafcfb}
       <div class="low-list" id="lowList"></div>
     </div>
   </div>
+  <div id="expirySection" class="hidden">
+    <div class="card">
+      <h3>🗓️ 유통기한 D-7 경고</h3>
+      <div class="low-list" id="expiryList"></div>
+    </div>
+  </div>
   <div class="card">
     <h3 data-i18n="recent_history_title">🕐 최근 입출고 기록</h3>
     <div class="tbl-wrap"><table>
@@ -399,10 +405,20 @@ tr:hover td{background:#fafcfb}
     </div>
     <div id="costResult" class="hidden cost-box" style="margin-top:1rem"></div>
   </div>
+  <!-- 판매가 관리 -->
+  <div class="card" style="margin-top:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="togglePriceEditor()">
+      <span style="font-weight:700;font-size:.95rem">💵 메뉴 판매가 관리</span>
+      <span id="priceEditorToggle" style="font-size:.8rem;color:var(--soft)">▼ 펼치기</span>
+    </div>
+    <div id="priceEditorBody" class="hidden" style="margin-top:1rem">
+      <div id="priceEditorGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.5rem"></div>
+    </div>
+  </div>
   <!-- 전체 원가 요약 -->
   <div class="card" style="margin-top:1rem">
     <h3 data-i18n="all_cost_title">📊 전체 메뉴 원가 요약</h3>
-    <div id="allCostGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-top:.75rem"></div>
+    <div id="allCostGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-top:.75rem"></div>
   </div>
 </div>
 
@@ -645,6 +661,15 @@ tr:hover td{background:#fafcfb}
       <div class="form-group">
         <label>병/봉 용량 mL·g (0 = 미설정)</label>
         <input type="number" id="ingCapacityMl" min="0" step="1" placeholder="예: 1000">
+      </div>
+      <div class="form-group">
+        <label>유통기한</label>
+        <input type="date" id="ingExpiryDate">
+      </div>
+      <div class="form-group">
+        <label>납품업체</label>
+        <input id="ingSupplier" list="supplierOptionList" placeholder="업체명 선택 또는 입력">
+        <datalist id="supplierOptionList"></datalist>
       </div>
     </div>
     <div id="ingModalMsg"></div>
@@ -1225,6 +1250,7 @@ async function loadDashboard() {
       const ll = document.getElementById('lowList');
       ll.innerHTML = '';
       d.low_stock.forEach(i => {
+        const orderQty = Math.ceil(i.min_qty * 2 - i.current_qty);
         const div = document.createElement('div');
         div.className = 'low-item';
         div.innerHTML = `
@@ -1232,12 +1258,43 @@ async function loadDashboard() {
             <div class="name">${esc(i.name_ko)}</div>
             <div style="font-size:.75rem;color:var(--soft)">${esc(i.name_ar)}</div>
           </div>
-          <div class="qty">${t('low_item_cur')} ${esc(String(i.current_qty))}${esc(i.unit)} / ${t('low_item_min')} ${esc(String(i.min_qty))}${esc(i.unit)}</div>
+          <div style="text-align:right">
+            <div class="qty">${t('low_item_cur')} ${esc(String(i.current_qty))}${esc(i.unit)} / ${t('low_item_min')} ${esc(String(i.min_qty))}${esc(i.unit)}</div>
+            <div style="font-size:.75rem;color:var(--danger);margin-top:.2rem">📦 ${esc(String(orderQty))}${esc(i.unit)} 주문 필요</div>
+          </div>
         `;
         ll.appendChild(div);
       });
     } else {
       ls.classList.add('hidden');
+    }
+
+    // 유통기한 D-7 경고
+    const es = document.getElementById('expirySection');
+    const expiring = d.expiring_soon || [];
+    if (expiring.length > 0) {
+      es.classList.remove('hidden');
+      const el = document.getElementById('expiryList');
+      el.innerHTML = '';
+      expiring.forEach(i => {
+        const daysLeft = i.days_left;
+        let badge, badgeColor;
+        if (daysLeft < 0) { badge = '만료됨'; badgeColor = '#6b7280'; }
+        else if (daysLeft === 0) { badge = 'D-Day'; badgeColor = 'var(--danger)'; }
+        else { badge = `D-${daysLeft}`; badgeColor = daysLeft <= 3 ? 'var(--danger)' : 'var(--warning, #f59e0b)'; }
+        const div = document.createElement('div');
+        div.className = 'low-item';
+        div.innerHTML = `
+          <div>
+            <div class="name">${esc(i.name_ko)}</div>
+            <div style="font-size:.75rem;color:var(--soft)">${esc(i.expiry_date)}</div>
+          </div>
+          <div style="font-size:.85rem;font-weight:700;color:${badgeColor};padding:.2rem .6rem;border:1px solid ${badgeColor};border-radius:.4rem">${esc(badge)}</div>
+        `;
+        el.appendChild(div);
+      });
+    } else {
+      es.classList.add('hidden');
     }
 
     const tb = document.getElementById('recentHistTb');
@@ -1624,9 +1681,10 @@ function moveCat(idx, dir) {
 function openIngModal() {
   document.getElementById('ingModalTitle').textContent = t('modal_ing_title');
   document.getElementById('ingId').value = '';
-  ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost', 'ingBoxQty', 'ingCapacityMl', 'ingCategory'].forEach(id => document.getElementById(id).value = '');
+  ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost', 'ingBoxQty', 'ingCapacityMl', 'ingCategory', 'ingExpiryDate', 'ingSupplier'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ingUnit').value = '병';
   document.getElementById('ingModalMsg').innerHTML = '';
+  syncSupplierDatalist();
   document.getElementById('ingModal').classList.remove('hidden');
 }
 
@@ -1642,12 +1700,17 @@ function editIng(i) {
   document.getElementById('ingBoxQty').value = i.box_qty || 0;
   document.getElementById('ingCapacityMl').value = i.capacity_ml || 0;
   document.getElementById('ingCategory').value = i.category || '';
+  document.getElementById('ingExpiryDate').value = i.expiry_date || '';
+  document.getElementById('ingSupplier').value = i.supplier || '';
   document.getElementById('ingModalMsg').innerHTML = '';
+  syncSupplierDatalist();
   document.getElementById('ingModal').classList.remove('hidden');
 }
 
 async function saveIngredient() {
   const id = document.getElementById('ingId').value;
+  const expiryVal = document.getElementById('ingExpiryDate').value;
+  const supplierVal = document.getElementById('ingSupplier').value.trim();
   const body = {
     name_ko: document.getElementById('ingNameKo').value.trim(),
     name_ar: document.getElementById('ingNameAr').value.trim(),
@@ -1657,7 +1720,9 @@ async function saveIngredient() {
     cost_per_unit: parseFloat(document.getElementById('ingCost').value) || 0,
     box_qty: parseInt(document.getElementById('ingBoxQty').value) || 0,
     capacity_ml: parseInt(document.getElementById('ingCapacityMl').value) || 0,
-    category: document.getElementById('ingCategory').value.trim() || undefined
+    category: document.getElementById('ingCategory').value.trim() || undefined,
+    expiry_date: expiryVal || null,
+    supplier: supplierVal || null
   };
   if (!body.name_ko) {
     document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${t('err_ing_name')}</div>`;
@@ -1740,8 +1805,8 @@ async function loadRecipes() {
             }
             html += `
               <td>${esc(item.name_ko)}</td>
-              <td>${esc(String(item.quantity))} ${esc(item.unit)}</td>
-              <td>${esc(item.unit)}</td>
+              <td>${esc(String(item.quantity))} ${esc(item.recipe_unit || 'ml')}</td>
+              <td>${esc(item.recipe_unit || 'ml')}</td>
               <td>${Math.round(item.quantity * item.cost_per_unit).toLocaleString()} IQD</td>
             `;
             if (idx === 0) {
@@ -1797,11 +1862,11 @@ function editRecipe(menu) {
   document.getElementById('recipeCategory').value = (first && first.menu_category && first.menu_category !== '기타') ? first.menu_category : (first ? first.menu_category : '');
   document.getElementById('recipeRows').innerHTML = '';
   document.getElementById('recipeModalMsg').innerHTML = '';
-  recipes.filter(r => r.menu_item === menu).forEach(item => addRecipeRow(item.ingredient_id, item.quantity));
+  recipes.filter(r => r.menu_item === menu).forEach(item => addRecipeRow(item.ingredient_id, item.quantity, item.recipe_unit || 'ml'));
   document.getElementById('recipeModal').classList.remove('hidden');
 }
 
-function addRecipeRow(ingId = '', qty = '') {
+function addRecipeRow(ingId = '', qty = '', unit = 'ml') {
   const div = document.createElement('div');
   div.className = 'recipe-row';
 
@@ -1907,6 +1972,18 @@ function addRecipeRow(ingId = '', qty = '') {
   qtyInput.placeholder = t('ph_qty');
   qtyInput.style.cssText = 'width:90px;padding:.45rem .6rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;text-align:center;outline:none';
 
+  // ── unit selector (ml / g) ──
+  const unitSel = document.createElement('select');
+  unitSel.className = 'rec-unit';
+  unitSel.style.cssText = 'padding:.45rem .5rem;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;background:#fff;cursor:pointer;outline:none';
+  ['ml', 'g'].forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u;
+    opt.textContent = u;
+    if (u === unit) opt.selected = true;
+    unitSel.appendChild(opt);
+  });
+
   const delBtn = document.createElement('button');
   delBtn.className = 'btn btn-danger btn-sm';
   delBtn.textContent = '✕';
@@ -1914,6 +1991,7 @@ function addRecipeRow(ingId = '', qty = '') {
 
   div.appendChild(wrap);
   div.appendChild(qtyInput);
+  div.appendChild(unitSel);
   div.appendChild(delBtn);
   document.getElementById('recipeRows').appendChild(div);
 }
@@ -1928,7 +2006,8 @@ async function saveRecipe() {
   const rawItems = rows
     .map(r => ({
       ingredient_id: parseInt(r.querySelector('.rec-ing').value),
-      quantity: parseFloat(r.querySelector('.rec-qty').value) || 0
+      quantity: parseFloat(r.querySelector('.rec-qty').value) || 0,
+      unit: r.querySelector('.rec-unit')?.value || 'ml'
     }))
     .filter(i => i.ingredient_id && i.quantity > 0);
 
@@ -2448,6 +2527,17 @@ function getSuppliers() {
   try { return JSON.parse(localStorage.getItem('wh_suppliers') || '[]'); }
   catch { return []; }
 }
+
+function syncSupplierDatalist() {
+  const dl = document.getElementById('supplierOptionList');
+  if (!dl) return;
+  dl.innerHTML = '';
+  getSuppliers().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    dl.appendChild(opt);
+  });
+}
 function saveSuppliers(arr) {
   localStorage.setItem('wh_suppliers', JSON.stringify(arr));
 }
@@ -2501,7 +2591,10 @@ function deleteSupplier(idx) {
 // ══════════════════════════════════════════════
 // 전체 메뉴 원가 요약
 // ══════════════════════════════════════════════
-function loadAllCosts(grouped) {
+let _cachedGrouped = {};
+
+async function loadAllCosts(grouped) {
+  _cachedGrouped = grouped;
   const grid = document.getElementById('allCostGrid');
   if (!grid) return;
   const menus = Object.keys(grouped);
@@ -2509,19 +2602,81 @@ function loadAllCosts(grouped) {
     grid.innerHTML = `<p style="color:var(--soft)">${t('all_cost_empty')}</p>`;
     return;
   }
+
+  // 판매가 fetch
+  let priceMap = {};
+  try {
+    const rows = await fetch('/api/menu-prices', { headers: hdr() }).then(r => r.json());
+    rows.forEach(r => { priceMap[r.menu_item] = r.selling_price; });
+  } catch (_) {}
+
   grid.innerHTML = '';
   menus.forEach(menu => {
     const items = grouped[menu];
     const totalCost = Math.round(items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0));
+    const sellingPrice = priceMap[menu] || 0;
+    const rate = sellingPrice > 0 ? ((totalCost / sellingPrice) * 100).toFixed(1) : null;
+    const rateHtml = rate !== null
+      ? `<div class="menu-rate" style="font-size:.8rem;margin-top:.25rem;color:${parseFloat(rate) > 40 ? 'var(--danger)' : 'var(--green)'}">원가율 ${esc(rate)}%</div>`
+      : `<div class="menu-rate" style="font-size:.75rem;color:var(--soft);margin-top:.25rem">판매가 미설정</div>`;
     const card = document.createElement('div');
     card.className = 'cost-menu-card';
     card.innerHTML = `
       <div class="menu-name">${esc(menu)}</div>
       <div class="menu-cost">${totalCost.toLocaleString()} IQD</div>
+      ${sellingPrice > 0 ? `<div style="font-size:.78rem;color:var(--soft)">판매가 ${sellingPrice.toLocaleString()} IQD</div>` : ''}
+      ${rateHtml}
       <div class="menu-sub">${items.length} ${t('all_cost_ing_count')}</div>
     `;
     grid.appendChild(card);
   });
+
+  renderPriceEditor(menus, priceMap);
+}
+
+function togglePriceEditor() {
+  const body = document.getElementById('priceEditorBody');
+  const toggle = document.getElementById('priceEditorToggle');
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    toggle.textContent = '▲ 접기';
+  } else {
+    body.classList.add('hidden');
+    toggle.textContent = '▼ 펼치기';
+  }
+}
+
+function renderPriceEditor(menus, priceMap) {
+  const grid = document.getElementById('priceEditorGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  menus.forEach(menu => {
+    const val = priceMap[menu] || '';
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:.4rem;background:var(--off);border-radius:var(--r-sm);padding:.4rem .6rem';
+    div.innerHTML = `
+      <span style="flex:1;font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(menu)}">${esc(menu)}</span>
+      <input type="number" min="0" step="100" placeholder="판매가" value="${esc(String(val))}"
+        style="width:100px;font-size:.82rem;padding:.25rem .4rem;border:1px solid var(--border);border-radius:.3rem;background:var(--bg)"
+        id="price_${esc(menu.replace(/[^a-z0-9]/gi, '_'))}"
+        onchange="saveMenuPrice('${esc(menu.replace(/'/g, "\\'"))}', this.value)">
+      <span style="font-size:.75rem;color:var(--soft)">IQD</span>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+async function saveMenuPrice(menuItem, value) {
+  const price = parseFloat(value) || 0;
+  try {
+    await fetch('/api/menu-prices', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ menu_item: menuItem, selling_price: price })
+    });
+    // 카드 새로고침
+    await loadAllCosts(_cachedGrouped);
+  } catch (_) {}
 }
 
 // ══════════════════════════════════════════════

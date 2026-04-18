@@ -26,7 +26,7 @@ test.describe('재료 관리', () => {
   });
 
   test('재료 목록 조회', async () => {
-    const { status, data } = await apiRequest('GET', '/api/ingredients');
+    const { status, data } = await apiRequest('GET', '/api/ingredients', null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
   });
@@ -58,7 +58,7 @@ test.describe('재료 관리', () => {
     }, { 'x-auth-token': adminToken });
 
     expect(status).toBe(200);
-    const updated = await getIngredients();
+    const updated = await getIngredients(adminToken);
     const found = updated.find(i => i.id === testIngredientId);
     expect(found.name_ko).toBe('QA테스트재료수정');
     expect(found.min_qty).toBe(50);
@@ -110,12 +110,12 @@ test.describe('재고 수동 조정', () => {
     }, { 'x-auth-token': adminToken });
 
     expect(status).toBe(200);
-    const newQty = await getIngredientQty(ingredientId);
+    const newQty = await getIngredientQty(ingredientId, adminToken);
     expect(newQty).toBe(initialQty + 200);
   });
 
   test('재고 출고(-) 조정', async () => {
-    const before = await getIngredientQty(ingredientId);
+    const before = await getIngredientQty(ingredientId, adminToken);
     const { status } = await apiRequest('POST', '/api/inventory/adjust', {
       ingredient_id: ingredientId,
       change_type: 'out',
@@ -124,12 +124,12 @@ test.describe('재고 수동 조정', () => {
     }, { 'x-auth-token': adminToken });
 
     expect(status).toBe(200);
-    const after = await getIngredientQty(ingredientId);
+    const after = await getIngredientQty(ingredientId, adminToken);
     expect(after).toBe(before - 100);
   });
 
   test('재고 이력 조회', async () => {
-    const { status, data } = await apiRequest('GET', '/api/inventory/history');
+    const { status, data } = await apiRequest('GET', '/api/inventory/history', null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
   });
@@ -171,14 +171,14 @@ test.describe('주문 → 재고 차감 연동 검증 (일일 판매 방식)', (
   });
 
   test('레시피 등록 후 조회 가능', async () => {
-    const { status, data } = await apiRequest('GET', '/api/recipes');
+    const { status, data } = await apiRequest('GET', '/api/recipes', null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     const recipe = data.find(r => r.menu_item === recipeMenuName);
     expect(recipe).toBeTruthy();
   });
 
   test('일일 판매 등록 시 재고 정확히 차감', async () => {
-    const beforeQty = await getIngredientQty(ingredientId);
+    const beforeQty = await getIngredientQty(ingredientId, adminToken);
     const sellQty = 3; // 3개 판매
     const expectedDeduction = recipeQty * sellQty;
 
@@ -190,12 +190,12 @@ test.describe('주문 → 재고 차감 연동 검증 (일일 판매 방식)', (
     expect(status).toBe(200);
     expect(data.success).toBe(true);
 
-    const afterQty = await getIngredientQty(ingredientId);
+    const afterQty = await getIngredientQty(ingredientId, adminToken);
     expect(afterQty).toBe(beforeQty - expectedDeduction);
   });
 
   test('레시피 없는 메뉴 판매 시 경고 반환 (재고 차감 없음)', async () => {
-    const beforeQty = await getIngredientQty(ingredientId);
+    const beforeQty = await getIngredientQty(ingredientId, adminToken);
     const today = new Date().toISOString().slice(0, 10);
 
     const { status, data } = await recordDailySales(today, [
@@ -206,12 +206,12 @@ test.describe('주문 → 재고 차감 연동 검증 (일일 판매 방식)', (
     expect(data.warnings?.length).toBeGreaterThan(0);
 
     // 재고 변동 없음 확인
-    const afterQty = await getIngredientQty(ingredientId);
+    const afterQty = await getIngredientQty(ingredientId, adminToken);
     expect(afterQty).toBe(beforeQty);
   });
 
   test('취소된 주문 → 판매 미등록 시 재고 차감 없음', async () => {
-    const beforeQty = await getIngredientQty(ingredientId);
+    const beforeQty = await getIngredientQty(ingredientId, adminToken);
 
     // 주문 생성
     const { data: orderData } = await createOrder({
@@ -227,14 +227,24 @@ test.describe('주문 → 재고 차감 연동 검증 (일일 판매 방식)', (
     await updateOrderStatus(orderData.order.id, 'cancelled', { adminToken });
 
     // 일일 판매 등록 없이 재고 조회 → 변동 없어야 함
-    const afterQty = await getIngredientQty(ingredientId);
+    const afterQty = await getIngredientQty(ingredientId, adminToken);
     expect(afterQty).toBe(beforeQty);
   });
 });
 
 test.describe('대시보드 데이터 정합성', () => {
+  let adminToken;
+
+  test.beforeAll(async () => {
+    adminToken = await adminLogin();
+  });
+
+  test.afterAll(async () => {
+    await apiRequest('POST', '/api/auth/logout', null, { 'x-auth-token': adminToken });
+  });
+
   test('대시보드 API 정상 응답', async () => {
-    const { status, data } = await apiRequest('GET', '/api/dashboard');
+    const { status, data } = await apiRequest('GET', '/api/dashboard', null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     expect(Array.isArray(data.ingredients)).toBe(true);
     expect(Array.isArray(data.low_stock)).toBe(true);
@@ -242,7 +252,7 @@ test.describe('대시보드 데이터 정합성', () => {
   });
 
   test('low_stock은 min_qty 이하 재료만 포함', async () => {
-    const { data } = await apiRequest('GET', '/api/dashboard');
+    const { data } = await apiRequest('GET', '/api/dashboard', null, { 'x-auth-token': adminToken });
     for (const item of data.low_stock) {
       expect(item.current_qty).toBeLessThanOrEqual(item.min_qty);
     }

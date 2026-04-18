@@ -73,7 +73,7 @@
       text-align: center;
       min-width: 100px;
     }
-    .stat-num { font-size: 1.6rem; font-weight: 900; color: var(--green); }
+    .stat-num { font-size: 1.6rem; font-weight: 900; color: var(--green); direction: ltr; unicode-bidi: plaintext; }
     .stat-label { font-size: 0.75rem; color: var(--text-soft); margin-top: 2px; }
 
     /* Filter tabs */
@@ -132,7 +132,7 @@
       justify-content: space-between;
       border-bottom: 1px solid #eee;
     }
-    .order-num { font-weight: 900; font-size: 1.1rem; }
+    .order-num { font-weight: 900; font-size: 1.1rem; direction: ltr; unicode-bidi: plaintext; }
     .order-type-badge {
       padding: 4px 12px;
       border-radius: var(--radius-pill);
@@ -141,7 +141,7 @@
     }
     .badge-dine    { background: #dbeafe; color: #1d4ed8; }
     .badge-pickup  { background: #fef9c3; color: #854d0e; }
-    .order-time   { font-size: 0.78rem; color: var(--text-soft); }
+    .order-time   { font-size: 0.78rem; color: var(--text-soft); direction: ltr; unicode-bidi: plaintext; }
 
     .order-info {
       padding: 12px 18px;
@@ -162,7 +162,7 @@
     }
     .order-item-row:last-child { border: none; }
     .item-name { font-weight: 700; }
-    .item-qty  { color: var(--green); font-weight: 900; }
+    .item-qty  { color: var(--green); font-weight: 900; direction: ltr; unicode-bidi: plaintext; }
 
     .order-total-row {
       padding: 10px 18px;
@@ -172,7 +172,7 @@
       font-weight: 900;
       font-size: 0.95rem;
     }
-    .order-total-amount { color: var(--green); }
+    .order-total-amount { color: var(--green); direction: ltr; unicode-bidi: plaintext; }
 
     .order-actions {
       padding: 14px 18px;
@@ -401,7 +401,7 @@
       font-size: 0.9rem;
     }
 
-    /* SSE 연결 상태 표시 */
+    /* مؤشر حالة اتصال SSE */
     .conn-dot {
       display: inline-block;
       width: 8px; height: 8px;
@@ -431,7 +431,7 @@
     }
     #print-area { display: none; }
 
-    /* ─── 로그인 오버레이 ─── */
+    /* ─── طبقة تسجيل الدخول ─── */
     #loginOverlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.55);
@@ -490,7 +490,7 @@
 </head>
 <body>
 
-<!-- 로그인 오버레이 -->
+<!-- طبقة تسجيل الدخول -->
 <div id="loginOverlay">
   <div class="login-box">
     <h2>🏪 Cashier Login / تسجيل الدخول</h2>
@@ -573,6 +573,15 @@
   <div class="history-bar">
     <label>📅 التاريخ:</label>
     <input type="date" id="history-date" />
+    <select id="history-type-filter" onchange="filterHistory()"
+      style="padding:9px 12px;border:2px solid #d4e8d8;border-radius:var(--radius-pill);font-size:0.88rem;font-family:inherit;outline:none;color:var(--text-dark)">
+      <option value="">كل الأنواع</option>
+      <option value="dine">🪑 داخل المحل</option>
+      <option value="pickup">🏃 استلام</option>
+    </select>
+    <input type="text" id="history-search" placeholder="🔍 اسم / هاتف..."
+      style="padding:9px 14px;border:2px solid #d4e8d8;border-radius:var(--radius-pill);font-size:0.88rem;font-family:inherit;outline:none;width:160px"
+      oninput="filterHistory()" />
     <button class="btn-history-load" onclick="loadHistory()">عرض</button>
   </div>
   <div class="history-summary" id="history-summary"></div>
@@ -585,15 +594,45 @@
 <!-- ── Tab: Reservations ── -->
 <div class="tab-pane" id="pane-reservations">
   <div style="padding:20px 24px">
-    <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
-      <label style="font-size:0.8rem;font-weight:800;color:#555;">📅 التاريخ:</label>
-      <input type="date" id="res-filter-date" style="padding:8px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;" />
-      <button onclick="loadReservations()" style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;">عرض</button>
-      <span id="res-count-badge" style="background:#e8f5ee;color:#367d4d;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:800;"></span>
+
+    <!-- Sub-tab buttons -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid #e8f5ee;padding-bottom:0;">
+      <button id="res-subtab-table" onclick="switchResSubtab('table')"
+        style="padding:9px 20px;font-size:0.88rem;font-weight:800;border:none;border-bottom:3px solid #367d4d;background:transparent;color:#367d4d;cursor:pointer;font-family:inherit;margin-bottom:-2px;">
+        🪑 Table Reservations / حجز الطاولات
+      </button>
+      <button id="res-subtab-meeting" onclick="switchResSubtab('meeting')"
+        style="padding:9px 20px;font-size:0.88rem;font-weight:800;border:none;border-bottom:3px solid transparent;background:transparent;color:#888;cursor:pointer;font-family:inherit;margin-bottom:-2px;">
+        🏢 Meeting Room / غرفة الاجتماعات
+      </button>
     </div>
-    <div id="reservations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
-      <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض الحجوزات</div>
+
+    <!-- Table Reservations -->
+    <div id="res-pane-table">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+        <label style="font-size:0.8rem;font-weight:800;color:#555;">📅 التاريخ:</label>
+        <input type="date" id="res-filter-date" style="padding:8px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;" />
+        <button onclick="loadReservations()" style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;">عرض</button>
+        <span id="res-count-badge" style="background:#e8f5ee;color:#367d4d;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:800;"></span>
+      </div>
+      <div id="reservations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+        <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض الحجوزات</div>
+      </div>
     </div>
+
+    <!-- Meeting Room Reservations -->
+    <div id="res-pane-meeting" style="display:none;">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+        <label style="font-size:0.8rem;font-weight:800;color:#555;">📅 التاريخ:</label>
+        <input type="date" id="meeting-filter-date" style="padding:8px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;" />
+        <button onclick="loadMeetingReservations()" style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;">عرض</button>
+        <span id="meeting-count-badge" style="background:#e8f5ee;color:#367d4d;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:800;"></span>
+      </div>
+      <div id="meeting-reservations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+        <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض حجوزات غرفة الاجتماعات</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -652,7 +691,7 @@
 <!-- ── Tab: Table QR Codes ── -->
 <div class="tab-pane" id="pane-qr">
   <div style="padding:24px 28px">
-    <!-- 생성 폼 -->
+    <!-- نموذج الإنشاء -->
     <div style="background:#fff;border-radius:16px;padding:20px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:24px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
       <div>
         <div style="font-size:0.8rem;color:#888;margin-bottom:6px;font-weight:700">رقم الطاولة / Table No.</div>
@@ -664,12 +703,12 @@
         ➕ إنشاء QR / Generate QR
       </button>
     </div>
-    <!-- 목록 -->
+    <!-- القائمة -->
     <div id="qr-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px"></div>
   </div>
 </div>
 
-<!-- QR 코드는 서버에서 생성 (CDN 불필요) -->
+<!-- QR يتم إنشاؤه من الخادم (لا حاجة لـ CDN) -->
 <script>
   /* ─── State ─── */
   let orders = [];
@@ -677,13 +716,13 @@
   let currentFilter = 'all';
   let currentTab = 'orders';
 
-  /* ─── XSS 방지 ─── */
+  /* ─── الحماية من XSS ─── */
   function esc(str) {
     return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
   }
 
-  /* ─── Baghdad(UTC+3) 기준 오늘 날짜 ─── */
+  /* ─── تاريخ اليوم بتوقيت بغداد (UTC+3) ─── */
   function localDateStr() {
     const now = new Date();
     const local = new Date(now.getTime() + 3 * 60 * 60 * 1000);
@@ -715,6 +754,9 @@
       const dateInput = document.getElementById('res-filter-date');
       if (!dateInput.value) dateInput.value = localDateStr();
       loadReservations();
+      const meetingDateInput = document.getElementById('meeting-filter-date');
+      if (!meetingDateInput.value) meetingDateInput.value = localDateStr();
+      loadMeetingReservations();
     }
     if (tab === 'qr') loadTableQRs();
   }
@@ -776,7 +818,7 @@
         ? `&nbsp; ⏱ ${esc(order.arrival_time)}`
         : '';
       const info = order.customer_name
-        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 ${esc(order.customer_phone)}` : ''}${arrivalBadge}</div>`
+        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.customer_phone)}</span>` : ''}${arrivalBadge}</div>`
         : '';
       const itemsHtml = order.items.map(i =>
         `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span></span><span class="item-qty">×${esc(String(i.qty))}</span></div>`
@@ -820,7 +862,7 @@
     updateStats();
   }
 
-  /* ─── API: 주문 취소 ─── */
+  /* ─── API: إلغاء الطلب ─── */
   async function cancelOrder(id) {
     if (!confirm('هل تريد إلغاء هذا الطلب؟')) return;
     const btn = document.getElementById(`cancel-${id}`);
@@ -841,7 +883,7 @@
     }
   }
 
-  /* ─── API: 주문 상태 변경 ─── */
+  /* ─── API: تغيير حالة الطلب ─── */
   async function setStatus(id, status) {
     const btn = document.getElementById(`btn-${id}`);
     if (btn) { btn.disabled = true; }
@@ -881,7 +923,7 @@
     if (!soundOn) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      // 맑은 3단 상승음 (예약 전용)
+      // نغمة صاعدة ثلاثية صافية (للحجز فقط)
       [523, 659, 784, 1047].forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -934,7 +976,7 @@
     window.print();
   }
 
-  /* ─── API: 오늘 주문 불러오기 (+ 폴백 폴링) ─── */
+  /* ─── API: تحميل طلبات اليوم (+ استطلاع احتياطي) ─── */
   async function loadOrders() {
     const today = localDateStr();
     try {
@@ -943,7 +985,7 @@
       orders = await res.json();
       renderOrders();
     } catch (e) {
-      console.warn('주문 로드 실패, 재시도 예정');
+      console.warn('فشل تحميل الطلبات، سيُعاد المحاولة');
     }
   }
 
@@ -968,13 +1010,13 @@
       listEl.innerHTML = data.map(r => `
         <div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.07);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-weight:900;font-size:1rem;">${esc(r.time)}</span>
+            <span dir="ltr" style="font-weight:900;font-size:1rem;unicode-bidi:plaintext;">${esc(r.time)}</span>
             <span style="background:${statusColor[r.status]||'#888'}22;color:${statusColor[r.status]||'#888'};
               border-radius:20px;padding:3px 12px;font-size:0.78rem;font-weight:800;">${statusLabel[r.status]||r.status}</span>
           </div>
           <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 ${esc(r.phone)}</div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 ${esc(String(r.party_size))} guests</div>
+          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(r.phone)}</span></div>
+          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(String(r.party_size))}</span> guests</div>
           ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
           <div style="display:flex;gap:8px;margin-top:10px;">
             ${r.status==='pending' ? `
@@ -1005,6 +1047,87 @@
       });
       if (!res.ok) throw new Error();
       loadReservations();
+    } catch (e) {
+      alert('فشل تحديث الحجز');
+    }
+  }
+
+  /* ─── Reservation sub-tabs ─── */
+  function switchResSubtab(sub) {
+    const isTable = sub === 'table';
+    document.getElementById('res-pane-table').style.display = isTable ? '' : 'none';
+    document.getElementById('res-pane-meeting').style.display = isTable ? 'none' : '';
+    const btnTable = document.getElementById('res-subtab-table');
+    const btnMeeting = document.getElementById('res-subtab-meeting');
+    btnTable.style.borderBottomColor = isTable ? '#367d4d' : 'transparent';
+    btnTable.style.color = isTable ? '#367d4d' : '#888';
+    btnMeeting.style.borderBottomColor = isTable ? 'transparent' : '#367d4d';
+    btnMeeting.style.color = isTable ? '#888' : '#367d4d';
+    if (!isTable) {
+      const meetingDateInput = document.getElementById('meeting-filter-date');
+      if (!meetingDateInput.value) meetingDateInput.value = localDateStr();
+      loadMeetingReservations();
+    }
+  }
+
+  /* ─── Meeting Room Reservations ─── */
+  async function loadMeetingReservations() {
+    const date = document.getElementById('meeting-filter-date').value;
+    if (!date) return;
+    const listEl = document.getElementById('meeting-reservations-list');
+    listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">جارٍ التحميل…</div>';
+    try {
+      const res = await fetch(`/api/meeting-reservations?date=${date}`, { headers: cashierHeaders() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const badge = document.getElementById('meeting-count-badge');
+      badge.textContent = `${data.length} حجز`;
+      if (data.length === 0) {
+        listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">لا توجد حجوزات في هذا التاريخ</div>';
+        return;
+      }
+      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
+      const statusLabel = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
+      listEl.innerHTML = data.map(r => `
+        <div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.07);border-top:3px solid #6366f1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span dir="ltr" style="font-weight:900;font-size:1rem;unicode-bidi:plaintext;">⏰ ${esc(r.slot)}</span>
+            <span style="background:${statusColor[r.status]||'#888'}22;color:${statusColor[r.status]||'#888'};
+              border-radius:20px;padding:3px 12px;font-size:0.78rem;font-weight:800;">${statusLabel[r.status]||r.status}</span>
+          </div>
+          <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
+          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(r.phone)}</span></div>
+          ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
+          <div style="font-size:0.78rem;color:#aaa;margin-bottom:8px;">💰 25,000 IQD — paid on arrival</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            ${r.status==='pending' ? `
+              <button onclick="updateMeetingStatus(${r.id},'confirmed')"
+                style="flex:1;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✅ تأكيد</button>
+              <button onclick="updateMeetingStatus(${r.id},'cancelled')"
+                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
+            ` : r.status==='confirmed' ? `
+              <button onclick="updateMeetingStatus(${r.id},'completed')"
+                style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">☑ وصل</button>
+              <button onclick="updateMeetingStatus(${r.id},'cancelled')"
+                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      document.getElementById('meeting-reservations-list').innerHTML = '<div style="color:#e53e3e;padding:32px;text-align:center;grid-column:1/-1;">فشل تحميل البيانات</div>';
+    }
+  }
+
+  async function updateMeetingStatus(id, status) {
+    try {
+      const res = await fetch(`/api/meeting-reservations/${id}/status`, {
+        method: 'PUT',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error();
+      loadMeetingReservations();
     } catch (e) {
       alert('فشل تحديث الحجز');
     }
@@ -1081,6 +1204,63 @@
   /* ─── History tab ─── */
   window._historyOrders = [];
 
+  function renderHistoryTable(data) {
+    const listEl = document.getElementById('history-list');
+    const summaryEl = document.getElementById('history-summary');
+
+    const done = data.filter(o => o.status === 'done').length;
+    const rev  = data.filter(o => o.status === 'done').reduce((s,o) => s + o.total, 0);
+    summaryEl.innerHTML = `
+      <div class="history-stat"><strong>${data.length}</strong>إجمالي الطلبات</div>
+      <div class="history-stat"><strong>${done}</strong>مكتمل</div>
+      <div class="history-stat"><strong>${data.filter(o=>o.status==='cancelled').length}</strong>ملغي</div>
+      <div class="history-stat"><strong>${rev.toLocaleString()} IQD</strong>الإيرادات المؤكدة</div>
+    `;
+
+    if (data.length === 0) {
+      listEl.innerHTML = `<div class="history-empty">لا توجد طلبات</div>`;
+      return;
+    }
+
+    const statusLabel = { new:'جديد', making:'قيد التحضير', done:'مكتمل', cancelled:'ملغي' };
+    const rows = [...data].sort((a,b) => b.timestamp - a.timestamp).map(o => {
+      const time = new Date(o.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
+      const typeStr = o.type === 'dine' ? `🪑 طاولة ${esc(o.table_num)}` : `🏃 ${esc(o.customer_name||'')}`;
+      const itemsList = o.items.map(i => `${esc(i.emoji)} ${esc(i.nameAr||i.name)} ×${i.qty}`).join('<br>');
+      return `<tr>
+        <td style="font-weight:900;">#${o.num}</td>
+        <td>${time}</td>
+        <td>${typeStr}</td>
+        <td><div class="history-items-list">${itemsList}</div></td>
+        <td style="font-weight:900;color:var(--green);">${o.total.toLocaleString()}</td>
+        <td><span class="status-badge ${o.status}">${statusLabel[o.status]||o.status}</span></td>
+        <td style="font-size:0.8em;color:#888;">${esc(o.cashier_name||'-')}</td>
+        <td><button class="btn-action btn-print" style="padding:6px 10px;" onclick="printReceipt('${esc(o.id)}')" title="طباعة">🖨️</button></td>
+      </tr>`;
+    }).join('');
+
+    listEl.innerHTML = `<table class="history-table">
+      <thead><tr>
+        <th>رقم</th><th>الوقت</th><th>النوع</th><th>الطلبات</th><th>IQD</th><th>الحالة</th><th>كاشير</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function filterHistory() {
+    const search = (document.getElementById('history-search')?.value || '').trim().toLowerCase();
+    const typeFilter = document.getElementById('history-type-filter')?.value || '';
+    let data = window._historyOrders;
+    if (typeFilter) data = data.filter(o => o.type === typeFilter);
+    if (search) {
+      data = data.filter(o =>
+        (o.customer_name || '').toLowerCase().includes(search) ||
+        (o.customer_phone || '').includes(search)
+      );
+    }
+    renderHistoryTable(data);
+  }
+
   async function loadHistory() {
     const date = document.getElementById('history-date').value;
     if (!date) return;
@@ -1094,51 +1274,24 @@
       const data = await res.json();
       window._historyOrders = data;
 
-      // Summary stats
-      const total = data.reduce((s,o) => s + o.total, 0);
-      const done  = data.filter(o => o.status === 'done').length;
-      const rev   = data.filter(o => o.status === 'done').reduce((s,o) => s + o.total, 0);
-      summaryEl.innerHTML = `
-        <div class="history-stat"><strong>${data.length}</strong>إجمالي الطلبات</div>
-        <div class="history-stat"><strong>${done}</strong>مكتمل</div>
-        <div class="history-stat"><strong>${data.filter(o=>o.status==='cancelled').length}</strong>ملغي</div>
-        <div class="history-stat"><strong>${rev.toLocaleString()} IQD</strong>الإيرادات المؤكدة</div>
-      `;
+      // 필터 초기화 후 렌더
+      const typeFilter = document.getElementById('history-type-filter');
+      const searchInput = document.getElementById('history-search');
+      if (typeFilter) typeFilter.value = '';
+      if (searchInput) searchInput.value = '';
 
       if (data.length === 0) {
+        summaryEl.innerHTML = '';
         listEl.innerHTML = `<div class="history-empty">لا توجد طلبات في هذا التاريخ</div>`;
         return;
       }
-
-      const statusLabel = { new:'جديد', making:'قيد التحضير', done:'مكتمل', cancelled:'ملغي' };
-      const rows = [...data].sort((a,b) => b.timestamp - a.timestamp).map(o => {
-        const time = new Date(o.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
-        const typeStr = o.type === 'dine' ? `🪑 طاولة ${esc(o.table_num)}` : `🏃 ${esc(o.customer_name||'')}`;
-        const itemsList = o.items.map(i => `${esc(i.emoji)} ${esc(i.nameAr||i.name)} ×${i.qty}`).join('<br>');
-        return `<tr>
-          <td style="font-weight:900;">#${o.num}</td>
-          <td>${time}</td>
-          <td>${typeStr}</td>
-          <td><div class="history-items-list">${itemsList}</div></td>
-          <td style="font-weight:900;color:var(--green);">${o.total.toLocaleString()}</td>
-          <td><span class="status-badge ${o.status}">${statusLabel[o.status]||o.status}</span></td>
-          <td style="font-size:0.8em;color:#888;">${esc(o.cashier_name||'-')}</td>
-          <td><button class="btn-action btn-print" style="padding:6px 10px;" onclick="printReceipt('${esc(o.id)}')" title="طباعة">🖨️</button></td>
-        </tr>`;
-      }).join('');
-
-      listEl.innerHTML = `<table class="history-table">
-        <thead><tr>
-          <th>رقم</th><th>الوقت</th><th>النوع</th><th>الطلبات</th><th>IQD</th><th>الحالة</th><th>كاشير</th><th></th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+      renderHistoryTable(data);
     } catch (e) {
       listEl.innerHTML = `<div class="history-empty">فشل تحميل البيانات</div>`;
     }
   }
 
-  /* ─── SSE: 실시간 새 주문 수신 ─── */
+  /* ─── SSE: استقبال الطلبات الجديدة في الوقت الفعلي ─── */
   function setConnDot(state) {
     const dot = document.getElementById('conn-dot');
     if (!dot) return;
@@ -1167,6 +1320,10 @@
         if (currentTab === 'reservations') loadReservations();
       } else if (msg.type === 'reservation_updated') {
         if (currentTab === 'reservations') loadReservations();
+      } else if (msg.type === 'new_meeting_reservation') {
+        if (currentTab === 'reservations') loadMeetingReservations();
+      } else if (msg.type === 'meeting_reservation_updated') {
+        if (currentTab === 'reservations') loadMeetingReservations();
       }
     };
     es.onerror = () => {
@@ -1176,7 +1333,7 @@
     };
   }
 
-  /* ─── 캐셔 로그인 ─── */
+  /* ─── تسجيل دخول الكاشير ─── */
   let cashierToken = sessionStorage.getItem('cashier_token') || '';
   let cashierName  = sessionStorage.getItem('cashier_name')  || '';
 
@@ -1229,7 +1386,7 @@
     location.reload();
   }
 
-  // 페이지 로드 시 세션 확인
+  // التحقق من الجلسة عند تحميل الصفحة
   if (!cashierToken) {
     document.getElementById('loginOverlay').style.display = 'flex';
   } else {
@@ -1252,7 +1409,7 @@
       for (const t of tokens) {
         const url = `${BASE_URL}/?table=${t.table_num}&t=${t.token}`;
         const encodedUrl = encodeURIComponent(url);
-        // QR 이미지 서버에서 받아오기
+        // جلب صورة QR من الخادم
         const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
         const qrData = qrRes.ok ? await qrRes.json() : null;
         const imgSrc = qrData?.dataUrl || '';
@@ -1272,6 +1429,10 @@
             <button onclick="regenToken('${esc(t.table_num)}')"
               style="background:#f0f4f1;color:#4a4a4a;border:1px solid #d4e8d8;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
               🔄 تجديد
+            </button>
+            <button onclick="extendDineSession('${esc(t.table_num)}')"
+              style="background:#fff8e1;color:#d97706;border:1px solid #fde68a;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
+              ⏱ تمديد
             </button>
             <button onclick="deleteTableToken('${esc(t.table_num)}')"
               style="background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
@@ -1332,6 +1493,25 @@
     loadTableQRs();
   }
 
+  async function extendDineSession(tableNum) {
+    try {
+      const res = await fetch('/api/dine-sessions/extend', {
+        method: 'POST',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ tableNum: String(tableNum) })
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        alert(d.error || 'فشل تمديد الجلسة / Extend failed');
+        return;
+      }
+      const expiry = new Date(d.expiresAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+      alert(`✅ تم تمديد جلسة الطاولة ${tableNum}\nتنتهي في: ${expiry}\n\nTable ${tableNum} session extended until ${expiry}`);
+    } catch (e) {
+      alert('خطأ في الاتصال / Network error');
+    }
+  }
+
   async function printTableQR(tableNum, url) {
     const encodedUrl = encodeURIComponent(url);
     const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
@@ -1356,7 +1536,7 @@
     win.document.close();
   }
 
-  /* ─── 폴백 폴링: 30초마다 오늘 주문 재동기화 ─── */
+  /* ─── الاستطلاع الاحتياطي: إعادة مزامنة طلبات اليوم كل 30 ثانية ─── */
   setInterval(loadOrders, 30000);
 
   /* ─── Init ─── */

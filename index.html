@@ -3,7 +3,7 @@
 <html lang="ar" dir="rtl" id="html-root">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Mr. Kim's CAFE</title>
   <meta name="description" content="Mr. Kim's CAFE — Premium coffee, fresh drinks and good vibes. | مقهى مستر كيم — قهوة مميزة ومشروبات طازجة وأجواء رائعة." />
 
@@ -169,6 +169,7 @@
     ========================================= */
     .hero {
       min-height: 100vh;
+      min-height: 100svh;
       background: var(--green);
       display: flex;
       align-items: center;
@@ -402,7 +403,9 @@
       margin: 0 auto 48px;
     }
     @media (max-width: 600px) {
-      .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .cat-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .cat-label { font-size: 0.7rem; }
+      .group-tab { padding: 6px 16px; font-size: 0.8rem; }
     }
     .cat-tile {
       display: flex;
@@ -422,7 +425,7 @@
       border: 3px solid transparent;
       transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s;
     }
-    @media (max-width: 700px) { .cat-circle { width: 72px; height: 72px; font-size: 28px; } }
+    @media (max-width: 700px) { .cat-circle { width: 60px; height: 60px; font-size: 24px; } }
     .cat-tile:hover .cat-circle,
     .cat-tile.active .cat-circle {
       transform: scale(1.08);
@@ -511,6 +514,8 @@
       font-weight: 900;
       color: var(--green);
       font-size: 1rem;
+      direction: ltr;
+      unicode-bidi: plaintext;
     }
 
     .menu-cta { text-align: center; }
@@ -681,7 +686,7 @@
       font-size: 1.1rem;
       margin-bottom: 16px;
     }
-    .cart-total-price { color: var(--green); }
+    .cart-total-price { color: var(--green); direction: ltr; unicode-bidi: plaintext; }
     .btn-checkout {
       width: 100%;
       background: var(--green);
@@ -865,8 +870,12 @@
       cursor: pointer;
       font-family: inherit;
       transition: all 0.2s var(--ease);
+      white-space: nowrap;
     }
     .btn-auth-login:hover { background: var(--green); color: #fff; }
+    @media (max-width: 768px) {
+      .btn-auth-login { padding: 6px 14px; font-size: 11px; }
+    }
 
     .btn-auth-profile {
       display: flex;
@@ -1085,7 +1094,7 @@
     .order-history-card.cancelled { border-color: #e53e3e; }
     .order-history-card.done { border-color: #888; }
     .oh-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .oh-num { font-weight: 900; font-size: 0.9rem; }
+    .oh-num { font-weight: 900; font-size: 0.9rem; direction: ltr; unicode-bidi: plaintext; }
     .oh-status {
       font-size: 0.72rem; font-weight: 800; padding: 2px 10px;
       border-radius: var(--radius-pill);
@@ -1096,7 +1105,7 @@
     .oh-status.cancelled{ background: #fce4ec; color: #c62828; }
     .oh-items { font-size: 0.8rem; color: var(--text-mid); margin-bottom: 4px; }
     .oh-meta { font-size: 0.75rem; color: var(--text-soft); display: flex; justify-content: space-between; }
-    .oh-total { font-weight: 800; color: var(--green); }
+    .oh-total { font-weight: 800; color: var(--green); direction: ltr; unicode-bidi: plaintext; }
 
     .fav-card {
       display: flex; align-items: center; gap: 12px;
@@ -1108,7 +1117,7 @@
     .fav-emoji { font-size: 1.5rem; }
     .fav-info { flex: 1; }
     .fav-name { font-weight: 800; font-size: 0.9rem; }
-    .fav-price { font-size: 0.78rem; color: var(--text-soft); }
+    .fav-price { font-size: 0.78rem; color: var(--text-soft); direction: ltr; unicode-bidi: plaintext; }
     .btn-fav-add {
       background: var(--green); color: #fff;
       border: none; border-radius: var(--radius-pill);
@@ -1670,7 +1679,8 @@
     }
     .timeslot-btn:hover { border-color: var(--green); color: var(--green); }
     .timeslot-btn.selected { background: var(--green); color: #fff; border-color: var(--green); }
-    .timeslot-btn.booked { background: #f5f5f5; color: #ccc; cursor: not-allowed; border-color: #eee; text-decoration: line-through; }
+    .timeslot-btn.booked { background: #f5f5f5; color: #bbb; cursor: not-allowed; border-color: #eee; opacity: 0.55; }
+    .timeslot-btn.past  { background: #f9f9f9; color: #ccc; cursor: not-allowed; border-color: #eee; opacity: 0.45; }
 
     /* Booking form */
     .booking-form-wrap { margin-top: 24px; }
@@ -2018,7 +2028,15 @@
       .about-badge { right: 12px; bottom: 12px; }
       html[lang="ar"] .about-badge { left: 12px; right: auto; }
 
-      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .card-body { padding: 10px 12px 14px; }
+      .card-name { font-size: 0.82rem; }
+      .card-desc { font-size: 0.72rem; margin-bottom: 8px; }
+      .card-price { font-size: 0.88rem; }
+      .card-thumb-placeholder { font-size: 38px; }
+      .cat-panel-title { font-size: 1.2rem; margin-bottom: 16px; }
+      .back-btn { font-size: 0.8rem; padding: 6px 16px; margin-bottom: 18px; }
+      .menu-head { margin-bottom: 28px; }
       .reviews-grid { grid-template-columns: 1fr; }
       .footer-top { grid-template-columns: 1fr; gap: 28px; }
       .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
@@ -2026,12 +2044,106 @@
     }
 
     @media (max-width: 420px) {
-      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .card-body { padding: 10px 12px 14px; }
-      .card-name { font-size: 0.82rem; }
-      .card-desc { font-size: 0.72rem; margin-bottom: 8px; }
-      .card-price { font-size: 0.88rem; }
+      .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .card-body { padding: 8px 10px 12px; }
+      .card-name { font-size: 0.78rem; }
+      .card-desc { font-size: 0.68rem; margin-bottom: 6px; }
+      .card-price { font-size: 0.82rem; }
       .hero-logo-wrap { width: 120px; height: 120px; }
+      /* 4-col category grid → 3-col on very small screens */
+      .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    }
+
+    /* =========================================
+       MOBILE — iOS / Android 핵심 최적화
+    ========================================= */
+
+    /* 1. iOS 자동 줌 방지: input이 16px 미만이면 Safari가 확대함 */
+    @media (max-width: 768px) {
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* 2. Hero 모바일 패딩 축소 + 주소창 공간 확보 */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 96px 24px 64px;
+        align-items: flex-start;
+        padding-top: max(96px, calc(72px + env(safe-area-inset-top, 0px)));
+      }
+      .hero-inner { padding-top: 0; }
+      .hero-title { font-size: clamp(2rem, 9vw, 3.2rem); }
+      .hero-sub { font-size: 0.95rem; margin-bottom: 28px; }
+      .btn-hero { padding: 14px 32px; font-size: 0.92rem; }
+    }
+
+    /* 3. 안전 영역 인셋: iPhone 홈바 위로 FAB·Toast 띄우기 */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .my-order-fab {
+        bottom: calc(16px + env(safe-area-inset-bottom));
+      }
+      .toast {
+        bottom: calc(16px + env(safe-area-inset-bottom));
+      }
+    }
+
+    /* 4. 터치 타겟 최소 44px */
+    @media (max-width: 768px) {
+      .btn-add         { min-height: 44px; padding: 10px 18px; font-size: 0.85rem; }
+      .btn-nav-order   { min-height: 44px; }
+      .lang-btn        { min-height: 36px; }
+      .hamburger       { min-width: 44px; min-height: 44px; justify-content: center; align-items: center; }
+      .cart-btn        { min-height: 44px; padding: 10px 18px; }
+      .btn-checkout    { min-height: 52px; font-size: 1rem; }
+      .btn-book        { min-height: 52px; }
+      .timeslot-btn    { min-height: 44px; padding: 10px 8px; font-size: 0.82rem; }
+    }
+
+    /* 5. 섹션 상하 여백 축소 + 내부 여백 조정 */
+    @media (max-width: 768px) {
+      section { padding: 56px 20px; }
+      .split-content { padding: 36px 22px; }
+      .split-img, .split-img-placeholder { min-height: 240px; }
+      .section-desc { font-size: 0.93rem; }
+    }
+
+    /* 6. 카트 드로어: 모바일 full-width + 안전 영역 */
+    @media (max-width: 480px) {
+      .cart-drawer {
+        width: 100vw;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+    }
+
+    /* 7. 체크아웃 모달 패딩 축소 */
+    @media (max-width: 480px) {
+      .modal-box { padding: 24px 18px; border-radius: var(--radius-sm); }
+      .order-type-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .order-type-btn { padding: 12px 4px; }
+      .order-type-btn .type-icon { font-size: 1.5rem; }
+      .order-type-btn .type-label { font-size: 0.72rem; }
+    }
+
+    /* 8. 예약 캘린더 모바일 */
+    @media (max-width: 600px) {
+      .cal-day { min-height: 38px; font-size: 0.85rem; }
+      .reserve-time-grid { grid-template-columns: repeat(3, 1fr); }
+      .timeslot-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    }
+
+    /* 9. 네비게이션 모바일 메뉴 하단 안전 영역 */
+    @media (max-width: 768px) {
+      .nav-links.open {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      }
+      /* 네비 버튼 간격 확보 */
+      .nav-links.open a { padding: 13px 0; }
+    }
+
+    /* 10. 플로팅 주문 FAB 모바일 크기 */
+    @media (max-width: 480px) {
+      .my-order-fab { padding: 12px 20px; font-size: 0.85rem; }
     }
   </style>
 </head>
@@ -2526,8 +2638,8 @@
             <input type="tel" id="book-phone" placeholder="0000 000 0000" maxlength="13" />
           </div>
           <button class="btn-book" id="btn-book" onclick="submitBooking()">
-            <span class="en">📲 Book via WhatsApp</span>
-            <span class="ar">📲 احجز عبر واتساب</span>
+            <span class="en">📅 Reserve</span>
+            <span class="ar">📅 احجز الآن</span>
           </button>
         </div>
       </div>
@@ -3281,7 +3393,22 @@
         if (order.status === 'done' || order.status === 'cancelled') {
           clearInterval(_statusPollTimer);
           _statusPollTimer = null;
-          // 완료/취소 3초 후 FAB 제거
+          // 완료 시 로그인 고객에게 스탬프 적립 알림
+          if (order.status === 'done' && authState.customer) {
+            const isAr = document.documentElement.lang === 'ar';
+            // 최신 스탬프 수 조회 후 토스트
+            fetch('/api/customers/stamps', { headers: authHeader() })
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (!data) return;
+                const av = data.available;
+                showToast(isAr
+                  ? `☕ تم إضافة طابع! لديك ${av} طابع`
+                  : `☕ Stamp earned! You have ${av} stamp${av !== 1 ? 's' : ''}`
+                );
+              }).catch(() => {});
+          }
+          // 완료/취소 5초 후 FAB 제거
           setTimeout(() => {
             hideMyOrderFab();
             clearActiveOrder();
@@ -3480,8 +3607,8 @@
   let calDate = new Date();
   let calSelected = null;
   let slotSelected = null;
-  // Simulate some booked slots (in real app these come from backend)
-  const bookedSlots = {};
+  // Slot end hours (index matches TIME_SLOTS)
+  const SLOT_END_HOURS = [11, 13, 15, 17, 19, 21];
 
   function calNav(delta) {
     calDate = new Date(calDate.getFullYear(), calDate.getMonth() + delta, 1);
@@ -3540,67 +3667,91 @@
     calSelected = new Date(y, m, d);
     slotSelected = null;
     renderCal();
-    renderSlots();
     document.getElementById('timeslot-wrap').style.display = '';
     document.getElementById('booking-form-wrap').style.display = 'none';
+    fetchAndRenderSlots();
   }
 
-  function renderSlots() {
+  function calDateStr(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  async function fetchAndRenderSlots() {
+    if (!calSelected) return;
+    const isoDate = calDateStr(calSelected);
+    let bookedSet = new Set();
+    try {
+      const res = await fetch(`/api/meeting-reservations/availability?date=${isoDate}`);
+      if (res.ok) {
+        const data = await res.json();
+        data.slots.forEach(s => { if (!s.available) bookedSet.add(s.slot); });
+      }
+    } catch (_) {}
+    renderSlots(bookedSet);
+  }
+
+  function renderSlots(bookedSet = new Set()) {
     if (!calSelected) return;
     const lang = document.getElementById('html-root').getAttribute('lang');
-    const key = calSelected.toDateString();
-    const booked = bookedSlots[key] || [];
+    const now = new Date();
+    const isToday = calSelected.toDateString() === now.toDateString();
+    const currentHour = now.getHours();
     const grid = document.getElementById('timeslot-grid');
     grid.innerHTML = TIME_SLOTS.map((slot, i) => {
-      const isBooked = booked.includes(i);
+      const isBooked = bookedSet.has(slot);
+      const isPast = isToday && SLOT_END_HOURS[i] <= currentHour;
       const isSel = slotSelected === i;
       let cls = 'timeslot-btn';
       if (isBooked) cls += ' booked';
+      else if (isPast) cls += ' past';
       else if (isSel) cls += ' selected';
-      const disabled = isBooked ? 'disabled' : '';
-      const label = isBooked
-        ? (lang === 'ar' ? slot + ' محجوز' : slot + ' Booked')
-        : slot;
-      return `<button class="${cls}" ${disabled} onclick="selectSlot(${i})">${label}</button>`;
+      return `<button class="${cls}" onclick="selectSlot(${i},${isBooked},${isPast})">${slot}</button>`;
     }).join('');
   }
 
-  function selectSlot(idx) {
-    slotSelected = idx;
-    renderSlots();
-    // Show booking form
+  function selectSlot(idx, isBooked, isPast) {
     const lang = document.getElementById('html-root').getAttribute('lang');
+    if (isBooked) {
+      showToast(lang === 'ar' ? '⚠️ هذا الوقت محجوز بالفعل' : '⚠️ This time slot is already booked');
+      return;
+    }
+    if (isPast) {
+      showToast(lang === 'ar' ? '⚠️ هذا الوقت قد مضى' : '⚠️ This time slot has already passed');
+      return;
+    }
+    slotSelected = idx;
+    fetchAndRenderSlots();
     const dateStr = calSelected.toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
     const info = document.getElementById('booking-selected-info');
-    info.innerHTML = lang === 'ar'
-      ? `📅 ${dateStr} &nbsp;·&nbsp; ⏰ ${TIME_SLOTS[idx]}`
-      : `📅 ${dateStr} &nbsp;·&nbsp; ⏰ ${TIME_SLOTS[idx]}`;
+    info.innerHTML = `📅 ${dateStr} &nbsp;·&nbsp; ⏰ ${TIME_SLOTS[idx]}`;
     document.getElementById('booking-form-wrap').style.display = '';
   }
 
-  function submitBooking() {
+  async function submitBooking() {
     const name = document.getElementById('book-name').value.trim();
     const phone = document.getElementById('book-phone').value.trim();
     const lang = document.getElementById('html-root').getAttribute('lang');
     if (!name) { showToast(lang === 'ar' ? '⚠️ أدخل اسمك' : '⚠️ Please enter your name'); return; }
     if (!phone) { showToast(lang === 'ar' ? '⚠️ أدخل رقم هاتفك' : '⚠️ Please enter your phone'); return; }
 
-    const dateStr = calSelected.toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-    let msg = `📅 *Meeting Room Booking — Mr. Kim's CAFE*\n`;
-    msg += `━━━━━━━━━━━━━━━━\n`;
-    msg += `👤 ${name}\n📞 ${phone}\n`;
-    msg += `📅 ${dateStr}\n⏰ ${TIME_SLOTS[slotSelected]}\n`;
-    msg += `━━━━━━━━━━━━━━━━\n`;
-    msg += `💰 25,000 IQD (paid on arrival)`;
+    const isoDate = calDateStr(calSelected);
+    const slot = TIME_SLOTS[slotSelected];
 
-    window.open(`https://wa.me/${MEETING_WA}?text=${encodeURIComponent(msg)}`, '_blank');
-
-    // 고객 WhatsApp으로 예약 확인 문자 자동 전송
-    const cleanPhone = phone.replace(/\D/g, '');
-    const confirmMsg = `✅ *Booking Confirmed — Mr. Kim's CAFE*\n━━━━━━━━━━━━━━━━\n👤 ${name}\n📅 ${dateStr}\n⏰ ${TIME_SLOTS[slotSelected]}\n💰 25,000 IQD (paid on arrival)\n━━━━━━━━━━━━━━━━\nThank you for your reservation! We look forward to seeing you.\nشكراً لحجزك! نتطلع لرؤيتك.`;
-    setTimeout(() => window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(confirmMsg)}`, '_blank'), 600);
-
-    showToast(lang === 'ar' ? '✅ تم إرسال الحجز!' : '✅ Booking sent!');
+    try {
+      const res = await fetch('/api/meeting-reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, date: isoDate, slot })
+      });
+      if (!res.ok) throw new Error();
+      showToast(lang === 'ar' ? '✅ تم إرسال الحجز!' : '✅ Booking sent!');
+    } catch (_) {
+      showToast(lang === 'ar' ? '⚠️ فشل إرسال الحجز' : '⚠️ Booking failed, please try again');
+      return;
+    }
 
     // Reset
     calSelected = null; slotSelected = null;
@@ -3929,7 +4080,7 @@
     document.body.style.overflow = 'hidden';
     if (authState.customer) {
       document.getElementById('profile-full-name').textContent = authState.customer.name;
-      document.getElementById('profile-meta').textContent = authState.customer.phone + ' · ' + authState.customer.email;
+      document.getElementById('profile-meta').innerHTML = `<span dir="ltr" style="unicode-bidi:plaintext;">${authState.customer.phone}</span> · ${authState.customer.email}`;
     }
     switchProfileTab('orders');
     loadProfileData();
@@ -3976,12 +4127,12 @@
         const dateStr = new Date(r.date).toLocaleDateString(isAr ? 'ar-IQ' : 'en-GB', { year:'numeric', month:'short', day:'numeric' });
         return `<div style="background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-weight:800;font-size:0.95rem;">${dateStr} — ${r.time}</span>
+            <span dir="ltr" style="font-weight:800;font-size:0.95rem;unicode-bidi:plaintext;">${dateStr} — ${r.time}</span>
             <span style="background:${color}22;color:${color};border-radius:20px;padding:2px 10px;font-size:0.75rem;font-weight:800;">${label}</span>
           </div>
           <div style="font-size:0.83rem;color:var(--text-soft);">
-            👥 ${r.party_size} <span class="en">guests</span><span class="ar">أشخاص</span>
-            ${r.table_num ? ` · 🪑 <span class="en">Table</span><span class="ar">طاولة</span> ${r.table_num}` : ''}
+            👥 <span dir="ltr" style="unicode-bidi:plaintext;">${r.party_size}</span> <span class="en">guests</span><span class="ar">أشخاص</span>
+            ${r.table_num ? ` · 🪑 <span class="en">Table</span><span class="ar">طاولة</span> <span dir="ltr" style="unicode-bidi:plaintext;">${r.table_num}</span>` : ''}
             ${r.notes ? `<br>📝 ${r.notes}` : ''}
           </div>
         </div>`;
@@ -4058,13 +4209,19 @@
 
     const histHtml = (history && history.length) ? history.map(h => {
       const d = new Date(h.created_at).toLocaleDateString(isAr ? 'ar-IQ' : 'en-GB');
-      const isEarn = h.type === 'earn';
-      const icon = isEarn ? '☕' : '🎁';
-      const label = isEarn
-        ? (isAr ? `+${h.amount} طابع` : `+${h.amount} stamp`)
-        : (isAr ? `استُخدم مشروب مجاني` : `Free drink redeemed`);
+      let icon, label, cls;
+      if (h.type === 'earn') {
+        icon = '☕'; cls = 'earn';
+        label = isAr ? `+${h.amount} طابع` : `+${h.amount} stamp`;
+      } else if (h.type === 'birthday') {
+        icon = '🎂'; cls = 'earn';
+        label = isAr ? `🎂 +${h.amount} طابع عيد الميلاد` : `🎂 +${h.amount} Birthday bonus`;
+      } else {
+        icon = '🎁'; cls = 'redeem';
+        label = isAr ? `استُخدم مشروب مجاني` : `Free drink redeemed`;
+      }
       return `<div class="stamp-history-item">
-        <div class="stamp-history-icon ${h.type}">${icon}</div>
+        <div class="stamp-history-icon ${cls}">${icon}</div>
         <div style="flex:1"><div style="font-weight:700">${label}</div><div style="color:var(--text-soft);font-size:0.75rem">${d}</div></div>
       </div>`;
     }).join('') : `<div style="color:var(--text-soft);text-align:center;padding:16px 0;font-size:0.82rem">${isAr ? 'لا سجل بعد' : 'No history yet'}</div>`;

@@ -24,7 +24,7 @@ async function adminLogin(password = '1234') {
 }
 
 // 캐셔 로그인
-async function cashierLogin(name = 'aliatheer', password = '1234') {
+async function cashierLogin(name = 'ali atheer', password = '1234') {
   const { status, data } = await apiRequest('POST', '/api/cashier/login', { name, password });
   if (status !== 200 || !data.token) throw new Error(`캐셔 로그인 실패: ${JSON.stringify(data)}`);
   return data.token;
@@ -50,11 +50,19 @@ async function customerLogin(phone, password) {
   return data.token;
 }
 
-// 주문 생성 (고객 토큰 선택적)
-async function createOrder({ type = 'pickup', items, total, customerName, customerPhone, arrivalTime, customerToken = null }) {
+// dine-in 세션 시작: qrToken → dineSessionToken
+async function startDineSession(qrToken) {
+  const { status, data } = await apiRequest('POST', '/api/dine-session', { qrToken });
+  if (status !== 200 || !data.sessionToken) throw new Error(`다인 세션 시작 실패: ${JSON.stringify(data)}`);
+  return data.sessionToken;
+}
+
+// 주문 생성 (고객 토큰, dine 세션 토큰 선택적)
+async function createOrder({ type = 'pickup', items, total, customerName, customerPhone, arrivalTime, customerToken = null, dineSessionToken = null }) {
   const headers = customerToken ? { 'x-customer-token': customerToken } : {};
   const body = { type, items, total, customerName, customerPhone };
   if (type === 'pickup') body.arrivalTime = arrivalTime || '15:00';
+  if (type === 'dine' && dineSessionToken) body.dineSessionToken = dineSessionToken;
   const { status, data } = await apiRequest('POST', '/api/orders', body, headers);
   return { status, data };
 }
@@ -67,10 +75,11 @@ async function updateOrderStatus(orderId, status, { adminToken = null, cashierTo
   return apiRequest('PUT', `/api/orders/${orderId}/status`, { status }, headers);
 }
 
-// 재고 조회
-async function getIngredients() {
-  const { data } = await apiRequest('GET', '/api/ingredients');
-  return data;
+// 재고 조회 (관리자 토큰 필요)
+async function getIngredients(adminToken = null) {
+  const headers = adminToken ? { 'x-auth-token': adminToken } : {};
+  const { data } = await apiRequest('GET', '/api/ingredients', null, headers);
+  return Array.isArray(data) ? data : [];
 }
 
 // 일일 판매 등록 (재고 차감 트리거)
@@ -88,9 +97,9 @@ async function getOrders(params = {}, { adminToken = null, cashierToken = null }
   return Array.isArray(data) ? data : [];
 }
 
-// 특정 재료의 현재 재고 조회
-async function getIngredientQty(ingredientId) {
-  const ingredients = await getIngredients();
+// 특정 재료의 현재 재고 조회 (관리자 토큰 필요)
+async function getIngredientQty(ingredientId, adminToken = null) {
+  const ingredients = await getIngredients(adminToken);
   const found = ingredients.find(i => i.id === ingredientId);
   return found ? found.current_qty : null;
 }
@@ -101,6 +110,7 @@ module.exports = {
   cashierLogin,
   registerCustomer,
   customerLogin,
+  startDineSession,
   createOrder,
   updateOrderStatus,
   getIngredients,
