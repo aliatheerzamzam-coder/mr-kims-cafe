@@ -1419,11 +1419,19 @@ async function loadIngredients(render = true) {
       groups[cat].push(i);
     });
 
-    const orderedCats = [...CATEGORY_ORDER.filter(c => groups[c]), ...Object.keys(groups).filter(c => !CATEGORY_ORDER.includes(c))];
+    const orderedCats = [...CATEGORY_ORDER, ...Object.keys(groups).filter(c => !CATEGORY_ORDER.includes(c))];
 
     container.innerHTML = orderedCats.map(cat => {
-      const items = groups[cat];
+      const items = groups[cat] || [];
       const emoji = CATEGORY_EMOJI[cat] || '📦';
+
+      if (!items.length) {
+        return `<div class="card" style="margin-bottom:1rem;opacity:.55">
+          <h3 style="margin-bottom:.5rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(0종)</span></h3>
+          <p style="text-align:center;color:var(--soft);font-size:.85rem;padding:.6rem 0">재료 없음</p>
+        </div>`;
+      }
+
       const rows = items.map(i => {
         const status = i.current_qty === 0
           ? `<span class="badge badge-danger">${t('status_out')}</span>`
