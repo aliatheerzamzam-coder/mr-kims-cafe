@@ -22,11 +22,12 @@
       --green-light:  #4a9962;
       --green-pale:   #e8f5ee;
       --white:        #ffffff;
-      --off-white:    #f7f9f7;
+      --off-white:    #f7f7f7;
       --text-dark:    #1a1a1a;
       --text-mid:     #4a4a4a;
       --text-soft:    #888888;
       --star:         #f5a623;
+      --red:          #e53e3e;
       --radius-xs:    6px;
       --radius-sm:    12px;
       --radius-md:    20px;
@@ -165,17 +166,15 @@
     }
 
     /* =========================================
-       HERO
+       HERO — 2-column editorial layout
     ========================================= */
     .hero {
       min-height: 100vh;
       min-height: 100svh;
-      background: var(--green);
+      background: var(--green-dark);
       display: flex;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 40px 80px;
+      padding: 100px 48px 80px;
       position: relative;
       overflow: hidden;
     }
@@ -183,61 +182,199 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(125% 125% at 50% 90%, #4a9962 40%, #285f3b 100%);
+      background: radial-gradient(120% 140% at 70% 110%, #2a5f3b 30%, #1a3d28 100%);
       pointer-events: none;
       z-index: 0;
     }
+    /* Decorative circles */
     .hero::after {
       content: '';
       position: absolute;
-      width: 400px; height: 400px;
-      background: rgba(255,255,255,0.04);
+      width: 560px; height: 560px;
+      background: rgba(255,255,255,0.02);
       border-radius: 50%;
-      bottom: -100px; left: -100px;
+      top: -120px; right: -120px;
       pointer-events: none;
     }
 
-    .hero-inner { position: relative; z-index: 1; max-width: 680px; }
-
-    .hero-logo-wrap {
-      width: 160px; height: 160px;
-      border-radius: 50%;
-      overflow: hidden;
-      margin: 0 auto 36px;
-      background: var(--white);
-      display: flex;
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
       align-items: center;
-      justify-content: center;
     }
-    .hero-logo { width: 105%; height: 105%; object-fit: cover; display: block; margin: -2.5%; }
+
+    /* Left column: text */
+    .hero-left { color: var(--white); }
+
+    .hero-eyebrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: var(--radius-pill);
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 22px;
+    }
 
     .hero-title {
-      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-size: clamp(2.6rem, 5vw, 4.8rem);
       font-weight: 900;
       color: var(--white);
       line-height: 1.05;
       margin-bottom: 20px;
+      text-align: start;
     }
     .hero-sub {
-      font-size: clamp(1rem, 2vw, 1.2rem);
-      color: rgba(255,255,255,0.82);
+      font-size: clamp(1rem, 1.6vw, 1.15rem);
+      color: rgba(255,255,255,0.78);
       font-weight: 600;
-      margin-bottom: 44px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+      max-width: 420px;
     }
+
+    .hero-cta-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
     .btn-hero {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       background: var(--white);
-      color: var(--green);
-      padding: 17px 44px;
+      color: #1a1a1a;
+      padding: 16px 40px;
       border-radius: var(--radius-pill);
       font-weight: 900;
       font-size: 1rem;
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.22);
       transition: transform var(--speed) var(--ease), box-shadow var(--speed) var(--ease);
     }
-    .btn-hero:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,0,0,0.22); }
+    .btn-hero:hover { transform: translateY(-3px); box-shadow: 0 20px 56px rgba(0,0,0,0.28); }
+
+    .btn-hero-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid rgba(255,255,255,0.6);
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: var(--radius-pill);
+      font-weight: 800;
+      font-size: 0.95rem;
+      transition: all var(--speed) var(--ease);
+    }
+    .btn-hero-ghost:hover { background: rgba(255,255,255,0.12); border-color: var(--white); }
+
+    /* Right column: visual */
+    .hero-right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 40px 20px;
+    }
+
+    .hero-logo-wrap {
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+      border: 6px solid rgba(255,255,255,0.25);
+      position: relative;
+      z-index: 2;
+    }
+    .hero-logo { width: 105%; height: 105%; object-fit: cover; display: block; margin: -2.5%; }
+
+    /* Floating info cards */
+    @keyframes floaty-a { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes floaty-b { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+    @keyframes floaty-c { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+    .hero-card {
+      position: absolute;
+      background: var(--white);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.16);
+      z-index: 3;
+      white-space: nowrap;
+    }
+    .hero-card-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .hero-card-body { display: flex; flex-direction: column; }
+    .hero-card-label { font-size: 0.68rem; font-weight: 800; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.08em; line-height: 1; margin-bottom: 2px; }
+    .hero-card-value { font-size: 0.92rem; font-weight: 900; color: var(--text-dark); line-height: 1.2; }
+
+    .hero-card-a { top: 0; left: -20px; animation: floaty-a 4s ease-in-out infinite; }
+    .hero-card-b { bottom: 20px; left: -30px; animation: floaty-b 5s ease-in-out infinite 0.8s; }
+    .hero-card-c { top: 30px; right: -10px; animation: floaty-c 3.5s ease-in-out infinite 1.4s; }
+
+    /* Trust strip */
+    .trust-strip {
+      background: var(--green-dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+      padding: 14px 40px;
+      flex-wrap: wrap;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.82);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 28px;
+    }
+    .trust-item + .trust-item {
+      border-inline-start: 1px solid rgba(255,255,255,0.18);
+    }
+    .trust-item-icon { font-size: 1rem; }
+
+    /* Mobile hero */
+    @media (max-width: 900px) {
+      .hero { padding: 90px 28px 60px; }
+      .hero-inner { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+      .hero-left { display: flex; flex-direction: column; align-items: center; }
+      .hero-title { text-align: center; }
+      .hero-sub { text-align: center; margin-left: auto; margin-right: auto; }
+      .hero-cta-row { justify-content: center; }
+      .hero-right { padding: 10px 20px 0; }
+      .hero-logo-wrap { width: 200px; height: 200px; }
+      .hero-card { display: none; }
+      .trust-strip { gap: 0; padding: 12px 20px; }
+      .trust-item { padding: 6px 14px; font-size: 12px; }
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 80px 20px 50px; }
+      .hero-logo-wrap { width: 160px; height: 160px; }
+      .trust-item + .trust-item { border: none; }
+      .trust-strip { flex-direction: column; gap: 4px; padding: 14px 20px; }
+    }
 
     /* =========================================
        BANNER
@@ -354,17 +491,18 @@
     }
     .split-content.light .section-title { color: var(--text-dark); }
     .split-content.light .section-desc { color: var(--text-mid); }
-    .split-content.light .section-eyebrow { color: var(--green); }
+    .split-content.light .section-eyebrow { color: #1a1a1a; }
     .split-content.light .btn-split {
-      border-color: var(--green);
-      color: var(--green);
+      border-color: #1a1a1a;
+      color: #1a1a1a;
     }
-    .split-content.light .btn-split:hover { background: var(--green); color: var(--white); border-color: var(--green); }
+    .split-content.light .btn-split:hover { background: #1a1a1a; color: var(--white); border-color: #1a1a1a; }
 
     /* =========================================
        MENU SECTION
     ========================================= */
     .menu-section { background: var(--off-white); }
+    .menu-section .max-w { max-width: 1200px; margin: 0 auto; }
 
     .menu-head { text-align: center; margin-bottom: 44px; }
     .menu-head .section-desc { margin: 0 auto; }
@@ -415,13 +553,14 @@
       cursor: pointer;
     }
     .cat-circle {
-      width: 96px;
-      height: 96px;
+      width: 92px;
+      height: 92px;
       border-radius: 50%;
+      background: linear-gradient(135deg, #f0f9f4 0%, #e0f2e9 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 38px;
+      font-size: 36px;
       border: 3px solid transparent;
       transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s;
     }
@@ -440,30 +579,17 @@
       line-height: 1.3;
     }
 
-    /* Items panel */
-    .items-panel { display: none; max-width: 1200px; margin: 0 auto; }
-    .back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: none;
-      border: 2px solid var(--green);
-      color: var(--green);
-      font-weight: 700;
-      font-size: 0.9rem;
-      padding: 8px 20px;
-      border-radius: var(--radius-pill);
-      cursor: pointer;
-      margin-bottom: 28px;
-      font-family: inherit;
-      transition: all var(--speed) var(--ease);
-    }
-    .back-btn:hover { background: var(--green); color: var(--white); }
+    /* Menu grid wrap (flat layout — always visible) */
+    #menu-grid-wrap { max-width: 1200px; margin: 0 auto; }
     .cat-panel-title {
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       font-weight: 900;
       color: var(--text-dark);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+    }
+    @keyframes gridFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .menu-grid {
@@ -472,6 +598,9 @@
       gap: 22px;
       max-width: 1200px;
       margin: 0 auto 44px;
+    }
+    .menu-grid.updated {
+      animation: gridFadeIn 0.25s var(--ease) both;
     }
 
     .menu-card {
@@ -491,24 +620,24 @@
     .card-thumb-placeholder {
       width: 100%;
       aspect-ratio: 4/3;
-      background: linear-gradient(135deg, var(--green-pale) 0%, #c8e8d4 100%);
+      background: linear-gradient(135deg, #f0f9f4 0%, #e0f2e9 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 52px;
     }
 
-    .card-body { padding: 16px 18px 20px; }
+    .card-body { padding: 14px 16px 18px; }
     .card-name {
       font-weight: 800;
       font-size: 0.95rem;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
     .card-desc {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-soft);
       line-height: 1.5;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .card-price {
       font-weight: 900;
@@ -579,14 +708,16 @@
       color: var(--white);
       border: none;
       border-radius: var(--radius-pill);
-      padding: 7px 16px;
+      padding: 8px 18px;
       font-size: 0.8rem;
       font-weight: 800;
       cursor: pointer;
       font-family: inherit;
-      transition: background var(--speed) var(--ease), transform 0.15s;
+      min-height: 44px;
+      transition: all 0.15s;
     }
     .btn-add:hover { background: var(--green-dark); transform: scale(1.05); }
+    .btn-add:active { transform: scale(0.97); }
     .btn-add:active { transform: scale(0.97); }
 
     /* Cart drawer */
@@ -737,7 +868,7 @@
     .order-type-btn {
       padding: 16px 8px;
       border-radius: var(--radius-sm);
-      border: 2px solid #e0e8e3;
+      border: 2px solid #d4e8d8;
       background: var(--white);
       cursor: pointer;
       text-align: center;
@@ -759,7 +890,7 @@
     }
     .order-form-field input, .order-form-field select {
       width: 100%;
-      border: 2px solid #e0e8e3;
+      border: 2px solid #d4e8d8;
       border-radius: var(--radius-xs);
       padding: 12px 14px;
       font-size: 0.95rem;
@@ -855,6 +986,61 @@
       white-space: nowrap;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* =========================================
+       SIZE PICKER MODAL
+    ========================================= */
+    .size-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1800;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s var(--ease);
+    }
+    .size-overlay.open { opacity: 1; pointer-events: all; }
+    .size-sheet {
+      background: var(--white);
+      border-radius: 24px 24px 0 0;
+      padding: 28px 24px 40px;
+      width: min(480px, 100vw);
+      transform: translateY(100%);
+      transition: transform 0.35s var(--ease);
+    }
+    .size-overlay.open .size-sheet { transform: translateY(0); }
+    .size-sheet-handle {
+      width: 40px; height: 4px; background: #ddd; border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .size-sheet-thumb { text-align: center; font-size: 3rem; margin-bottom: 8px; }
+    .size-sheet-name { text-align: center; font-weight: 900; font-size: 1.1rem; margin-bottom: 4px; }
+    .size-sheet-sub {
+      text-align: center; font-size: 0.82rem; color: var(--text-soft); margin-bottom: 20px;
+    }
+    .size-options { display: flex; gap: 10px; margin-bottom: 20px; }
+    .size-btn {
+      flex: 1; padding: 16px 8px; border-radius: var(--radius-md);
+      border: 2px solid #d4e8d8; background: var(--white);
+      cursor: pointer; font-family: inherit; text-align: center;
+      transition: all 0.2s;
+    }
+    .size-btn:hover { border-color: var(--green); }
+    .size-btn.selected { border-color: var(--green); background: var(--green-pale); }
+    .size-btn .size-letter { font-weight: 900; font-size: 1.3rem; display: block; margin-bottom: 4px; }
+    .size-btn .size-price { font-size: 0.78rem; color: var(--text-soft); }
+    .size-btn.selected .size-price { color: var(--green); font-weight: 700; }
+    .btn-size-confirm {
+      width: 100%; padding: 16px; border-radius: var(--radius-pill);
+      background: var(--green); color: var(--white); border: none;
+      font-weight: 900; font-size: 1rem; cursor: pointer; font-family: inherit;
+      transition: background 0.2s; min-height: 52px;
+    }
+    .btn-size-confirm:hover { background: var(--green-dark); }
+    .size-tag {
+      display: inline-block; background: var(--green-pale); color: var(--green);
+      border-radius: var(--radius-pill); padding: 1px 8px; font-size: 0.72rem;
+      font-weight: 800; margin-inline-start: 6px; vertical-align: middle;
+    }
 
     /* =========================================
        AUTH — Login button / Profile button
@@ -958,7 +1144,7 @@
     }
     .auth-field input {
       width: 100%; padding: 10px 14px;
-      border: 2px solid #e0e8e3;
+      border: 2px solid #d4e8d8;
       border-radius: var(--radius-sm);
       font-family: inherit; font-size: 0.9rem;
       color: var(--text-dark); background: var(--white);
@@ -1009,7 +1195,7 @@
     }
     .step-dot {
       width: 8px; height: 8px; border-radius: 50%;
-      background: #e0e0e0; transition: background 0.3s;
+      background: #c8dfd0; transition: background 0.3s;
     }
     .step-dot.active { background: var(--green); }
 
@@ -1136,7 +1322,7 @@
       width: 100%; padding: 10px;
       margin-top: 8px;
       border-radius: var(--radius-pill);
-      border: 2px solid #e0e0e0;
+      border: 2px solid #d4e8d8;
       background: none; color: var(--text-mid);
       font-family: inherit; font-size: 0.85rem; font-weight: 800;
       cursor: pointer; transition: all 0.2s;
@@ -1327,7 +1513,7 @@
     .reserve-input {
       width: 100%;
       padding: 11px 14px;
-      border: 1.5px solid #e0e0e0;
+      border: 1.5px solid #d4e8d8;
       border-radius: var(--radius-sm);
       font-family: inherit;
       font-size: 0.9rem;
@@ -1345,7 +1531,7 @@
     @media (max-width: 480px) { .reserve-time-grid { grid-template-columns: repeat(3, 1fr); } }
     .reserve-time-btn {
       padding: 9px 4px;
-      border: 1.5px solid #e0e0e0;
+      border: 1.5px solid #d4e8d8;
       border-radius: var(--radius-sm);
       font-family: inherit;
       font-size: 0.78rem;
@@ -1414,7 +1600,7 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 1.3rem;
       background: #f0f0f0; color: #aaa;
-      border: 3px solid #e8e8e8;
+      border: 3px solid #d0ecd8;
       transition: background 0.4s, border-color 0.4s, color 0.4s;
       position: relative; z-index: 1;
     }
@@ -1443,7 +1629,7 @@
 
     /* connector line between steps */
     .status-connector {
-      flex: 0 0 32px; height: 3px; background: #e8e8e8;
+      flex: 0 0 32px; height: 3px; background: #d0ecd8;
       margin-top: 20px; /* align vertically with dot center */
       border-radius: 2px;
       transition: background 0.4s;
@@ -1612,7 +1798,7 @@
     .cal-nav-btn {
       width: 36px; height: 36px;
       border-radius: 50%;
-      border: 2px solid #e0e8e3;
+      border: 2px solid #d4e8d8;
       background: none;
       cursor: pointer;
       font-size: 1rem;
@@ -1667,7 +1853,7 @@
     .timeslot-btn {
       padding: 10px 6px;
       border-radius: var(--radius-sm);
-      border: 2px solid #e0e8e3;
+      border: 2px solid #d4e8d8;
       background: var(--white);
       font-size: 0.8rem;
       font-weight: 700;
@@ -1896,7 +2082,7 @@
     .form-input {
       width: 100%;
       padding: 13px 16px;
-      border: 2px solid #e0e8e3;
+      border: 2px solid #d4e8d8;
       border-radius: var(--radius-xs);
       font-family: inherit;
       font-size: 0.92rem;
@@ -2034,8 +2220,7 @@
       .card-desc { font-size: 0.72rem; margin-bottom: 8px; }
       .card-price { font-size: 0.88rem; }
       .card-thumb-placeholder { font-size: 38px; }
-      .cat-panel-title { font-size: 1.2rem; margin-bottom: 16px; }
-      .back-btn { font-size: 0.8rem; padding: 6px 16px; margin-bottom: 18px; }
+      .cat-panel-title { font-size: 1.1rem; margin-bottom: 14px; }
       .menu-head { margin-bottom: 28px; }
       .reviews-grid { grid-template-columns: 1fr; }
       .footer-top { grid-template-columns: 1fr; gap: 28px; }
@@ -2145,6 +2330,24 @@
     @media (max-width: 480px) {
       .my-order-fab { padding: 12px 20px; font-size: 0.85rem; }
     }
+
+    /* 11. 375px 네비 과밀 해소: 간격 축소 + 카트 아이콘 전용 */
+    @media (max-width: 480px) {
+      .nav-right { gap: 8px; }
+      .lang-btn { padding: 4px 9px; font-size: 11px; }
+      .cart-btn .en,
+      .cart-btn .ar { display: none; }
+      .cart-btn { padding: 10px 12px; min-width: 44px; justify-content: center; }
+      .btn-auth-login { padding: 6px 10px; font-size: 11px; }
+      .btn-auth-profile { padding: 5px 10px 5px 5px; font-size: 11px; }
+    }
+
+    /* 12. 375px 이하: 섹션 패딩 최소화 + 히어로 로고 축소 */
+    @media (max-width: 375px) {
+      section { padding: 48px 16px; }
+      .hero-logo-wrap { width: 100px; height: 100px; }
+      .hero-title { font-size: clamp(1.85rem, 10vw, 2.4rem); }
+    }
   </style>
 </head>
 <body>
@@ -2202,33 +2405,45 @@
 <section class="hero" id="home">
   <div class="hero-inner">
 
-    <div class="hero-logo-wrap">
-      <!--
-        REPLACE_IMG: hero logo
-        캐릭터 로고 (킴스커피-02.jpg 왼쪽 부분)
-      -->
-      <img class="hero-logo"
-           src="logo.jpg"
-           alt="Kim's CAFE logo">
+    <!-- LEFT: text content -->
+    <div class="hero-left">
+
+      <h1 class="hero-title">
+        <span class="en">Mr. Kim's<br>CAFE</span>
+        <span class="ar">مستر كيمز<br>كافيه</span>
+      </h1>
+
+      <p class="hero-sub">
+        <span class="en">Premium coffee, fresh drinks and good vibes.</span>
+        <span class="ar">قهوة مميزة، مشروبات طازجة وأجواء رائعة.</span>
+      </p>
+
+      <div class="hero-cta-row">
+        <a href="#menu" class="btn-hero">
+          <span class="en">Start an Order</span>
+          <span class="ar">ابدأ طلبك</span>
+        </a>
+        <a href="#reserve" class="btn-hero-ghost">
+          <span class="en">Reserve a Table</span>
+          <span class="ar">احجز طاولة</span>
+        </a>
+      </div>
+
     </div>
 
-    <h1 class="hero-title">
-      <span class="en">Mr. Kim's<br>CAFE</span>
-      <span class="ar">مقهى<br>مستر كيم</span>
-    </h1>
+    <!-- RIGHT: logo + floating cards -->
+    <div class="hero-right">
 
-    <p class="hero-sub">
-      <span class="en">Coffee house &amp; more</span>
-      <span class="ar">Coffee house &amp; more</span>
-    </p>
+      <div class="hero-logo-wrap">
+        <img class="hero-logo" src="logo.jpg" alt="Mr. Kim's CAFE logo">
+      </div>
 
-    <a href="#menu" class="btn-hero">
-      <span class="en">Start an Order</span>
-      <span class="ar">ابدأ طلبك</span>
-    </a>
+
+    </div>
 
   </div>
 </section>
+
 
 
 <!-- Announcement Banner -->
@@ -2312,6 +2527,7 @@
      MENU SECTION
 ============================================================ -->
 <section class="menu-section" id="menu">
+  <div class="max-w">
 
   <div class="menu-head">
     <p class="section-eyebrow">
@@ -2340,73 +2556,69 @@
 
   <div class="cat-grid" id="cat-grid">
     <div class="cat-tile" data-cat="hot-coffee" onclick="showCategory('hot-coffee', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#f5e6d3,#e8c9a0);">☕</div>
+      <div class="cat-circle">☕</div>
       <span class="cat-label en">Hot Coffee</span>
       <span class="cat-label ar">قهوة ساخنة</span>
     </div>
     <div class="cat-tile" data-cat="cold-coffee" onclick="showCategory('cold-coffee', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#d3eaf5,#a0c9e8);">🧊</div>
+      <div class="cat-circle">🧊</div>
       <span class="cat-label en">Cold Coffee</span>
       <span class="cat-label ar">قهوة باردة</span>
     </div>
     <div class="cat-tile" data-cat="matcha" onclick="showCategory('matcha', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#d3f5dc,#a0e8b0);">🍵</div>
+      <div class="cat-circle">🍵</div>
       <span class="cat-label en">Matcha</span>
       <span class="cat-label ar">ماتشا</span>
     </div>
     <div class="cat-tile" data-cat="hot-tea" onclick="showCategory('hot-tea', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#f5f0d3,#e8d8a0);">🫖</div>
+      <div class="cat-circle">🫖</div>
       <span class="cat-label en">Hot Tea</span>
       <span class="cat-label ar">شاي ساخن</span>
     </div>
     <div class="cat-tile" data-cat="smoothie" onclick="showCategory('smoothie', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#f5d3e8,#e8a0c9);">🥤</div>
+      <div class="cat-circle">🥤</div>
       <span class="cat-label en">Smoothie</span>
       <span class="cat-label ar">سموثي</span>
     </div>
     <div class="cat-tile" data-cat="frappe" onclick="showCategory('frappe', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#fde8c8,#f5c97a);">🧋</div>
+      <div class="cat-circle">🧋</div>
       <span class="cat-label en">Frappé</span>
       <span class="cat-label ar">فرابيه</span>
     </div>
     <div class="cat-tile" data-cat="milkshake" onclick="showCategory('milkshake', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#ffd6e0,#ffadc5);">🥛</div>
+      <div class="cat-circle">🥛</div>
       <span class="cat-label en">Milkshake</span>
       <span class="cat-label ar">ميلك شيك</span>
     </div>
     <div class="cat-tile" data-cat="mojito" onclick="showCategory('mojito', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#ccf5e0,#7ae8b0);">🌿</div>
+      <div class="cat-circle">🌿</div>
       <span class="cat-label en">Mojito</span>
       <span class="cat-label ar">موهيتو</span>
     </div>
     <div class="cat-tile" data-cat="yogurt" onclick="showCategory('yogurt', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#fff4cc,#ffe066);">🍦</div>
+      <div class="cat-circle">🍦</div>
       <span class="cat-label en">Yogurt</span>
       <span class="cat-label ar">يوغرت</span>
     </div>
     <div class="cat-tile" data-cat="pastry" onclick="showCategory('pastry', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#faecd5,#f0c88a);">🥐</div>
+      <div class="cat-circle">🥐</div>
       <span class="cat-label en">Pastry</span>
       <span class="cat-label ar">معجنات</span>
     </div>
     <div class="cat-tile" data-cat="dessert" onclick="showCategory('dessert', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#f5d3f5,#e8a0e8);">🍰</div>
+      <div class="cat-circle">🍰</div>
       <span class="cat-label en">Dessert</span>
       <span class="cat-label ar">حلويات</span>
     </div>
     <div class="cat-tile" data-cat="food" onclick="showCategory('food', this)">
-      <div class="cat-circle" style="background: linear-gradient(135deg,#f0f0f0,#d8d8d8);">🍽️</div>
+      <div class="cat-circle">🍽️</div>
       <span class="cat-label en">Food</span>
       <span class="cat-label ar">مأكولات</span>
     </div>
   </div>
 
-  <!-- Items Panel -->
-  <div class="items-panel max-w" id="items-panel">
-    <button class="back-btn" onclick="showCategories()">
-      <span class="en">← Back</span>
-      <span class="ar">→ رجوع</span>
-    </button>
+  <!-- Menu Grid (always visible) -->
+  <div id="menu-grid-wrap">
     <div class="cat-panel-title" id="cat-panel-title"></div>
     <div class="menu-grid" id="menu-grid"></div>
   </div>
@@ -2414,6 +2626,7 @@
   <div class="menu-cta" id="menu-cta">
   </div>
 
+  </div><!-- /.max-w -->
 </section>
 
 
@@ -2718,9 +2931,6 @@
 
 
 <!-- ============================================================
-
-
-<!-- ============================================================
      CONTACT & LOCATION
 ============================================================ -->
 <section class="contact-section" id="contact">
@@ -2811,8 +3021,7 @@
         <span class="en">Send a Message ✉️</span>
         <span class="ar">أرسل رسالة ✉️</span>
       </h3>
-      <form name="contact" method="POST" data-netlify="true" onsubmit="handleForm(event)">
-        <input type="hidden" name="form-name" value="contact" />
+      <form name="contact" onsubmit="handleForm(event)">
         <div class="form-group">
           <label class="form-label">
             <span class="en">Your Name</span>
@@ -2877,11 +3086,11 @@
              target="_blank" rel="noopener noreferrer"
              class="social-btn" aria-label="Instagram">📷</a>
           <!-- REPLACE_FACEBOOK -->
-          <a href="https://www.facebook.com/REPLACE_FACEBOOK"
+          <a href="https://www.facebook.com/share/1CY95PAHFj/?mibextid=wwXIfr"
              target="_blank" rel="noopener noreferrer"
              class="social-btn" aria-label="Facebook">👥</a>
           <!-- REPLACE_WHATSAPP -->
-          <a href="https://wa.me/REPLACE_WHATSAPP"
+          <a href="https://wa.me/9647750060011"
              target="_blank" rel="noopener noreferrer"
              class="social-btn" aria-label="WhatsApp">💬</a>
         </div>
@@ -2908,7 +3117,7 @@
         <ul class="footer-links">
           <li><a href="#contact"><span class="en">📍 Location</span>      <span class="ar">📍 الموقع</span></a></li>
           <li><a href="#contact"><span class="en">🕒 Opening Hours</span> <span class="ar">🕒 ساعات العمل</span></a></li>
-          <li><a href="tel:+971XXXXXXXXX"><span class="en">📞 Call Us</span> <span class="ar">📞 اتصل بنا</span></a></li>
+          <li><a href="tel:+9647750060011"><span class="en">📞 Call Us</span> <span class="ar">📞 اتصل بنا</span></a></li>
           <li><a href="#contact"><span class="en">✉️ Contact</span>       <span class="ar">✉️ تواصل</span></a></li>
         </ul>
       </div>
@@ -2920,8 +3129,8 @@
         </h4>
         <ul class="footer-links">
           <li><a href="https://www.instagram.com/mr.kims_cafe"          target="_blank" rel="noopener noreferrer">Instagram</a></li>
-          <li><a href="https://www.facebook.com/REPLACE_FACEBOOK"       target="_blank" rel="noopener noreferrer">Facebook</a></li>
-          <li><a href="https://wa.me/REPLACE_WHATSAPP"                  target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
+          <li><a href="https://www.facebook.com/share/1CY95PAHFj/?mibextid=wwXIfr"       target="_blank" rel="noopener noreferrer">Facebook</a></li>
+          <li><a href="https://wa.me/9647750060011"                  target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
         </ul>
       </div>
 
@@ -2942,6 +3151,27 @@
   </div>
 </footer>
 
+
+<!-- ============================================================
+     SIZE PICKER MODAL
+============================================================ -->
+<div class="size-overlay" id="size-overlay" onclick="closeSizePicker(event)">
+  <div class="size-sheet" id="size-sheet">
+    <div class="size-sheet-handle"></div>
+    <div class="size-sheet-thumb" id="size-thumb"></div>
+    <div class="size-sheet-name en" id="size-name-en"></div>
+    <div class="size-sheet-name ar" id="size-name-ar"></div>
+    <div class="size-sheet-sub">
+      <span class="en">Choose your size</span>
+      <span class="ar">اختر الحجم</span>
+    </div>
+    <div class="size-options" id="size-options"></div>
+    <button class="btn-size-confirm" onclick="confirmSize()">
+      <span class="en">Add to Cart</span>
+      <span class="ar">أضف للسلة</span>
+    </button>
+  </div>
+</div>
 
 <!-- ============================================================
      JAVASCRIPT
@@ -3089,16 +3319,63 @@
   let cart = [];
   const CASHIER_WA = '9647750060011';
 
+  /* ─── Size Picker ─── */
+  const DRINK_CATS = new Set(['hot-coffee','cold-coffee','matcha','hot-tea','smoothie','frappe','milkshake','mojito','yogurt']);
+  const SIZE_MODS  = { S: 0, M: 3000, L: 6000 };
+  let _sizePicker  = { catKey: null, idx: null, selectedSize: 'M' };
+
   function addToCart(catKey, idx) {
+    if (DRINK_CATS.has(catKey)) {
+      openSizePicker(catKey, idx);
+    } else {
+      addToCartFinal(catKey, idx, null);
+    }
+  }
+
+  function openSizePicker(catKey, idx) {
     const item = menuData[catKey].items[idx];
-    const existing = cart.find(c => c.catKey === catKey && c.idx === idx);
+    _sizePicker = { catKey, idx, selectedSize: 'M' };
+    const basePrice = parseInt(item.price);
+    document.getElementById('size-thumb').textContent = item.emoji;
+    document.getElementById('size-name-en').textContent = item.en;
+    document.getElementById('size-name-ar').textContent = item.ar;
+    document.getElementById('size-options').innerHTML = ['S','M','L'].map(s => `
+      <button class="size-btn${s === 'M' ? ' selected' : ''}" id="size-opt-${s}" onclick="selectSize('${s}')">
+        <span class="size-letter">${s}</span>
+        <span class="size-price">${(basePrice + SIZE_MODS[s]).toLocaleString()} IQD</span>
+      </button>`).join('');
+    document.getElementById('size-overlay').classList.add('open');
+  }
+
+  function selectSize(size) {
+    _sizePicker.selectedSize = size;
+    ['S','M','L'].forEach(s => document.getElementById('size-opt-' + s)?.classList.toggle('selected', s === size));
+  }
+
+  function closeSizePicker(e) {
+    if (e && e.target !== document.getElementById('size-overlay')) return;
+    document.getElementById('size-overlay').classList.remove('open');
+  }
+
+  function confirmSize() {
+    const { catKey, idx, selectedSize } = _sizePicker;
+    addToCartFinal(catKey, idx, selectedSize);
+    document.getElementById('size-overlay').classList.remove('open');
+  }
+
+  function addToCartFinal(catKey, idx, size) {
+    const item = menuData[catKey].items[idx];
+    const basePrice = parseInt(item.price);
+    const price = size ? basePrice + SIZE_MODS[size] : basePrice;
+    const cartKey = size ? `${catKey}:${idx}:${size}` : `${catKey}:${idx}`;
+    const existing = cart.find(c => c.cartKey === cartKey);
     if (existing) {
       existing.qty++;
     } else {
-      cart.push({ catKey, idx, qty: 1, name: item.en, nameAr: item.ar, price: parseInt(item.price), emoji: item.emoji });
+      cart.push({ cartKey, catKey, idx, qty: 1, name: item.en, nameAr: item.ar, price, emoji: item.emoji, size });
     }
     updateCartBadge();
-    showToast('✓ ' + item.en);
+    showToast('✓ ' + item.en + (size ? ` (${size})` : ''));
   }
 
   function updateCartBadge() {
@@ -3126,10 +3403,11 @@
     let html = '';
     cart.forEach((c, i) => {
       const name = lang === 'ar' ? c.nameAr : c.name;
+      const sizeTag = c.size ? `<span class="size-tag">${c.size}</span>` : '';
       html += `<div class="cart-item">
         <span class="cart-item-emoji">${c.emoji}</span>
         <div class="cart-item-info">
-          <div class="cart-item-name">${name}</div>
+          <div class="cart-item-name">${name}${sizeTag}</div>
           <div class="cart-item-price">${c.price * c.qty} IQD</div>
         </div>
         <div class="cart-item-qty">
@@ -3260,7 +3538,8 @@
     let itemsHtml = '';
     cart.forEach(c => {
       const name = lang === 'ar' ? c.nameAr : c.name;
-      itemsHtml += `<div class="confirm-item-row"><span>${c.emoji} ${name} x${c.qty}</span><span>${(c.price*c.qty).toLocaleString()} IQD</span></div>`;
+      const sizeStr = c.size ? ` (${c.size})` : '';
+      itemsHtml += `<div class="confirm-item-row"><span>${c.emoji} ${name}${sizeStr} x${c.qty}</span><span>${(c.price*c.qty).toLocaleString()} IQD</span></div>`;
     });
     document.getElementById('confirm-items').innerHTML = itemsHtml;
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
@@ -3541,7 +3820,7 @@
           customerName: cName,
           customerPhone: cPhone,
           arrivalTime: cArrival,
-          items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price })),
+          items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price, size: c.size || null })),
           total,
           paymentTransactionId: transactionId || null
         })
@@ -3783,16 +4062,21 @@
     document.querySelectorAll('.cat-tile').forEach(tile => {
       tile.style.display = visible.includes(tile.dataset.cat) ? '' : 'none';
     });
-    document.getElementById('cat-grid').style.display = 'grid';
-    document.getElementById('items-panel').style.display = 'none';
-    document.getElementById('menu-cta').style.display = 'block';
+
+    // Auto-show first visible category in grid
+    const firstTile = [...document.querySelectorAll('.cat-tile')].find(t => t.style.display !== 'none');
+    if (firstTile) showCategory(firstTile.dataset.cat, firstTile);
   }
 
   function renderFavoritesPanel() {
     const grid = document.getElementById('menu-grid');
-    const l = document.getElementById('html-root').lang;
     document.getElementById('cat-panel-title').innerHTML =
       `<span class="en">⭐ Favorites</span><span class="ar">⭐ المفضلة</span>`;
+
+    // Clear active tile selection (favorites is not a category tile)
+    document.querySelectorAll('.cat-tile').forEach(t => t.classList.remove('active'));
+    // Show all tiles so user can navigate back to a category
+    document.querySelectorAll('.cat-tile').forEach(t => t.style.display = '');
 
     if (!authState.customer) {
       grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-soft);">
@@ -3804,9 +4088,6 @@
           <span class="en">Login</span><span class="ar">دخول</span>
         </button>
       </div>`;
-      document.getElementById('cat-grid').style.display = 'none';
-      document.getElementById('items-panel').style.display = 'block';
-      document.getElementById('menu-cta').style.display = 'none';
       return;
     }
 
@@ -3817,9 +4098,6 @@
         <span class="en">No favorites yet. Tap ★ on any item to save it!</span>
         <span class="ar">لا مفضلة بعد. اضغط ★ على أي عنصر لحفظه!</span>
       </div>`;
-      document.getElementById('cat-grid').style.display = 'none';
-      document.getElementById('items-panel').style.display = 'block';
-      document.getElementById('menu-cta').style.display = 'none';
       return;
     }
 
@@ -3847,9 +4125,9 @@
     }).join('');
 
     grid.innerHTML = cards;
-    document.getElementById('cat-grid').style.display = 'none';
-    document.getElementById('items-panel').style.display = 'block';
-    document.getElementById('menu-cta').style.display = 'none';
+    grid.classList.remove('updated');
+    void grid.offsetWidth;
+    grid.classList.add('updated');
   }
 
   function addToCartFromFav(key) {
@@ -3862,6 +4140,10 @@
     const grid = document.getElementById('menu-grid');
     document.getElementById('cat-panel-title').innerHTML =
       `<span class="en">${data.en}</span><span class="ar">${data.ar}</span>`;
+
+    // Mark active tile
+    document.querySelectorAll('.cat-tile').forEach(t => t.classList.remove('active'));
+    if (tile) tile.classList.add('active');
 
     const favKeys = new Set((authState.favorites || []).map(f => f.menu_key));
 
@@ -3892,15 +4174,15 @@
         </div>
       </div>`;
     }).join('');
-    document.getElementById('cat-grid').style.display = 'none';
-    document.getElementById('items-panel').style.display = 'block';
-    document.getElementById('menu-cta').style.display = 'none';
+
+    // Trigger fade-in animation
+    grid.classList.remove('updated');
+    void grid.offsetWidth; // reflow
+    grid.classList.add('updated');
   }
 
   function showCategories() {
-    document.getElementById('cat-grid').style.display = 'grid';
-    document.getElementById('items-panel').style.display = 'none';
-    document.getElementById('menu-cta').style.display = 'block';
+    // no-op — flat layout, categories always visible
   }
 
   /* ─── XSS helper ─── */
@@ -4120,7 +4402,7 @@
       }
       const statusEn = { pending:'Pending', confirmed:'Confirmed', cancelled:'Cancelled', completed:'Completed' };
       const statusAr = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
-      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
+      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#27ae60' };
       el.innerHTML = data.map(r => {
         const color = statusColor[r.status] || '#888';
         const label = isAr ? (statusAr[r.status] || r.status) : (statusEn[r.status] || r.status);
@@ -4535,13 +4817,34 @@
   }
 
   /* ─── Contact Form ─── */
-  function handleForm(e) {
+  async function handleForm(e) {
     e.preventDefault();
     const lang = document.getElementById('html-root').getAttribute('lang');
-    alert(lang === 'ar'
-      ? '✅ شكراً! سنتواصل معك قريباً.'
-      : '✅ Thank you! We\'ll be in touch soon.');
-    e.target.reset();
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('f-name').value.trim(),
+          email: document.getElementById('f-email').value.trim(),
+          message: document.getElementById('f-msg').value.trim(),
+          lang
+        })
+      });
+      if (res.ok) {
+        showToast(lang === 'ar' ? '✅ شكراً! سنتواصل معك قريباً.' : '✅ Thank you! We\'ll be in touch soon.');
+        form.reset();
+      } else {
+        showToast(lang === 'ar' ? 'حدث خطأ، حاول مجدداً' : 'Something went wrong, please try again.');
+      }
+    } catch (_) {
+      showToast(lang === 'ar' ? 'تعذّر الإرسال، تحقق من اتصالك' : 'Could not send. Check your connection.');
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   /* ─── Phone formatting: xxxx xxx xxxx (11 digits) ─── */
@@ -5049,6 +5352,7 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
 
 </body>
 </html>
