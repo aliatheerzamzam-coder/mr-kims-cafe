@@ -116,15 +116,29 @@ test.describe('캐셔 로그인 후 주문 반영 확인 (브라우저)', () => 
 });
 
 test.describe('창고 페이지 재고 조회 (브라우저)', () => {
+  let adminToken;
+
+  test.beforeAll(async () => {
+    adminToken = await adminLogin();
+  });
+
+  test.afterAll(async () => {
+    await apiRequest('POST', '/api/auth/logout', null, { 'x-auth-token': adminToken });
+  });
+
   test('재고 목록 API 조회', async ({ page }) => {
-    const response = await page.request.get('http://localhost:3000/api/ingredients');
+    const response = await page.request.get('http://localhost:3000/api/ingredients', {
+      headers: { 'x-auth-token': adminToken },
+    });
     expect(response.status()).toBe(200);
     const data = await response.json();
     expect(Array.isArray(data)).toBe(true);
   });
 
   test('대시보드 API 조회', async ({ page }) => {
-    const response = await page.request.get('http://localhost:3000/api/dashboard');
+    const response = await page.request.get('http://localhost:3000/api/dashboard', {
+      headers: { 'x-auth-token': adminToken },
+    });
     expect(response.status()).toBe(200);
     const data = await response.json();
     expect(data.ingredients).toBeDefined();

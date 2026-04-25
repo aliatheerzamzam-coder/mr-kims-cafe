@@ -32,13 +32,13 @@ test.describe('일일 판매 조회', () => {
   });
 
   test('전체 일일 판매 목록 조회', async () => {
-    const { status, data } = await apiRequest('GET', '/api/daily-sales');
+    const { status, data } = await apiRequest('GET', '/api/daily-sales', null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
   });
 
   test('존재하지 않는 날짜 조회 → 빈 배열', async () => {
-    const { status, data } = await apiRequest('GET', '/api/daily-sales?date=1999-01-01');
+    const { status, data } = await apiRequest('GET', '/api/daily-sales?date=1999-01-01', null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBe(0);
@@ -51,7 +51,7 @@ test.describe('일일 판매 조회', () => {
     ], adminToken);
 
     // 날짜 필터 조회
-    const { status, data } = await apiRequest(`GET`, `/api/daily-sales?date=${testDate}`);
+    const { status, data } = await apiRequest(`GET`, `/api/daily-sales?date=${testDate}`, null, { 'x-auth-token': adminToken });
     expect(status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
     const found = data.find(s => s.menu_item === menuName);
@@ -61,7 +61,7 @@ test.describe('일일 판매 조회', () => {
   });
 
   test('날짜 필터 결과에 다른 날짜 데이터 미포함', async () => {
-    const { data } = await apiRequest('GET', `/api/daily-sales?date=${testDate}`);
+    const { data } = await apiRequest('GET', `/api/daily-sales?date=${testDate}`, null, { 'x-auth-token': adminToken });
     for (const sale of data) {
       expect(sale.sale_date).toBe(testDate);
     }
@@ -72,7 +72,7 @@ test.describe('일일 판매 조회', () => {
     await recordDailySales(testDate, [{ menu_item: menuName, quantity: 3 }], adminToken);
     await recordDailySales(testDate, [{ menu_item: menuName, quantity: 7 }], adminToken);
 
-    const { data } = await apiRequest('GET', `/api/daily-sales?date=${testDate}`);
+    const { data } = await apiRequest('GET', `/api/daily-sales?date=${testDate}`, null, { 'x-auth-token': adminToken });
     const entries = data.filter(s => s.menu_item === menuName && s.sale_date === testDate);
     expect(entries.length).toBeGreaterThanOrEqual(3); // 원래 1개 + 추가 2개
   });
@@ -87,7 +87,7 @@ test.describe('일일 판매 조회', () => {
     expect(status).toBe(200);
     expect(data.success).toBe(true);
 
-    const { data: sales } = await apiRequest('GET', `/api/daily-sales?date=${multiDate}`);
+    const { data: sales } = await apiRequest('GET', `/api/daily-sales?date=${multiDate}`, null, { 'x-auth-token': adminToken });
     expect(sales.length).toBeGreaterThanOrEqual(2);
   });
 });

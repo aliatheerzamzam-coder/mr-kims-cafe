@@ -225,7 +225,7 @@ test.describe('SQL 인젝션 방어', () => {
     createdId = data.id;
 
     // 재료 목록 조회 → DB가 멀쩡한지 확인
-    const { status: listStatus, data: list } = await apiRequest('GET', '/api/ingredients');
+    const { status: listStatus, data: list } = await apiRequest('GET', '/api/ingredients', null, { 'x-auth-token': adminToken });
     expect(listStatus).toBe(200);
     expect(Array.isArray(list)).toBe(true);
   });

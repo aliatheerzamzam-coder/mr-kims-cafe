@@ -115,7 +115,7 @@ test.describe('레시피 삭제', () => {
   });
 
   test('레시피 삭제 전 조회 가능', async () => {
-    const { data } = await apiRequest('GET', '/api/recipes');
+    const { data } = await apiRequest('GET', '/api/recipes', null, { 'x-auth-token': adminToken });
     const found = data.find(r => r.menu_item === menuName);
     expect(found).toBeTruthy();
   });
@@ -135,7 +135,7 @@ test.describe('레시피 삭제', () => {
   });
 
   test('삭제 후 레시피 목록에 없음', async () => {
-    const { data } = await apiRequest('GET', '/api/recipes');
+    const { data } = await apiRequest('GET', '/api/recipes', null, { 'x-auth-token': adminToken });
     const found = data.find(r => r.menu_item === menuName);
     expect(found).toBeUndefined();
   });
@@ -158,7 +158,7 @@ test.describe('레시피 삭제', () => {
     await apiRequest('DELETE', `/api/ingredients/${ingredientId}`, null, { 'x-auth-token': adminToken });
     ingredientId = null; // afterAll에서 이중 삭제 방지
 
-    const { data } = await apiRequest('GET', '/api/recipes');
+    const { data } = await apiRequest('GET', '/api/recipes', null, { 'x-auth-token': adminToken });
     const found = data.find(r => r.menu_item === tempMenu);
     expect(found).toBeUndefined();
   });

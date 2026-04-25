@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mr. Kim's Cafe — 창고 관리</title>
+<title>Mr. Kim's Cafe — Warehouse</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -15,9 +15,37 @@
   --sh-xs:0 2px 8px rgba(0,0,0,.07);--sh-sm:0 4px 16px rgba(0,0,0,.09);--sh-md:0 8px 32px rgba(0,0,0,.13);
   --ease:cubic-bezier(.16,1,.3,1);--spd:.3s;
 }
-body{font-family:'Nunito',sans-serif;background:var(--off);color:var(--text);min-height:100vh}
+body{font-family:'Nunito',sans-serif;background:#f0f2f5;color:var(--text);min-height:100vh}
 [dir="rtl"]{font-family:'Cairo',sans-serif}
 .ar{font-family:'Cairo',sans-serif;direction:rtl}
+
+/* ── APP SHELL ── */
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+.main-wrap{overflow-y:auto;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── SIDEBAR ── */
+aside.side{background:#1a2535;color:#cbd5e1;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.side-brand{padding:24px 22px 20px;display:flex;align-items:center;gap:13px;border-bottom:1px solid rgba(255,255,255,.08)}
+.side-brand .dot{width:42px;height:42px;border-radius:50%;overflow:hidden;background:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.side-brand .dot img{width:105%;height:105%;object-fit:cover;margin:-2.5%}
+.side-brand .t{font-weight:900;font-size:1rem;color:#fff;line-height:1.2}
+.side-brand .t small{display:block;font-size:.68rem;font-weight:700;color:#64b478;margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
+.side-nav{display:flex;flex-direction:column;gap:3px;padding:14px 12px;flex:1}
+.side-nav button{display:flex;align-items:center;gap:13px;padding:11px 15px;border-radius:11px;background:none;border:none;color:#94a3b8;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit;text-align:right;transition:all .2s;width:100%}
+.side-nav button.active{background:linear-gradient(135deg,#367d4d,#2d6a42);color:#fff;box-shadow:0 3px 10px rgba(54,125,77,.35)}
+.side-nav button:not(.active):hover{background:rgba(255,255,255,.07);color:#e2e8f0}
+.side-nav button .ic{font-size:1.05rem;width:22px;text-align:center;flex-shrink:0}
+.side-footer{padding:16px 22px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:9px}
+.side-footer .btn-lang{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#cbd5e1;border-radius:var(--r-pill);padding:.32rem .85rem;cursor:pointer;font-size:.8rem;font-weight:800;letter-spacing:.03em;transition:background .2s;width:fit-content}
+.side-footer .btn-lang:hover{background:rgba(255,255,255,.2)}
+.side-footer .btn-logout{background:rgba(255,255,255,.08);border:none;color:#cbd5e1;border-radius:var(--r-pill);padding:.36rem 1rem;cursor:pointer;font-size:.84rem;font-weight:700;transition:background .2s;width:fit-content}
+.side-footer .btn-logout:hover{background:rgba(231,76,60,.3);color:#fff}
+.side-footer .badge-admin{background:rgba(255,255,255,.1);border-radius:var(--r-pill);padding:.24rem .7rem;font-size:.74rem;font-weight:700;color:#94a3b8;width:fit-content}
+
+/* ── TOP BAR ── */
+.top-bar{background:#fff;border-bottom:2px solid rgba(0,0,0,.05);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.top-bar .crumb{font-size:.72rem;color:#888;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.top-bar h1{margin:0;font-size:1.45rem;font-weight:900;color:var(--text)}
 
 /* ── OVERLAY LOGIN ── */
 #loginOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -31,24 +59,15 @@ body{font-family:'Nunito',sans-serif;background:var(--off);color:var(--text);min
 .login-box button:disabled{opacity:.6;cursor:not-allowed}
 .login-box .err{color:var(--red);font-size:.85rem;margin-top:.5rem;min-height:1.2rem}
 
-/* ── HEADER ── */
-header{background:var(--green);color:#fff;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh-sm);position:sticky;top:0;z-index:100}
-.brand{font-weight:900;font-size:1.2rem;display:flex;align-items:center;gap:.5rem}
-.brand span{font-size:.85rem;opacity:.75;font-weight:600}
-.header-right{display:flex;align-items:center;gap:1rem}
-.badge-admin{background:rgba(255,255,255,.2);border-radius:var(--r-pill);padding:.25rem .75rem;font-size:.8rem;font-weight:700}
-.btn-logout{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:var(--r-pill);padding:.35rem .9rem;cursor:pointer;font-size:.85rem;font-weight:700;transition:background var(--spd)}
-.btn-logout:hover{background:rgba(255,255,255,.3)}
-.btn-lang{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:var(--r-pill);padding:.3rem .75rem;cursor:pointer;font-size:.82rem;font-weight:800;letter-spacing:.03em;transition:background var(--spd)}
-.btn-lang:hover{background:rgba(255,255,255,.28)}
+/* ── HEADER (legacy — moved to sidebar) ── */
+header{display:none}
 
 /* ── RTL overrides ── */
 [dir="rtl"] body{font-family:'Cairo',sans-serif}
-[dir="rtl"] nav{flex-direction:row-reverse}
+[dir="rtl"] .side-nav button{text-align:right}
 [dir="rtl"] .sec-head{flex-direction:row-reverse}
 [dir="rtl"] .btn-bar{flex-direction:row-reverse}
 [dir="rtl"] .form-grid label,[dir="rtl"] .form-group label{text-align:right;display:block}
-[dir="rtl"] .header-right{flex-direction:row-reverse}
 [dir="rtl"] input,[dir="rtl"] select,[dir="rtl"] textarea{text-align:right}
 [dir="rtl"] table{direction:rtl}
 [dir="rtl"] th,[dir="rtl"] td{text-align:right}
@@ -58,36 +77,36 @@ header{background:var(--green);color:#fff;padding:1rem 1.5rem;display:flex;align
 [dir="rtl"] .sales-grid{direction:rtl}
 [dir="rtl"] .modal{direction:rtl}
 
-/* ── TABS ── */
-nav{background:var(--white);border-bottom:2px solid #e8f0eb;display:flex;overflow-x:auto;gap:.25rem;padding:.5rem 1rem}
-nav button{border:none;background:none;padding:.6rem 1.1rem;border-radius:var(--r-pill);font-size:.9rem;font-weight:700;color:var(--soft);cursor:pointer;white-space:nowrap;transition:all var(--spd)}
-nav button.active{background:var(--green-pale);color:var(--green)}
-nav button:hover:not(.active){background:#f0f0f0}
-
 /* ── MAIN ── */
-main{padding:1.5rem;max-width:1100px;margin:0 auto}
+main{padding:2rem 2.5rem;max-width:1500px;margin:0 auto;width:100%}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 
 /* ── CARDS ── */
-.card{background:var(--white);border-radius:var(--r-md);padding:1.5rem;box-shadow:var(--sh-xs);margin-bottom:1rem}
-.card h3{font-size:1rem;font-weight:800;color:var(--green);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card{background:var(--white);border-radius:var(--r-md);padding:1.75rem;box-shadow:var(--sh-xs);margin-bottom:1.25rem}
+.card h3{font-size:1.05rem;font-weight:800;color:var(--green);margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
 
 /* ── STAT GRID ── */
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem}
-.stat{background:var(--white);border-radius:var(--r-md);padding:1.2rem 1.5rem;box-shadow:var(--sh-xs)}
-.stat .num{font-size:2rem;font-weight:900;color:var(--green);line-height:1}
-.stat .lbl{font-size:.8rem;color:var(--soft);margin-top:.25rem}
-.stat.warn .num{color:var(--orange)}
-.stat.danger .num{color:var(--red)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px}
+.stat{background:var(--white);border-radius:18px;padding:22px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-right:4px solid var(--green);transition:transform .2s,box-shadow .2s}
+.stat:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.stat .num{font-size:2.1rem;font-weight:900;color:var(--text);line-height:1;margin-top:8px;direction:ltr;text-align:right}
+.stat .lbl{font-size:.75rem;color:var(--soft);font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.stat .delta{font-size:.8rem;color:var(--green);font-weight:800;margin-top:5px}
+.stat.warn{border-right-color:var(--orange)}
+.stat.warn .num{color:var(--text)}
+.stat.warn .delta{color:var(--orange)}
+.stat.danger{border-right-color:var(--red)}
+.stat.danger .num{color:var(--text)}
+.stat.danger .delta{color:var(--red)}
 
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.88rem}
-th{background:var(--green-pale);color:var(--green);font-weight:800;padding:.6rem .75rem;text-align:left;white-space:nowrap}
-td{padding:.6rem .75rem;border-bottom:1px solid #f0f4f2;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{background:#f5f7f6;color:#666;font-weight:800;padding:.8rem 1rem;text-align:right;white-space:nowrap;font-size:.73rem;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid rgba(0,0,0,.06)}
+td{padding:.75rem 1rem;border-bottom:1px solid #f0f4f2;vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#fafcfb}
+tr:hover td{background:#f8fbf9}
 .qty-ok{color:var(--green);font-weight:700}
 .qty-warn{color:var(--orange);font-weight:700}
 .qty-danger{color:var(--red);font-weight:700}
@@ -99,15 +118,15 @@ tr:hover td{background:#fafcfb}
 .badge-out{background:#fff0f0;color:var(--red)}
 
 /* ── FORM ── */
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:1rem}
-.form-group{display:flex;flex-direction:column;gap:.3rem}
-.form-group label{font-size:.8rem;font-weight:700;color:var(--mid)}
-.form-group input,.form-group select,.form-group textarea{padding:.65rem .85rem;border:2px solid #e2e8f0;border-radius:var(--r-sm);font-size:.9rem;font-family:inherit;outline:none;transition:border var(--spd);background:#fff}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;margin-bottom:1.1rem}
+.form-group{display:flex;flex-direction:column;gap:.35rem}
+.form-group label{font-size:.82rem;font-weight:700;color:var(--mid)}
+.form-group input,.form-group select,.form-group textarea{padding:.7rem .95rem;border:2px solid #e2e8f0;border-radius:var(--r-sm);font-size:.93rem;font-family:inherit;outline:none;transition:border var(--spd);background:#fff}
 .form-group input:focus,.form-group select:focus{border-color:var(--green)}
-.form-group textarea{resize:vertical;min-height:70px}
+.form-group textarea{resize:vertical;min-height:80px}
 
 /* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border:none;border-radius:var(--r-pill);font-size:.88rem;font-weight:700;cursor:pointer;transition:all var(--spd);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.58rem 1.2rem;border:none;border-radius:var(--r-pill);font-size:.9rem;font-weight:700;cursor:pointer;transition:all var(--spd);white-space:nowrap}
 .btn-primary{background:var(--green);color:#fff}
 .btn-primary:hover:not(:disabled){background:var(--green-dark)}
 .btn-danger{background:var(--red);color:#fff}
@@ -156,8 +175,8 @@ tr:hover td{background:#fafcfb}
 .hist-date{font-size:.75rem;color:var(--soft)}
 
 /* ── SECTION HEADER ── */
-.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
-.sec-head h2{font-size:1.15rem;font-weight:900;color:var(--text)}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem}
+.sec-head h2{font-size:1.2rem;font-weight:900;color:var(--text)}
 
 /* ── COST BOX ── */
 .cost-box{background:var(--green-pale);border-radius:var(--r-md);padding:1rem 1.25rem;margin-top:1rem}
@@ -165,10 +184,10 @@ tr:hover td{background:#fafcfb}
 .cost-box .lbl{font-size:.8rem;color:var(--mid);margin-bottom:.25rem}
 
 /* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
-.modal{background:#fff;border-radius:var(--r-lg);padding:2rem;width:min(500px,94vw);max-height:90vh;overflow-y:auto;box-shadow:var(--sh-md)}
-.modal h3{font-size:1.1rem;font-weight:900;color:var(--green);margin-bottom:1.25rem}
-.modal .btn-bar{margin-top:1.25rem;justify-content:flex-end}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:#fff;border-radius:var(--r-lg);padding:2.25rem;width:min(680px,94vw);max-height:92vh;overflow-y:auto;box-shadow:var(--sh-md)}
+.modal h3{font-size:1.2rem;font-weight:900;color:var(--green);margin-bottom:1.4rem}
+.modal .btn-bar{margin-top:1.4rem;justify-content:flex-end}
 .hidden{display:none!important}
 
 /* ── NAV BADGE ── */
@@ -197,7 +216,32 @@ tr:hover td{background:#fafcfb}
 .cost-menu-card .menu-cost{font-size:1.1rem;font-weight:900;color:var(--green)}
 .cost-menu-card .menu-sub{font-size:.75rem;color:var(--soft);margin-top:.15rem}
 
-@media(max-width:600px){main{padding:1rem}.form-grid{grid-template-columns:1fr}}
+/* ── DESKTOP ENHANCEMENTS (1280px+) ── */
+@media(min-width:1280px){
+  .stat-grid{grid-template-columns:repeat(4,1fr)}
+  .sales-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .chart-stats-row{grid-template-columns:repeat(4,1fr)}
+  .form-grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+}
+@media(min-width:1600px){
+  main{padding:2.25rem 3rem}
+  .modal{width:min(760px,94vw)}
+}
+
+/* ── TABLET / MOBILE ── */
+@media(max-width:1024px){
+  .app{grid-template-columns:240px 1fr}
+  main{padding:1.5rem 1.75rem}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .app{grid-template-columns:1fr}
+  aside.side{display:none}
+  .top-bar{display:flex}
+  main{padding:1rem}
+  .form-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
 
 /* ── LOW STOCK HIGHLIGHT ── */
 .ing-row-low{background:#fff5f5!important;border-left:4px solid var(--red)}
@@ -221,90 +265,102 @@ tr:hover td{background:#fafcfb}
 .top5-bar{height:100%;background:var(--green);border-radius:var(--r-pill);transition:width .5s var(--ease)}
 .top5-qty{font-size:.8rem;font-weight:700;color:var(--mid);min-width:2.5rem;text-align:right}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha256-oAKkWRwMlmmkLgqQ7FMpKJqMm0LBhMbvCGBfuROBsGA=" crossorigin="anonymous"></script>
 </head>
 <body>
 
 <!-- ── LOGIN OVERLAY ── -->
 <div id="loginOverlay">
   <div class="login-box">
-    <h2>🔐 관리자 로그인</h2>
-    <p class="ar">تسجيل دخول المدير</p>
-    <input type="password" id="loginPw" placeholder="비밀번호 입력">
-    <button id="loginBtn" onclick="doLogin()">로그인 / دخول</button>
+    <h2>🔐 تسجيل دخول المدير</h2>
+    <input type="password" id="loginPw" placeholder="كلمة المرور">
+    <button id="loginBtn" onclick="doLogin()">دخول</button>
     <div class="err" id="loginErr"></div>
   </div>
 </div>
 
-<!-- ── HEADER ── -->
-<header>
-  <div class="brand">
-    ☕ Mr. Kim's <span data-i18n="brand_sub">창고 관리</span>
-  </div>
-  <div class="header-right">
-    <button class="btn-lang" id="langToggle" onclick="toggleLang()">AR</button>
-    <span class="badge-admin" data-i18n="badge_admin">🔑 관리자</span>
-    <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">로그아웃</button>
-  </div>
-</header>
+<!-- ── APP SHELL ── -->
+<div class="app">
 
-<!-- ── NAV TABS ── -->
-<nav id="mainNav">
-  <button class="active" onclick="showTab('dashboard',this)" data-i18n="nav_dashboard">📊 대시보드</button>
-  <button onclick="showTab('ingredients',this)" data-i18n="nav_ingredients">🧪 재료 관리</button>
-  <button onclick="showTab('recipes',this)" data-i18n="nav_recipes">📋 레시피 & 원가</button>
-  <button onclick="showTab('adjust',this)" data-i18n="nav_adjust">📦 입출고</button>
-  <button onclick="showTab('daily',this)" data-i18n="nav_daily">🛒 일일 판매</button>
-  <button onclick="showTab('history',this)" data-i18n="nav_history">📜 기록</button>
-  <button onclick="showTab('report',this)" data-i18n="nav_report">📈 소비 리포트</button>
-  <button onclick="showTab('settings',this)" data-i18n="nav_settings">⚙️ 설정</button>
-</nav>
+<!-- ── SIDEBAR ── -->
+<aside class="side">
+  <div class="side-brand">
+    <div class="dot"><img src="logo.jpg" alt="Mr. Kim's"/></div>
+    <div class="t">Mr. Kim's<small data-i18n="brand_sub">Warehouse</small></div>
+  </div>
+  <div class="side-nav" id="mainNav">
+    <button class="active" onclick="showTab('dashboard',this)" data-i18n="nav_dashboard"><span class="ic">📊</span> <span data-i18n="nav_dashboard">📊 Dashboard</span></button>
+    <button onclick="showTab('ingredients',this)" data-i18n="nav_ingredients"><span class="ic">🧪</span> <span data-i18n="nav_ingredients">🧪 Ingredients</span></button>
+    <button onclick="showTab('recipes',this)" data-i18n="nav_recipes"><span class="ic">📋</span> <span data-i18n="nav_recipes">📋 Recipes & Cost</span></button>
+    <button onclick="showTab('adjust',this)" data-i18n="nav_adjust"><span class="ic">📦</span> <span data-i18n="nav_adjust">📦 Stock In/Out</span></button>
+    <button onclick="showTab('daily',this)" data-i18n="nav_daily"><span class="ic">🛒</span> <span data-i18n="nav_daily">🛒 Daily Sales</span></button>
+    <button onclick="showTab('history',this)" data-i18n="nav_history"><span class="ic">📜</span> <span data-i18n="nav_history">📜 History</span></button>
+    <button onclick="showTab('report',this)" data-i18n="nav_report"><span class="ic">📈</span> <span data-i18n="nav_report">📈 Consumption Report</span></button>
+    <button onclick="showTab('settings',this)" data-i18n="nav_settings"><span class="ic">⚙️</span> <span data-i18n="nav_settings">⚙️ Settings</span></button>
+  </div>
+  <div class="side-footer">
+    <span class="badge-admin" data-i18n="badge_admin">🔑 Admin</span>
+    <button class="btn-lang" id="langToggle" onclick="toggleLang()">AR</button>
+    <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Logout</button>
+  </div>
+</aside>
+
+<!-- ── MAIN WRAP ── -->
+<div class="main-wrap">
+
+<!-- ── TOP BAR ── -->
+<div class="top-bar" id="topBar">
+  <div>
+    <div class="crumb">WAREHOUSE</div>
+    <h1 id="topBarTitle" data-i18n="tab_dashboard_title">📊 Dashboard</h1>
+  </div>
+</div>
 
 <main>
 
 <!-- ───────────── 1. 대시보드 ───────────── -->
 <div class="tab-panel active" id="tab-dashboard">
   <div class="sec-head">
-    <h2 data-i18n="tab_dashboard_title">📊 창고 현황</h2>
-    <button class="btn btn-outline btn-sm" onclick="loadDashboard()" data-i18n="btn_refresh">🔄 새로고침</button>
+    <h2 data-i18n="tab_dashboard_title">📊 Dashboard</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadDashboard()" data-i18n="btn_refresh">🔄 Refresh</button>
   </div>
   <div class="stat-grid" id="statGrid"></div>
-  <!-- 예산 트래커 -->
+  <!-- Budget tracker -->
   <div class="card" id="budgetTrackerCard" style="margin-bottom:1rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-      <h3 style="margin:0" data-i18n="budget_title">💳 이번 달 구매 예산</h3>
-      <button class="btn btn-outline btn-sm" onclick="openBudgetModal()" data-i18n="budget_btn_set">목표 설정</button>
+      <h3 style="margin:0" data-i18n="budget_title">💳 Monthly Purchase Budget</h3>
+      <button class="btn btn-outline btn-sm" onclick="openBudgetModal()" data-i18n="budget_btn_set">Set Goal</button>
     </div>
     <div id="budgetTrackerBody"></div>
   </div>
   <div class="card hidden" id="budgetModalCard" style="max-width:380px;margin-bottom:1rem">
-    <h4 data-i18n="budget_modal_title" style="margin:0 0 .75rem">월 예산 목표 (IQD)</h4>
+    <h4 data-i18n="budget_modal_title" style="margin:0 0 .75rem">Monthly Budget Goal (IQD)</h4>
     <div class="form-group" style="margin-bottom:.75rem">
-      <input type="number" id="budgetInput" min="0" step="1000" data-i18n-ph="budget_ph" placeholder="예: 500000">
+      <input type="number" id="budgetInput" min="0" step="1000" data-i18n-ph="budget_ph" placeholder="e.g. 500000">
     </div>
     <div class="btn-bar">
-      <button class="btn btn-primary btn-sm" onclick="saveBudget()" data-i18n="btn_save">저장</button>
-      <button class="btn btn-outline btn-sm" onclick="closeBudgetModal()" data-i18n="btn_cancel">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveBudget()" data-i18n="btn_save">Save</button>
+      <button class="btn btn-outline btn-sm" onclick="closeBudgetModal()" data-i18n="btn_cancel">Cancel</button>
     </div>
   </div>
-  <!-- 판매 현황 차트 -->
+  <!-- Sales chart -->
   <div class="chart-card">
     <h3>
-      📈 <span data-i18n="sales_chart_title">판매 현황</span>
+      📈 <span data-i18n="sales_chart_title">Sales Overview</span>
       <div class="chart-period-btns">
-        <button class="active" onclick="setSalesPeriod('day',this)" data-i18n="period_day">오늘</button>
-        <button onclick="setSalesPeriod('week',this)" data-i18n="period_week">주간</button>
-        <button onclick="setSalesPeriod('month',this)" data-i18n="period_month">월간</button>
+        <button class="active" onclick="setSalesPeriod('day',this)" data-i18n="period_day">Today</button>
+        <button onclick="setSalesPeriod('week',this)" data-i18n="period_week">Weekly</button>
+        <button onclick="setSalesPeriod('month',this)" data-i18n="period_month">Monthly</button>
       </div>
     </h3>
     <div class="chart-stats-row" id="salesStatsRow"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
       <div>
-        <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="chart_daily_orders">일별 주문 수</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="chart_daily_orders">Daily Orders</div>
         <canvas id="salesChart" height="180"></canvas>
       </div>
       <div>
-        <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="chart_top5">베스트셀러 TOP 5</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="chart_top5">Best Seller TOP 5</div>
         <div class="top5-list" id="top5List"></div>
       </div>
     </div>
@@ -312,25 +368,25 @@ tr:hover td{background:#fafcfb}
 
   <div id="lowStockSection" class="hidden">
     <div class="card">
-      <h3 data-i18n="low_stock_title">⚠️ 재고 부족 경고</h3>
+      <h3 data-i18n="low_stock_title">⚠️ Low Stock Warning</h3>
       <div class="low-list" id="lowList"></div>
     </div>
   </div>
   <div id="expirySection" class="hidden">
     <div class="card">
-      <h3>🗓️ 유통기한 D-7 경고</h3>
+      <h3 data-i18n="expiry_warn_title">🗓️ Expiry Warning (D-7)</h3>
       <div class="low-list" id="expiryList"></div>
     </div>
   </div>
   <div class="card">
-    <h3 data-i18n="recent_history_title">🕐 최근 입출고 기록</h3>
+    <h3 data-i18n="recent_history_title">🕐 Recent Activity</h3>
     <div class="tbl-wrap"><table>
       <thead><tr>
-        <th data-i18n="col_ingredient">재료</th>
-        <th data-i18n="col_type">구분</th>
-        <th data-i18n="col_qty">수량</th>
-        <th data-i18n="col_reason">사유</th>
-        <th data-i18n="col_datetime">일시</th>
+        <th data-i18n="col_ingredient">Ingredient</th>
+        <th data-i18n="col_type">Type</th>
+        <th data-i18n="col_qty">Qty</th>
+        <th data-i18n="col_reason">Reason</th>
+        <th data-i18n="col_datetime">Date/Time</th>
       </tr></thead>
       <tbody id="recentHistTb"></tbody>
     </table></div>
@@ -340,33 +396,33 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 2. 재료 관리 ───────────── -->
 <div class="tab-panel" id="tab-ingredients">
   <div class="sec-head">
-    <h2 data-i18n="tab_ing_title">🧪 재료 관리</h2>
-    <button class="btn btn-primary btn-sm" onclick="openIngModal()" data-i18n="btn_add_ing">+ 재료 추가</button>
+    <h2 data-i18n="tab_ing_title">🧪 Ingredients</h2>
+    <button class="btn btn-primary btn-sm" onclick="openIngModal()" data-i18n="btn_add_ing">+ Add Ingredient</button>
   </div>
 
   <!-- 카테고리 관리 패널 -->
   <div class="card" style="margin-bottom:1rem">
     <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="toggleCatMgr()">
-      <span style="font-weight:700;font-size:.95rem">📂 카테고리 관리</span>
-      <span id="catMgrToggle" style="font-size:.8rem;color:var(--soft)">▼ 펼치기</span>
+      <span style="font-weight:700;font-size:.95rem" data-i18n="cat_mgr_title">📂 Category Management</span>
+      <span id="catMgrToggle" style="font-size:.8rem;color:var(--soft)" data-i18n="cat_toggle_expand">▼ Expand</span>
     </div>
     <div id="catMgrBody" class="hidden" style="margin-top:1rem">
       <div id="catMgrList"></div>
       <div style="display:grid;grid-template-columns:1fr 70px 1fr auto auto;gap:.5rem;align-items:end;margin-top:.75rem">
         <div class="form-group" style="margin:0">
-          <label style="font-size:.78rem">카테고리명 (한국어) *</label>
-          <input id="newCatName" placeholder="예: 시럽">
+          <label style="font-size:.78rem" data-i18n="label_cat_name_ko">Category Name (KO) *</label>
+          <input id="newCatName" data-i18n-ph="ph_cat_name_ko" placeholder="e.g. Syrup">
         </div>
         <div class="form-group" style="margin:0">
-          <label style="font-size:.78rem">이모지</label>
+          <label style="font-size:.78rem" data-i18n="label_emoji">Emoji</label>
           <input id="newCatEmoji" placeholder="🍯" style="text-align:center">
         </div>
         <div class="form-group" style="margin:0">
-          <label style="font-size:.78rem">아랍어 이름</label>
+          <label style="font-size:.78rem" data-i18n="label_cat_name_ar">Arabic Name</label>
           <input id="newCatAr" class="ar" dir="rtl" placeholder="سيروب">
         </div>
-        <button id="catSubmitBtn" class="btn btn-primary btn-sm" onclick="submitCatForm()" style="align-self:end">추가</button>
-        <button id="catCancelBtn" class="btn btn-outline btn-sm hidden" onclick="cancelEditCat()" style="align-self:end">취소</button>
+        <button id="catSubmitBtn" class="btn btn-primary btn-sm" onclick="submitCatForm()" data-i18n="btn_add" style="align-self:end">Add</button>
+        <button id="catCancelBtn" class="btn btn-outline btn-sm hidden" onclick="cancelEditCat()" data-i18n="btn_cancel" style="align-self:end">Cancel</button>
       </div>
       <div id="catMgrMsg" style="font-size:.82rem;margin-top:.35rem;min-height:1.2em"></div>
     </div>
@@ -378,99 +434,133 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 3. 레시피 & 원가 ───────────── -->
 <div class="tab-panel" id="tab-recipes">
   <div class="sec-head">
-    <h2 data-i18n="tab_recipe_title">📋 레시피 & 원가</h2>
-    <button class="btn btn-primary btn-sm" onclick="openRecipeModal()" data-i18n="btn_add_recipe">+ 레시피 추가/수정</button>
+    <h2 data-i18n="tab_recipe_title">📋 Recipes & Cost</h2>
+    <button class="btn btn-primary btn-sm" onclick="openRecipeModal()" data-i18n="btn_add_recipe">+ Add Recipe</button>
   </div>
   <div class="card">
     <div class="tbl-wrap"><table>
       <thead><tr>
-        <th data-i18n="col_menu">메뉴</th>
-        <th data-i18n="col_ingredient">재료</th>
-        <th data-i18n="col_qty">수량</th>
-        <th data-i18n="col_unit">단위</th>
-        <th data-i18n="col_cost">비용</th>
-        <th data-i18n="col_manage">관리</th>
+        <th data-i18n="col_menu">Menu</th>
+        <th data-i18n="col_ingredient">Ingredient</th>
+        <th data-i18n="col_qty">Qty</th>
+        <th data-i18n="col_unit">Unit</th>
+        <th data-i18n="col_cost">Unit Cost (IQD)</th>
+        <th data-i18n="col_manage">Manage</th>
       </tr></thead>
       <tbody id="recipeTb"></tbody>
     </table></div>
   </div>
   <div class="card">
-    <h3 data-i18n="cost_calc_title">💰 원가 계산기</h3>
+    <h3 data-i18n="cost_calc_title">💰 Cost Calculator</h3>
     <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
       <div class="form-group" style="flex:1;min-width:200px">
-        <label data-i18n="label_select_menu">메뉴 선택</label>
-        <select id="costMenuSel"><option value="" data-i18n-opt="opt_select_menu">— 메뉴 선택 —</option></select>
+        <label data-i18n="label_select_menu">Select Menu</label>
+        <select id="costMenuSel"><option value="" data-i18n-opt="opt_select_menu">— Select Menu —</option></select>
       </div>
-      <button id="calcCostBtn" class="btn btn-primary" onclick="calcCost()" data-i18n="btn_calc">계산하기</button>
+      <button id="calcCostBtn" class="btn btn-primary" onclick="calcCost()" data-i18n="btn_calc">Calculate</button>
     </div>
     <div id="costResult" class="hidden cost-box" style="margin-top:1rem"></div>
   </div>
-  <!-- 판매가 관리 -->
+  <!-- Price editor -->
   <div class="card" style="margin-top:1rem">
     <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="togglePriceEditor()">
-      <span style="font-weight:700;font-size:.95rem">💵 메뉴 판매가 관리</span>
-      <span id="priceEditorToggle" style="font-size:.8rem;color:var(--soft)">▼ 펼치기</span>
+      <span style="font-weight:700;font-size:.95rem" data-i18n="price_editor_title">💵 Menu Price Management</span>
+      <span id="priceEditorToggle" style="font-size:.8rem;color:var(--soft)" data-i18n="cat_toggle_expand">▼ Expand</span>
     </div>
     <div id="priceEditorBody" class="hidden" style="margin-top:1rem">
       <div id="priceEditorGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.5rem"></div>
     </div>
   </div>
-  <!-- 전체 원가 요약 -->
+  <!-- All cost summary -->
   <div class="card" style="margin-top:1rem">
-    <h3 data-i18n="all_cost_title">📊 전체 메뉴 원가 요약</h3>
+    <h3 data-i18n="all_cost_title">📊 All Menu Cost Summary</h3>
     <div id="allCostGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-top:.75rem"></div>
+  </div>
+  <!-- Size recipe management -->
+  <div class="card" style="margin-top:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem">
+      <h3 style="margin:0" data-i18n="size_recipe_title">☕ Size Drink Recipes</h3>
+      <button class="btn btn-primary btn-sm" onclick="openSizeRecipeModal()" data-i18n="btn_add_size_recipe">+ Add Size Recipe</button>
+    </div>
+    <p style="font-size:.83rem;color:var(--soft);margin-bottom:.75rem" data-i18n="size_recipe_hint">Select a recipe and ingredients will appear. Enter S/M/L amounts for each.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th data-i18n="col_menu">Menu</th>
+        <th data-i18n="col_ingredient_sml">Ingredients (S/M/L)</th>
+        <th data-i18n="col_manage">Manage</th>
+      </tr></thead>
+      <tbody id="sizeRecipeTb"></tbody>
+    </table></div>
   </div>
 </div>
 
 <!-- ───────────── 4. 입출고 ───────────── -->
 <div class="tab-panel" id="tab-adjust">
-  <div class="sec-head"><h2 data-i18n="tab_adjust_title">📦 입출고</h2></div>
+  <div class="sec-head"><h2 data-i18n="tab_adjust_title">📦 Stock In/Out</h2></div>
   <div class="card">
-    <h3 data-i18n="adj_card_title">재고 수량 조정</h3>
+    <h3 data-i18n="adj_card_title">Adjust Stock</h3>
     <div class="form-grid">
       <div class="form-group">
-        <label data-i18n="label_select_ing">재료 선택</label>
-        <select id="adjIng"><option value="" data-i18n-opt="opt_select">— 선택 —</option></select>
+        <label data-i18n="label_select_ing">Select Ingredient</label>
+        <select id="adjIng"><option value="" data-i18n-opt="opt_select">— Select —</option></select>
       </div>
       <div class="form-group">
-        <label data-i18n="label_type">구분</label>
+        <label data-i18n="label_type">Type</label>
         <select id="adjType">
-          <option value="in" data-i18n-opt="opt_in">📥 입고 (추가)</option>
-          <option value="out" data-i18n-opt="opt_out">📤 출고 (차감)</option>
+          <option value="in" data-i18n-opt="opt_in">📥 Stock In (Add)</option>
+          <option value="out" data-i18n-opt="opt_out">📤 Stock Out (Deduct)</option>
         </select>
       </div>
       <div class="form-group">
-        <label data-i18n="label_qty">수량</label>
+        <label data-i18n="label_qty">Quantity</label>
         <input type="number" id="adjQty" min="1" max="9999" step="0.01" placeholder="0">
       </div>
       <div class="form-group">
-        <label data-i18n="label_reason">사유 (선택)</label>
-        <input type="text" id="adjReason" data-i18n-ph="ph_reason" placeholder="예: 납품 입고, 폐기 등">
+        <label data-i18n="label_reason">Reason (optional)</label>
+        <input type="text" id="adjReason" data-i18n-ph="ph_reason" placeholder="e.g. Delivery, Disposal">
       </div>
     </div>
     <div id="adjMsg"></div>
     <div class="btn-bar">
-      <button id="adjBtn" class="btn btn-primary" onclick="submitAdjust()" data-i18n="btn_apply">✅ 적용</button>
+      <button id="adjBtn" class="btn btn-primary" onclick="submitAdjust()" data-i18n="btn_apply">✅ Apply</button>
     </div>
   </div>
 </div>
 
 <!-- ───────────── 5. 일일 판매 ───────────── -->
 <div class="tab-panel" id="tab-daily">
-  <div class="sec-head"><h2 data-i18n="tab_daily_title">🛒 일일 판매 입력</h2></div>
-  <div class="card">
+  <div class="sec-head"><h2 data-i18n="tab_daily_title">🛒 Daily Sales</h2></div>
+
+  <!-- Date (shared) -->
+  <div class="card" style="padding:.75rem 1rem">
     <div class="form-grid" style="max-width:300px">
-      <div class="form-group">
-        <label data-i18n="label_sale_date">📅 판매 날짜</label>
+      <div class="form-group" style="margin:0">
+        <label data-i18n="label_sale_date">📅 Sale Date</label>
         <input type="date" id="saleDate">
       </div>
     </div>
-    <p data-i18n="daily_hint" style="font-size:.85rem;color:var(--soft);margin-bottom:1rem">메뉴 이름과 판매 수량을 입력하세요. 저장 시 레시피 기준으로 재고가 자동 차감됩니다.</p>
+  </div>
+
+  <!-- ☕ Size drink sales -->
+  <div class="card" style="margin-top:.75rem">
+    <h3 style="margin-bottom:.4rem" data-i18n="size_sales_title">☕ Size Drink Sales</h3>
+    <p style="font-size:.83rem;color:var(--soft);margin-bottom:.75rem" data-i18n="size_sales_hint">Enter S/M/L quantities; stock will be deducted automatically.</p>
+    <div id="sizeSalesGrid" style="margin-bottom:.75rem"></div>
+    <div id="sizeSaleMsg" style="margin-top:.5rem"></div>
+    <div class="btn-bar" style="margin-top:1rem">
+      <button id="sizeSaleBtn" class="btn btn-primary" onclick="submitSizeSales()" data-i18n="btn_save_size_sales">✅ Save Size Sales & Deduct Stock</button>
+    </div>
+  </div>
+
+  <!-- Other menu sales -->
+  <div class="card" style="margin-top:.75rem">
+    <h3 style="margin-bottom:.4rem" data-i18n="daily_other_title">🛒 Other Menu Sales</h3>
+    <p data-i18n="daily_hint" style="font-size:.83rem;color:var(--soft);margin-bottom:.75rem">Enter quantities sold; stock is deducted automatically. Zeros are ignored.</p>
     <div id="saleRows" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem"></div>
-    <button class="btn btn-outline btn-sm" onclick="addSaleRow()" data-i18n="btn_add_sale_row">+ 메뉴 추가</button>
+    <button class="btn btn-outline btn-sm" onclick="addSaleRow()" data-i18n="btn_add_sale_row">+ Add Menu</button>
     <div id="saleMsg" style="margin-top:.75rem"></div>
     <div class="btn-bar" style="margin-top:1rem">
-      <button id="saleBtn" class="btn btn-primary" onclick="submitSales()" data-i18n="btn_save_sales">✅ 판매 기록 저장 & 재고 차감</button>
+      <button id="saleBtn" class="btn btn-primary" onclick="submitSales()" data-i18n="btn_save_sales">✅ Save Sales & Deduct Stock</button>
     </div>
   </div>
 </div>
@@ -478,21 +568,21 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 6. 기록 ───────────── -->
 <div class="tab-panel" id="tab-history">
   <div class="sec-head">
-    <h2 data-i18n="tab_history_title">📜 입출고 기록</h2>
+    <h2 data-i18n="tab_history_title">📜 Stock History</h2>
     <div style="display:flex;gap:.5rem">
-      <button class="btn btn-outline btn-sm" onclick="exportHistoryCSV()" data-i18n="btn_export_csv">📥 엑셀 내보내기</button>
-      <button class="btn btn-outline btn-sm" onclick="loadHistory()" data-i18n="btn_refresh">🔄 새로고침</button>
+      <button class="btn btn-outline btn-sm" onclick="exportHistoryCSV()" data-i18n="btn_export_csv">📥 Export Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="loadHistory()" data-i18n="btn_refresh">🔄 Refresh</button>
     </div>
   </div>
   <div class="card">
     <div class="tbl-wrap"><table>
       <thead><tr>
-        <th data-i18n="col_ingredient">재료</th>
-        <th data-i18n="col_type">구분</th>
-        <th data-i18n="col_qty">수량</th>
-        <th data-i18n="col_reason">사유</th>
-        <th data-i18n="col_datetime">일시</th>
-        <th data-i18n="col_action">작업</th>
+        <th data-i18n="col_ingredient">Ingredient</th>
+        <th data-i18n="col_type">Type</th>
+        <th data-i18n="col_qty">Qty</th>
+        <th data-i18n="col_reason">Reason</th>
+        <th data-i18n="col_datetime">Date/Time</th>
+        <th data-i18n="col_action">Action</th>
       </tr></thead>
       <tbody id="histTb"></tbody>
     </table></div>
@@ -501,68 +591,68 @@ tr:hover td{background:#fafcfb}
 
 <!-- ───────────── 7. 설정 ───────────── -->
 <div class="tab-panel" id="tab-settings">
-  <div class="sec-head"><h2 data-i18n="tab_settings_title">⚙️ 설정</h2></div>
+  <div class="sec-head"><h2 data-i18n="tab_settings_title">⚙️ Settings</h2></div>
   <div class="card" style="max-width:420px">
-    <h3 data-i18n="pw_title">🔑 비밀번호 변경</h3>
+    <h3 data-i18n="pw_title">🔑 Change Password</h3>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label data-i18n="label_new_pw">새 비밀번호</label>
-      <input type="password" id="newPw" data-i18n-ph="ph_new_pw" placeholder="4자 이상">
+      <label data-i18n="label_new_pw">New Password</label>
+      <input type="password" id="newPw" data-i18n-ph="ph_new_pw" placeholder="4+ characters">
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label data-i18n="label_new_pw2">새 비밀번호 확인</label>
-      <input type="password" id="newPw2" data-i18n-ph="ph_new_pw2" placeholder="동일하게 입력">
+      <label data-i18n="label_new_pw2">Confirm Password</label>
+      <input type="password" id="newPw2" data-i18n-ph="ph_new_pw2" placeholder="Re-enter password">
     </div>
     <div id="pwMsg"></div>
     <div class="btn-bar">
-      <button id="pwBtn" class="btn btn-primary" onclick="changePw()" data-i18n="btn_save">저장</button>
+      <button id="pwBtn" class="btn btn-primary" onclick="changePw()" data-i18n="btn_save">Save</button>
     </div>
   </div>
 
   <div class="card" style="max-width:520px;margin-top:1.5rem">
-    <h3 data-i18n="cashier_title">👤 캐셔 관리</h3>
+    <h3 data-i18n="cashier_title">👤 Cashier Management</h3>
     <div id="cashier-list" style="margin-bottom:1rem"></div>
     <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem">
-    <h4 data-i18n="cashier_add_title" style="margin:0 0 .75rem">새 캐셔 추가</h4>
+    <h4 data-i18n="cashier_add_title" style="margin:0 0 .75rem">Add New Cashier</h4>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label data-i18n="label_name">이름</label>
-      <input type="text" id="newCashierName" data-i18n-ph="ph_cashier_name" placeholder="캐셔 이름">
+      <label data-i18n="label_name">Name</label>
+      <input type="text" id="newCashierName" data-i18n-ph="ph_cashier_name" placeholder="Cashier name">
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label data-i18n="label_pw">비밀번호</label>
-      <input type="password" id="newCashierPw" data-i18n-ph="ph_cashier_pw" placeholder="4자 이상">
+      <label data-i18n="label_pw">Password</label>
+      <input type="password" id="newCashierPw" data-i18n-ph="ph_cashier_pw" placeholder="4+ characters">
     </div>
     <div id="cashierMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-primary" onclick="addCashier()" data-i18n="btn_add">추가</button>
+      <button class="btn btn-primary" onclick="addCashier()" data-i18n="btn_add">Add</button>
     </div>
   </div>
 
-  <!-- 공급업체 관리 -->
+  <!-- Supplier management -->
   <div class="card" style="max-width:520px;margin-top:1.5rem">
-    <h3 data-i18n="supplier_title">🚚 공급업체 연락처</h3>
+    <h3 data-i18n="supplier_title">🚚 Supplier Contacts</h3>
     <div id="supplierList" style="margin-bottom:1rem"></div>
     <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem">
-    <h4 data-i18n="supplier_add_title" style="margin:0 0 .75rem">새 공급업체 추가</h4>
+    <h4 data-i18n="supplier_add_title" style="margin:0 0 .75rem">Add New Supplier</h4>
     <div class="form-grid">
       <div class="form-group">
-        <label data-i18n="label_sup_name">업체명</label>
-        <input type="text" id="supName" data-i18n-ph="ph_sup_name" placeholder="예: 서울 식자재">
+        <label data-i18n="label_sup_name">Company Name</label>
+        <input type="text" id="supName" data-i18n-ph="ph_sup_name" placeholder="e.g. Baghdad Foods">
       </div>
       <div class="form-group">
-        <label data-i18n="label_sup_phone">전화번호</label>
-        <input type="tel" id="supPhone" data-i18n-ph="ph_sup_phone" placeholder="예: 010-1234-5678">
+        <label data-i18n="label_sup_phone">Phone</label>
+        <input type="tel" id="supPhone" data-i18n-ph="ph_sup_phone" placeholder="e.g. 07701234567">
       </div>
       <div class="form-group">
-        <label data-i18n="label_sup_item">담당 품목</label>
-        <input type="text" id="supItem" data-i18n-ph="ph_sup_item" placeholder="예: 유제품, 커피">
+        <label data-i18n="label_sup_item">Items Supplied</label>
+        <input type="text" id="supItem" data-i18n-ph="ph_sup_item" placeholder="e.g. Dairy, Coffee">
       </div>
       <div class="form-group">
-        <label data-i18n="label_sup_note">메모</label>
-        <input type="text" id="supNote" data-i18n-ph="ph_sup_note" placeholder="선택 사항">
+        <label data-i18n="label_sup_note">Note</label>
+        <input type="text" id="supNote" data-i18n-ph="ph_sup_note" placeholder="Optional">
       </div>
     </div>
     <div class="btn-bar">
-      <button class="btn btn-primary" onclick="addSupplier()" data-i18n="btn_add">추가</button>
+      <button class="btn btn-primary" onclick="addSupplier()" data-i18n="btn_add">Add</button>
     </div>
   </div>
 </div>
@@ -570,31 +660,31 @@ tr:hover td{background:#fafcfb}
 <!-- ───────────── 8. 소비 리포트 ───────────── -->
 <div class="tab-panel" id="tab-report">
   <div class="sec-head">
-    <h2 data-i18n="nav_report">📈 소비 리포트</h2>
-    <button class="btn btn-outline btn-sm" onclick="loadReport()" data-i18n="btn_refresh">🔄 새로고침</button>
+    <h2 data-i18n="nav_report">📈 Consumption Report</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadReport()" data-i18n="btn_refresh">🔄 Refresh</button>
   </div>
   <div class="card filter-bar" style="padding:.75rem 1rem">
     <div class="form-group" style="margin:0">
-      <label data-i18n="report_period_lbl">기간</label>
+      <label data-i18n="report_period_lbl">Period</label>
       <select id="reportPeriod" onchange="loadReport()">
-        <option value="week" data-i18n-opt="report_week">이번 주</option>
-        <option value="month" selected data-i18n-opt="report_month">이번 달</option>
-        <option value="3month" data-i18n-opt="report_3month">최근 3개월</option>
+        <option value="week" data-i18n-opt="report_week">This Week</option>
+        <option value="month" selected data-i18n-opt="report_month">This Month</option>
+        <option value="3month" data-i18n-opt="report_3month">Last 3 Months</option>
       </select>
     </div>
   </div>
   <div class="chart-wrap">
-    <h3 data-i18n="report_chart_title">📊 재료 소비량 TOP 10 (출고 기준)</h3>
+    <h3 data-i18n="report_chart_title">📊 Top 10 Ingredient Consumption (Outgoing)</h3>
     <canvas id="reportChart" class="chart-canvas" height="320"></canvas>
   </div>
   <div class="card">
-    <h3 data-i18n="report_table_title">📋 재료별 입출고 요약</h3>
+    <h3 data-i18n="report_table_title">📋 In/Out Summary per Ingredient</h3>
     <div class="tbl-wrap"><table>
       <thead><tr>
-        <th data-i18n="col_ingredient">재료</th>
-        <th data-i18n="report_col_in">총 입고</th>
-        <th data-i18n="report_col_out">총 출고</th>
-        <th data-i18n="report_col_net">순 변동</th>
+        <th data-i18n="col_ingredient">Ingredient</th>
+        <th data-i18n="report_col_in">Total In</th>
+        <th data-i18n="report_col_out">Total Out</th>
+        <th data-i18n="report_col_net">Net Change</th>
       </tr></thead>
       <tbody id="reportTb"></tbody>
     </table></div>
@@ -606,76 +696,69 @@ tr:hover td{background:#fafcfb}
 <!-- ── 재료 추가/수정 모달 ── -->
 <div class="modal-overlay hidden" id="ingModal">
   <div class="modal">
-    <h3 id="ingModalTitle" data-i18n="modal_ing_title">재료 추가</h3>
+    <h3 id="ingModalTitle" data-i18n="modal_ing_title">Add Ingredient</h3>
     <input type="hidden" id="ingId">
     <div class="form-grid">
       <div class="form-group">
-        <label data-i18n="label_name_ko">재료명 (한국어) *</label>
-        <input id="ingNameKo" data-i18n-ph="ph_name_ko" placeholder="예: 바닐라 시럽">
+        <label data-i18n="label_name_ko">Name (KO) *</label>
+        <input id="ingNameKo" data-i18n-ph="ph_name_ko" placeholder="e.g. Vanilla Syrup">
       </div>
       <div class="form-group">
-        <label data-i18n="label_name_ar">재료명 (아랍어)</label>
+        <label data-i18n="label_name_ar">Name (AR)</label>
         <input id="ingNameAr" class="ar" placeholder="مثال: شراب الفانيليا" dir="rtl">
       </div>
       <div class="form-group">
-        <label data-i18n="label_unit">단위 *</label>
+        <label data-i18n="label_unit">Unit *</label>
         <select id="ingUnit">
-          <option value="병">병 (시럽류)</option>
-          <option value="kg">kg (파우더류)</option>
-          <option value="봉">봉 (파우더류)</option>
-          <option value="상자">상자 (컵류)</option>
-          <option value="개">개</option>
+          <option value="병" data-i18n="unit_bottle">Bottle (Syrup)</option>
+          <option value="kg" data-i18n="unit_kg">kg (Powder)</option>
+          <option value="봉" data-i18n="unit_bag">Bag (Powder)</option>
+          <option value="상자" data-i18n="unit_box">Box (Cups)</option>
+          <option value="개" data-i18n="unit_piece">Piece</option>
           <option value="L">L</option>
           <option value="g">g</option>
           <option value="ml">ml</option>
         </select>
       </div>
       <div class="form-group">
-        <label>종류 (비워두면 이름에서 자동)</label>
-        <input id="ingCategory" list="catOptionList" placeholder="예: 시럽">
-        <datalist id="catOptionList">
-          <option value="시럽">
-          <option value="소스">
-          <option value="스무디">
-          <option value="파우더">
-          <option value="과육">
-          <option value="기타">
-        </datalist>
+        <label data-i18n="label_ing_type">Type (auto if empty)</label>
+        <input id="ingCategory" list="catOptionList" placeholder="e.g. Syrup">
+        <datalist id="catOptionList"></datalist>
       </div>
       <div class="form-group">
-        <label data-i18n="label_cur_qty">현재 재고</label>
+        <label data-i18n="label_cur_qty">Current Stock</label>
         <input type="number" id="ingCurQty" min="0" step="0.01" placeholder="0">
       </div>
       <div class="form-group">
-        <label data-i18n="label_min_qty">최소 재고 (경고 기준)</label>
+        <label data-i18n="label_min_qty">Min Stock (warning)</label>
         <input type="number" id="ingMinQty" min="0" step="0.01" placeholder="1">
       </div>
       <div class="form-group">
-        <label data-i18n="label_unit_cost">단위당 원가 (IQD)</label>
+        <label data-i18n="label_unit_cost">Unit Cost (IQD)</label>
         <input type="number" id="ingCost" min="0" step="1" placeholder="0">
       </div>
       <div class="form-group">
-        <label data-i18n="label_box_qty">박스당 수량 (0 = 미사용)</label>
-        <input type="number" id="ingBoxQty" min="0" step="1" placeholder="예: 6">
+        <label data-i18n="label_box_qty">Qty per box (0 = unused)</label>
+        <input type="number" id="ingBoxQty" min="0" step="1" data-i18n-ph="ph_box_qty" placeholder="e.g. 6">
       </div>
       <div class="form-group">
-        <label>병/봉 용량 mL·g (0 = 미설정)</label>
-        <input type="number" id="ingCapacityMl" min="0" step="1" placeholder="예: 1000">
+        <label data-i18n="label_capacity">Capacity mL·g (0 = not set)</label>
+        <input type="number" id="ingCapacityMl" min="0" step="1" placeholder="1000">
       </div>
       <div class="form-group">
-        <label>유통기한</label>
+        <label data-i18n="label_expiry">Expiry Date</label>
         <input type="date" id="ingExpiryDate">
       </div>
       <div class="form-group">
-        <label>납품업체</label>
-        <input id="ingSupplier" list="supplierOptionList" placeholder="업체명 선택 또는 입력">
+        <label data-i18n="label_supplier_lbl">Supplier</label>
+        <input id="ingSupplier" list="supplierOptionList" data-i18n-ph="ph_supplier" placeholder="Select or enter supplier name">
         <datalist id="supplierOptionList"></datalist>
       </div>
     </div>
     <div id="ingModalMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-outline" onclick="closeModal('ingModal')" data-i18n="btn_cancel">취소</button>
-      <button id="ingSaveBtn" class="btn btn-primary" onclick="saveIngredient()" data-i18n="btn_save">저장</button>
+      <button class="btn btn-outline" onclick="closeModal('ingModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="ingSaveBtn" class="btn btn-primary" onclick="saveIngredient()" data-i18n="btn_save">Save</button>
     </div>
   </div>
 </div>
@@ -683,32 +766,32 @@ tr:hover td{background:#fafcfb}
 <!-- ── 레시피 추가/수정 모달 ── -->
 <div class="modal-overlay hidden" id="recipeModal">
   <div class="modal">
-    <h3 data-i18n="modal_recipe_title">레시피 추가 / 수정</h3>
+    <h3 data-i18n="modal_recipe_title">Add / Edit Recipe</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
       <div class="form-group" style="margin-bottom:0">
-        <label data-i18n="label_menu_name">메뉴명 *</label>
-        <input id="recipeMenuName" data-i18n-ph="ph_menu_name" placeholder="예: 아이스 라떼">
+        <label data-i18n="label_menu_name">Menu Name *</label>
+        <input id="recipeMenuName" data-i18n-ph="ph_menu_name" placeholder="e.g. Iced Latte">
       </div>
       <div class="form-group" style="margin-bottom:0">
-        <label>메뉴 종류</label>
-        <input id="recipeCategory" list="menuCatList" placeholder="예: 음료">
+        <label data-i18n="label_recipe_cat">Menu Type</label>
+        <input id="recipeCategory" list="menuCatList" data-i18n-ph="ph_recipe_cat" placeholder="e.g. Drink">
         <datalist id="menuCatList">
-          <option value="음료">
-          <option value="스무디">
-          <option value="디저트">
-          <option value="기타">
+          <option value="Drink">
+          <option value="Smoothie">
+          <option value="Dessert">
+          <option value="Other">
         </datalist>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-      <label data-i18n="label_ing_list" style="font-size:.8rem;font-weight:700;color:var(--mid)">재료 목록</label>
-      <button class="btn btn-outline btn-sm" onclick="addRecipeRow()" data-i18n="btn_add_ing_row">+ 재료 추가</button>
+      <label data-i18n="label_ing_list" style="font-size:.8rem;font-weight:700;color:var(--mid)">Ingredients</label>
+      <button class="btn btn-outline btn-sm" onclick="addRecipeRow()" data-i18n="btn_add_ing_row">+ Add Ingredient</button>
     </div>
     <div id="recipeRows" style="margin-bottom:.75rem"></div>
     <div id="recipeModalMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-outline" onclick="closeModal('recipeModal')" data-i18n="btn_cancel">취소</button>
-      <button id="recipeSaveBtn" class="btn btn-primary" onclick="saveRecipe()" data-i18n="btn_save">저장</button>
+      <button class="btn btn-outline" onclick="closeModal('recipeModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="recipeSaveBtn" class="btn btn-primary" onclick="saveRecipe()" data-i18n="btn_save">Save</button>
     </div>
   </div>
 </div>
@@ -716,31 +799,59 @@ tr:hover td{background:#fafcfb}
 <!-- ── 입출고 기록 수정 모달 ── -->
 <div class="modal-overlay hidden" id="histEditModal">
   <div class="modal">
-    <h3 data-i18n="modal_hist_edit_title">입출고 기록 수정</h3>
+    <h3 data-i18n="modal_hist_edit_title">Edit Stock Record</h3>
     <input type="hidden" id="histEditId">
     <div class="form-group" style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="col_ingredient">재료</label>
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="col_ingredient">Ingredient</label>
       <input type="text" id="histEditIngName" readonly style="background:var(--card-bg);color:var(--soft);cursor:default">
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_type">구분</label>
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_type">Type</label>
       <select id="histEditType">
-        <option value="in" data-i18n="opt_in">📥 입고 (추가)</option>
-        <option value="out" data-i18n="opt_out">📤 출고 (차감)</option>
+        <option value="in" data-i18n="opt_in">📥 Stock In (Add)</option>
+        <option value="out" data-i18n="opt_out">📤 Stock Out (Deduct)</option>
       </select>
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_qty">수량</label>
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_qty">Quantity</label>
       <input type="number" id="histEditQty" min="0.01" step="0.01">
     </div>
     <div class="form-group" style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_reason">사유 (선택)</label>
-      <input type="text" id="histEditReason" data-i18n-ph="ph_reason" placeholder="예: 납품 입고, 폐기 등">
+      <label style="font-size:.8rem;font-weight:700;color:var(--mid)" data-i18n="label_reason">Reason (optional)</label>
+      <input type="text" id="histEditReason" data-i18n-ph="ph_reason" placeholder="e.g. Delivery, Disposal">
     </div>
     <div id="histEditMsg"></div>
     <div class="btn-bar">
-      <button class="btn btn-outline" onclick="closeModal('histEditModal')" data-i18n="btn_cancel">취소</button>
-      <button id="histEditSaveBtn" class="btn btn-primary" onclick="saveHistEdit()" data-i18n="btn_save">저장</button>
+      <button class="btn btn-outline" onclick="closeModal('histEditModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="histEditSaveBtn" class="btn btn-primary" onclick="saveHistEdit()" data-i18n="btn_save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 사이즈 레시피 추가/수정 모달 ── -->
+<div class="modal-overlay hidden" id="sizeRecipeModal">
+  <div class="modal" style="max-width:520px">
+    <h3 data-i18n="modal_size_recipe_title">Add / Edit Size Recipe</h3>
+    <input type="hidden" id="srOrigMenu">
+    <div class="form-group" style="margin-bottom:.9rem">
+      <label data-i18n="label_size_recipe_select" style="font-size:.8rem;font-weight:700;color:var(--mid)">Select Recipe *</label>
+      <select id="srRecipeSelect" onchange="onSrRecipeChange()" style="width:100%">
+        <option value="">— Select —</option>
+      </select>
+    </div>
+    <div id="srIngTable" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 70px 70px 70px;gap:.4rem;align-items:center;font-size:.75rem;font-weight:800;color:var(--soft);margin-bottom:.35rem;padding:0 .1rem">
+        <span data-i18n="col_ingredient">Ingredient</span>
+        <span style="text-align:center">S</span>
+        <span style="text-align:center">M</span>
+        <span style="text-align:center">L</span>
+      </div>
+      <div id="srIngRows"></div>
+    </div>
+    <div id="srModalMsg"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('sizeRecipeModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="srSaveBtn" class="btn btn-primary" onclick="saveSizeRecipe()" data-i18n="btn_save">Save</button>
     </div>
   </div>
 </div>
@@ -755,7 +866,9 @@ const TRANSLATIONS = {
     nav_dashboard:'📊 대시보드', nav_ingredients:'🧪 재료 관리', nav_recipes:'📋 레시피 & 원가',
     nav_adjust:'📦 입출고', nav_daily:'🛒 일일 판매', nav_history:'📜 기록', nav_settings:'⚙️ 설정',
     tab_dashboard_title:'📊 창고 현황', btn_refresh:'🔄 새로고침',
-    low_stock_title:'⚠️ 재고 부족 경고', recent_history_title:'🕐 최근 입출고 기록',
+    sales_chart_title:'판매 현황', period_day:'오늘', period_week:'주간', period_month:'월간',
+    chart_daily_orders:'일별 주문 수', chart_top5:'베스트셀러 TOP 5',
+    low_stock_title:'⚠️ 재고 부족 경고', expiry_warn_title:'🗓️ 유통기한 D-7 경고', recent_history_title:'🕐 최근 입출고 기록',
     col_ingredient:'재료', col_type:'구분', col_qty:'수량', col_reason:'사유', col_datetime:'일시',
     tab_ing_title:'🧪 재료 관리', btn_add_ing:'+ 재료 추가',
     col_name_ko:'재료명 (KO)', col_name_ar:'아랍어 (AR)', col_unit:'단위',
@@ -783,7 +896,7 @@ const TRANSLATIONS = {
     btn_save:'저장', cashier_title:'👤 캐셔 관리', cashier_add_title:'새 캐셔 추가',
     label_name:'이름', ph_cashier_name:'캐셔 이름',
     label_pw:'비밀번호', ph_cashier_pw:'4자 이상', btn_add:'추가',
-    modal_ing_title:'재료 추가', label_name_ko:'재료명 (한국어) *', ph_name_ko:'예: 바닐라 시럽',
+    modal_ing_title:'재료 추가', label_name_ko:'재료명 (한국어) *', ph_name_ko:'예: 바닐라 시럽', ph_box_qty:'예: 6',
     label_name_ar:'재료명 (아랍어)', label_unit:'단위 *',
     label_cur_qty:'현재 재고', label_min_qty:'최소 재고 (경고 기준)',
     label_unit_cost:'단위당 원가 (IQD)', btn_cancel:'취소',
@@ -881,13 +994,77 @@ const TRANSLATIONS = {
     err_session:'세션이 만료되었습니다. 다시 로그인해주세요.',
     // 유효성 검사
     err_qty_range:'수량은 1 이상 9999 이하로 입력해주세요.',
+    // 카테고리 관리
+    cat_mgr_title:'📂 카테고리 관리',
+    cat_toggle_expand:'▼ 펼치기', cat_toggle_collapse:'▲ 접기',
+    label_cat_name_ko:'카테고리명 (한국어) *', label_emoji:'이모지', label_cat_name_ar:'아랍어 이름',
+    cat_empty:'카테고리 없음',
+    // 재료 모달 추가 필드
+    label_ing_type:'종류 (비워두면 이름에서 자동)',
+    label_capacity:'병/봉 용량 mL·g (0 = 미설정)',
+    label_expiry:'유통기한', label_supplier_lbl:'납품업체',
+    ph_supplier:'업체명 선택 또는 입력',
+    // 레시피 모달
+    label_recipe_cat:'메뉴 종류', ph_recipe_cat:'예: 음료',
+    // 단위 옵션
+    unit_bottle:'병 (시럽류)', unit_kg:'kg (파우더류)', unit_bag:'봉 (파우더류)',
+    unit_box:'상자 (컵류)', unit_piece:'개',
+    // 테이블
+    col_emoji:'이모지', col_name_lang:'한국어',
+    price_editor_title:'💵 메뉴 판매가 관리',
+    // 카테고리 관리 JS 메시지
+    ing_empty_cat:'재료 없음',
+    cat_err_name:'카테고리명을 입력하세요',
+    cat_err_dup:'이미 있는 카테고리입니다',
+    cat_added:'"${name}" 추가됨',
+    cat_btn_save_edit:'수정 저장',
+    cat_editing:'"${name}" 수정 중...',
+    cat_saved:'수정됨',
+    cat_btn_add:'추가',
+    cat_confirm_del:'"${name}" 카테고리를 삭제하시겠습니까?\n이 카테고리의 재료들은 목록에서 맨 아래로 이동됩니다.',
+    // 차트 통계
+    stat_today_orders:'오늘 주문', stat_week_orders:'주간 주문', stat_month_orders:'월간 주문',
+    stat_today_revenue:'오늘 매출', stat_today_order_count:'오늘 주문수',
+    // 대시보드
+    order_needed:'주문 필요', expired_badge:'만료됨',
+    // 레시피 검색
+    ing_no_result:'검색 결과 없음',
+    // 원가 요약
+    cost_rate:'원가율', price_not_set:'판매가 미설정', selling_price_lbl:'판매가',
+    // CSV 내보내기 헤더
+    csv_col_name:'재료명', csv_col_type:'구분', csv_col_qty:'수량', csv_col_reason:'사유', csv_col_dt:'일시',
+    csv_type_in:'입고', csv_type_out:'출고', csv_filename:'입출고기록',
+    // 레시피 카테고리
+    recipe_cat_count:'종',
+    // 사이즈 레시피
+    size_recipe_title:'☕ 사이즈 음료 레시피',
+    btn_add_size_recipe:'+ 사이즈 레시피 추가',
+    size_recipe_hint:'등록된 레시피를 선택하면 재료가 자동으로 표시됩니다. 각 재료별 S/M/L 사용량을 입력하세요.',
+    size_recipe_empty:'등록된 사이즈 레시피가 없습니다.',
+    col_ingredient_sml:'재료 (S/M/L)',
+    modal_size_recipe_title:'사이즈 레시피 추가/수정',
+    label_size_recipe_select:'레시피 선택 *',
+    err_size_menu:'레시피를 선택하세요',
+    err_size_ing:'재료가 없습니다. 먼저 레시피를 등록하세요',
+    err_size_qty:'수량은 0 이상이어야 합니다',
+    confirm_del_size_recipe:'사이즈 레시피를 삭제할까요?',
+    // 사이즈 판매
+    size_sales_title:'☕ 사이즈 음료 판매',
+    size_sales_hint:'S/M/L 수량을 입력하면 레시피 기준으로 재고가 자동 차감됩니다.',
+    size_sales_empty:'등록된 사이즈 레시피가 없습니다. 먼저 레시피 탭에서 사이즈 레시피를 추가해주세요.',
+    btn_save_size_sales:'✅ 사이즈 판매 저장 & 재고 차감',
+    size_sales_success:'개 메뉴 판매 기록 완료.',
+    err_no_size_sales:'수량을 하나 이상 입력하세요',
+    daily_other_title:'🛒 기타 메뉴 판매',
   },
   ar: {
     brand_sub:'إدارة المخزن', badge_admin:'🔑 مدير', btn_logout:'خروج',
     nav_dashboard:'📊 لوحة التحكم', nav_ingredients:'🧪 المواد', nav_recipes:'📋 الوصفات والتكلفة',
     nav_adjust:'📦 الجرد', nav_daily:'🛒 مبيعات اليوم', nav_history:'📜 السجل', nav_settings:'⚙️ الإعدادات',
     tab_dashboard_title:'📊 لوحة التحكم', btn_refresh:'🔄 تحديث',
-    low_stock_title:'⚠️ تحذير نقص المخزون', recent_history_title:'🕐 آخر العمليات',
+    sales_chart_title:'إحصائيات المبيعات', period_day:'اليوم', period_week:'الأسبوع', period_month:'الشهر',
+    chart_daily_orders:'الطلبات اليومية', chart_top5:'الأكثر مبيعاً TOP 5',
+    low_stock_title:'⚠️ تحذير نقص المخزون', expiry_warn_title:'🗓️ تحذير انتهاء الصلاحية (7 أيام)', recent_history_title:'🕐 آخر العمليات',
     col_ingredient:'المادة', col_type:'النوع', col_qty:'الكمية', col_reason:'السبب', col_datetime:'التاريخ',
     tab_ing_title:'🧪 إدارة المواد', btn_add_ing:'+ إضافة مادة',
     col_name_ko:'الاسم (KO)', col_name_ar:'اسم عربي (AR)', col_unit:'الوحدة',
@@ -915,7 +1092,7 @@ const TRANSLATIONS = {
     btn_save:'حفظ', cashier_title:'👤 إدارة الكاشير', cashier_add_title:'إضافة كاشير',
     label_name:'الاسم', ph_cashier_name:'اسم الكاشير',
     label_pw:'كلمة المرور', ph_cashier_pw:'4 أحرف على الأقل', btn_add:'إضافة',
-    modal_ing_title:'إضافة مادة', label_name_ko:'الاسم (كوري) *', ph_name_ko:'مثال: شراب الفانيليا',
+    modal_ing_title:'إضافة مادة', label_name_ko:'الاسم (كوري) *', ph_name_ko:'مثال: شراب الفانيليا', ph_box_qty:'مثال: 6',
     label_name_ar:'الاسم (عربي)', label_unit:'الوحدة *',
     label_cur_qty:'المخزون الحالي', label_min_qty:'الحد الأدنى (تحذير)',
     label_unit_cost:'التكلفة للوحدة (IQD)', btn_cancel:'إلغاء',
@@ -1012,18 +1189,257 @@ const TRANSLATIONS = {
     err_session:'انتهت الجلسة. يرجى تسجيل الدخول مجدداً.',
     // التحقق من الصحة
     err_qty_range:'يجب أن تكون الكمية بين 1 و 9999.',
+    // إدارة الفئات
+    cat_mgr_title:'📂 إدارة الفئات',
+    cat_toggle_expand:'▼ توسيع', cat_toggle_collapse:'▲ طي',
+    label_cat_name_ko:'اسم الفئة (كوري) *', label_emoji:'رمز', label_cat_name_ar:'الاسم (عربي)',
+    cat_empty:'لا توجد فئات',
+    // حقول مودال المواد الإضافية
+    label_ing_type:'النوع (اختياري)',
+    label_capacity:'السعة mL·g (0 = غير محدد)',
+    label_expiry:'تاريخ الانتهاء', label_supplier_lbl:'المورد',
+    ph_supplier:'اختر أو اكتب اسم المورد',
+    ph_cat_name_ko:'مثال: سيروب', ph_cat_emoji:'🍯',
+    price_editor_title:'💵 إدارة أسعار البيع',
+    // مودال الوصفة
+    label_recipe_cat:'نوع المنتج', ph_recipe_cat:'مثال: مشروب',
+    // خيارات الوحدة
+    unit_bottle:'زجاجة (سيروب)', unit_kg:'كيلو (بودرة)', unit_bag:'كيس (بودرة)',
+    unit_box:'صندوق (أكواب)', unit_piece:'قطعة',
+    // جدول
+    col_emoji:'رمز', col_name_lang:'كوري',
+    // رسائل JS لإدارة الفئات
+    ing_empty_cat:'لا توجد مواد',
+    cat_err_name:'أدخل اسم الفئة',
+    cat_err_dup:'هذه الفئة موجودة بالفعل',
+    cat_added:'تمت إضافة "${name}"',
+    cat_btn_save_edit:'حفظ التعديل',
+    cat_editing:'جارٍ تعديل "${name}"...',
+    cat_saved:'تم الحفظ',
+    cat_btn_add:'إضافة',
+    cat_confirm_del:'هل تريد حذف فئة "${name}"؟\nسيتم نقل مواد هذه الفئة إلى أسفل القائمة.',
+    // إحصائيات الرسم البياني
+    stat_today_orders:'طلبات اليوم', stat_week_orders:'طلبات الأسبوع', stat_month_orders:'طلبات الشهر',
+    stat_today_revenue:'إيرادات اليوم', stat_today_order_count:'طلبات اليوم',
+    // لوحة التحكم
+    order_needed:'مطلوب طلب', expired_badge:'منتهي',
+    // بحث الوصفة
+    ing_no_result:'لا توجد نتائج',
+    // ملخص التكلفة
+    cost_rate:'نسبة التكلفة', price_not_set:'السعر غير محدد', selling_price_lbl:'سعر البيع',
+    // رؤوس CSV
+    csv_col_name:'اسم المادة', csv_col_type:'النوع', csv_col_qty:'الكمية', csv_col_reason:'السبب', csv_col_dt:'التاريخ',
+    csv_type_in:'وارد', csv_type_out:'صادر', csv_filename:'سجل_الجرد',
+    // فئة الوصفة
+    recipe_cat_count:'',
+    // وصفات الحجم
+    size_recipe_title:'☕ وصفات المشروبات (S/M/L)',
+    btn_add_size_recipe:'+ إضافة وصفة بالحجم',
+    size_recipe_hint:'اختر الوصفة المسجّلة وستظهر المواد تلقائياً. أدخل كميات S/M/L لكل مادة.',
+    size_recipe_empty:'لا توجد وصفات بالحجم مسجّلة.',
+    col_ingredient_sml:'المواد (S/M/L)',
+    modal_size_recipe_title:'إضافة / تعديل وصفة الحجم',
+    label_size_recipe_select:'اختر الوصفة *',
+    err_size_menu:'اختر وصفة',
+    err_size_ing:'لا توجد مواد. أضف الوصفة أولاً',
+    err_size_qty:'يجب أن تكون الكميات 0 أو أكثر',
+    confirm_del_size_recipe:'هل تريد حذف هذه الوصفة؟',
+    // مبيعات الحجم
+    size_sales_title:'☕ مبيعات المشروبات (S/M/L)',
+    size_sales_hint:'أدخل الكميات لكل حجم وسيتم خصم المخزون تلقائياً.',
+    size_sales_empty:'لا توجد وصفات بالحجم. أضف وصفات من تبويب الوصفات أولاً.',
+    btn_save_size_sales:'✅ حفظ مبيعات الحجم وخصم المخزون',
+    size_sales_success:'منتج تم تسجيله.',
+    err_no_size_sales:'أدخل كمية واحدة على الأقل',
+    daily_other_title:'🛒 مبيعات أخرى',
+  },
+  en: {
+    brand_sub:'Warehouse', badge_admin:'🔑 Admin', btn_logout:'Logout',
+    nav_dashboard:'📊 Dashboard', nav_ingredients:'🧪 Ingredients', nav_recipes:'📋 Recipes & Cost',
+    nav_adjust:'📦 Stock In/Out', nav_daily:'🛒 Daily Sales', nav_history:'📜 History', nav_settings:'⚙️ Settings',
+    tab_dashboard_title:'📊 Dashboard', btn_refresh:'🔄 Refresh',
+    sales_chart_title:'Sales Overview', period_day:'Today', period_week:'Weekly', period_month:'Monthly',
+    chart_daily_orders:'Daily Orders', chart_top5:'Best Seller TOP 5',
+    low_stock_title:'⚠️ Low Stock Warning', expiry_warn_title:'🗓️ Expiry Warning (D-7)', recent_history_title:'🕐 Recent Activity',
+    col_ingredient:'Ingredient', col_type:'Type', col_qty:'Qty', col_reason:'Reason', col_datetime:'Date/Time',
+    tab_ing_title:'🧪 Ingredients', btn_add_ing:'+ Add Ingredient',
+    col_name_ko:'Name (KO)', col_name_ar:'Arabic (AR)', col_unit:'Unit',
+    col_cur_qty:'Current Stock', col_min_qty:'Min Stock', col_cost:'Unit Cost (IQD)',
+    col_status:'Status', col_manage:'Manage',
+    tab_recipe_title:'📋 Recipes & Cost', btn_add_recipe:'+ Add Recipe',
+    col_menu:'Menu', cost_calc_title:'💰 Cost Calculator',
+    label_select_menu:'Select Menu', btn_calc:'Calculate', opt_select_menu:'— Select Menu —',
+    tab_adjust_title:'📦 Stock In/Out', adj_card_title:'Adjust Stock',
+    label_select_ing:'Select Ingredient', opt_select:'— Select —', label_type:'Type',
+    opt_in:'📥 Stock In (Add)', opt_out:'📤 Stock Out (Deduct)',
+    label_qty:'Quantity', label_reason:'Reason (optional)', ph_reason:'e.g. Delivery, Disposal',
+    btn_apply:'✅ Apply',
+    tab_daily_title:'🛒 Daily Sales', label_sale_date:'📅 Sale Date',
+    daily_hint:'Enter quantities sold; stock is deducted automatically. Zeros are ignored.',
+    daily_empty:'⚠️ No recipes registered. Add menus in the Recipes tab first.',
+    btn_save_sales:'✅ Save Sales & Deduct Stock',
+    btn_add_sale_row:'+ Add Menu',
+    ph_sale_menu:'Menu name',
+    err_no_sale_rows:'Please enter at least one sale item',
+    tab_history_title:'📜 Stock History',
+    tab_settings_title:'⚙️ Settings', pw_title:'🔑 Change Password',
+    label_new_pw:'New Password', ph_new_pw:'4+ characters',
+    label_new_pw2:'Confirm Password', ph_new_pw2:'Re-enter password',
+    btn_save:'Save', cashier_title:'👤 Cashier Management', cashier_add_title:'Add New Cashier',
+    label_name:'Name', ph_cashier_name:'Cashier name',
+    label_pw:'Password', ph_cashier_pw:'4+ characters', btn_add:'Add',
+    modal_ing_title:'Add Ingredient', label_name_ko:'Name (KO) *', ph_name_ko:'e.g. Vanilla Syrup', ph_box_qty:'e.g. 6',
+    label_name_ar:'Name (AR)', label_unit:'Unit *',
+    label_cur_qty:'Current Stock', label_min_qty:'Min Stock (warning)',
+    label_unit_cost:'Unit Cost (IQD)', btn_cancel:'Cancel',
+    modal_recipe_title:'Add / Edit Recipe', label_menu_name:'Menu Name *',
+    ph_menu_name:'e.g. Iced Latte', label_ing_list:'Ingredients', btn_add_ing_row:'+ Add Ingredient',
+    btn_edit:'Edit', btn_delete:'Delete',
+    col_action:'Action',
+    confirm_del_hist:'Delete this stock record?\n(Stock will be reversed automatically)',
+    modal_hist_edit_title:'Edit Stock Record',
+    err_hist_type:'Select a type',
+    err_hist_qty:'Enter a valid quantity',
+    err_hist_save:'Save failed. Please try again.',
+    hist_del_fail:'Delete failed. Please try again.',
+    stat_total_ing:'Total Ingredients', stat_low_ing:'Low Stock ⚠️',
+    low_item_cur:'Current', low_item_min:'Minimum',
+    badge_in:'📥 In', badge_out:'📤 Out',
+    err_load_data:'Failed to load data',
+    ing_empty:'No ingredients. Please add one.',
+    label_box_qty:'Qty per box (0 = unused)',
+    status_out:'Out of Stock', status_low:'Low', status_ok:'Normal',
+    err_load_retry:'Load failed. Please refresh.',
+    modal_ing_edit_title:'Edit Ingredient',
+    err_ing_name:'Enter ingredient name',
+    err_save_net:'Save failed. Check network.',
+    confirm_del_ing:'Delete this ingredient?\n(Recipes containing it will also be deleted)',
+    err_del:'Delete failed. Please try again.',
+    recipe_empty:'No recipes', err_load:'Load failed',
+    opt_select_ing_lbl:'— Select Ingredient —', ph_qty:'Quantity',
+    err_menu_name:'Enter menu name',
+    err_ing_required:'Add at least one ingredient',
+    err_dup_ing:'Duplicate ingredients',
+    err_dup_ing_hint:'Register each ingredient once and combine quantities.',
+    confirm_del_recipe:'Delete this recipe?',
+    cost_menu_lbl:'Menu', cost_total_lbl:'Total Cost',
+    btn_calculating:'Calculating...', err_calc:'Calculation failed. Try again.',
+    adj_current:'Current',
+    err_adj_input:'Enter ingredient and quantity correctly',
+    adj_success:'Done! Current stock:',
+    err_req_net:'Request failed. Check network.',
+    err_load_menus:'Failed to load menu list',
+    err_no_date:'Select a date',
+    err_no_sales:'⚠️ Enter at least one sale quantity',
+    sales_success:'menus recorded. Stock deducted.',
+    hist_empty:'No records',
+    err_pw_mismatch:'Passwords do not match',
+    err_pw_short:'Enter 4+ characters',
+    pw_success:'✅ Password changed',
+    pw_change_fail:'Change failed. Check network.',
+    cashier_empty:'No cashiers registered',
+    err_cashier_name:'Enter name',
+    err_cashier_pw:'Password must be 4+ characters',
+    cashier_added:'✅ Added',
+    cashier_add_fail:'Add failed',
+    cashier_add_net:'Add failed. Check network.',
+    confirm_del_cashier:'Delete this cashier?',
+    nav_report:'📈 Consumption Report',
+    report_period_lbl:'Period', report_week:'This Week', report_month:'This Month', report_3month:'Last 3 Months',
+    report_chart_title:'📊 Top 10 Ingredient Consumption (Outgoing)',
+    report_table_title:'📋 In/Out Summary per Ingredient',
+    report_col_in:'Total In', report_col_out:'Total Out', report_col_net:'Net Change',
+    report_empty:'No records in this period.',
+    report_loading:'Loading data...',
+    budget_title:'💳 Monthly Purchase Budget',
+    budget_btn_set:'Set Goal',
+    budget_modal_title:'Monthly Budget Goal (IQD)',
+    budget_ph:'e.g. 500000',
+    budget_no_goal:'No budget goal has been set yet.',
+    budget_spent:'This month\'s spending (estimated)',
+    budget_goal:'Goal',
+    budget_remaining:'Remaining',
+    btn_cancel:'Cancel',
+    supplier_title:'🚚 Supplier Contacts',
+    supplier_add_title:'Add New Supplier',
+    label_sup_name:'Company Name', ph_sup_name:'e.g. Baghdad Foods',
+    label_sup_phone:'Phone', ph_sup_phone:'e.g. 07701234567',
+    label_sup_item:'Items Supplied', ph_sup_item:'e.g. Dairy, Coffee',
+    label_sup_note:'Note', ph_sup_note:'Optional',
+    supplier_empty:'No suppliers registered.',
+    err_sup_name:'Enter supplier name',
+    confirm_del_supplier:'Delete this supplier?',
+    all_cost_title:'📊 All Menu Cost Summary',
+    all_cost_loading:'Calculating costs...',
+    all_cost_empty:'No recipes.',
+    all_cost_ing_count:'ingredients',
+    btn_export_csv:'📥 Export Excel',
+    export_empty:'No records to export.',
+    err_network:'Check your internet connection and try again.',
+    err_session:'Session expired. Please log in again.',
+    err_qty_range:'Quantity must be between 1 and 9999.',
+    cat_mgr_title:'📂 Category Management',
+    cat_toggle_expand:'▼ Expand', cat_toggle_collapse:'▲ Collapse',
+    label_cat_name_ko:'Category Name (KO) *', label_emoji:'Emoji', label_cat_name_ar:'Arabic Name',
+    cat_empty:'No categories',
+    label_ing_type:'Type (auto if empty)',
+    label_capacity:'Capacity mL·g (0 = not set)',
+    label_expiry:'Expiry Date', label_supplier_lbl:'Supplier',
+    ph_supplier:'Select or enter supplier name',
+    ph_cat_name_ko:'e.g. Syrup', ph_cat_emoji:'🍯',
+    label_recipe_cat:'Menu Type', ph_recipe_cat:'e.g. Drink',
+    unit_bottle:'Bottle (Syrup)', unit_kg:'kg (Powder)', unit_bag:'Bag (Powder)',
+    unit_box:'Box (Cups)', unit_piece:'Piece',
+    col_emoji:'Emoji', col_name_lang:'Korean',
+    price_editor_title:'💵 Menu Price Management',
+    ing_empty_cat:'No ingredients',
+    cat_err_name:'Enter category name',
+    cat_err_dup:'Category already exists',
+    cat_added:'"${name}" added',
+    cat_btn_save_edit:'Save Edit',
+    cat_editing:'Editing "${name}"...',
+    cat_saved:'Saved',
+    cat_btn_add:'Add',
+    cat_confirm_del:'Delete category "${name}"?\nIngredients will be moved to the bottom.',
+    stat_today_orders:'Today\'s Orders', stat_week_orders:'Weekly Orders', stat_month_orders:'Monthly Orders',
+    stat_today_revenue:'Today\'s Revenue', stat_today_order_count:'Today\'s Orders',
+    order_needed:'Order Needed', expired_badge:'Expired',
+    ing_no_result:'No results',
+    cost_rate:'Cost Rate', price_not_set:'Price not set', selling_price_lbl:'Selling Price',
+    csv_col_name:'Ingredient', csv_col_type:'Type', csv_col_qty:'Qty', csv_col_reason:'Reason', csv_col_dt:'Date/Time',
+    csv_type_in:'In', csv_type_out:'Out', csv_filename:'stock_history',
+    recipe_cat_count:'',
+    size_recipe_title:'☕ Size Drink Recipes',
+    btn_add_size_recipe:'+ Add Size Recipe',
+    size_recipe_hint:'Select a recipe and ingredients will appear. Enter S/M/L amounts for each.',
+    size_recipe_empty:'No size recipes registered.',
+    col_ingredient_sml:'Ingredients (S/M/L)',
+    modal_size_recipe_title:'Add / Edit Size Recipe',
+    label_size_recipe_select:'Select Recipe *',
+    err_size_menu:'Select a recipe',
+    err_size_ing:'No ingredients. Register a recipe first',
+    err_size_qty:'Quantities must be 0 or more',
+    confirm_del_size_recipe:'Delete this size recipe?',
+    size_sales_title:'☕ Size Drink Sales',
+    size_sales_hint:'Enter S/M/L quantities; stock will be deducted automatically.',
+    size_sales_empty:'No size recipes. Add recipes from the Recipes tab first.',
+    btn_save_size_sales:'✅ Save Size Sales & Deduct Stock',
+    size_sales_success:'menus recorded.',
+    err_no_size_sales:'Enter at least one quantity',
+    daily_other_title:'🛒 Other Menu Sales',
   }
 };
 
-let currentLang = localStorage.getItem('wh_lang') || 'ko';
-const t = key => TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS.ko[key] ?? key;
+let currentLang = localStorage.getItem('wh_lang') || 'ar';
+if (currentLang === 'ko') currentLang = 'en';
+const t = key => TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
 
 function applyLang(lang) {
   currentLang = lang;
   localStorage.setItem('wh_lang', lang);
   const t = TRANSLATIONS[lang];
   const html = document.documentElement;
-  html.setAttribute('lang', lang === 'ar' ? 'ar' : 'ko');
+  html.setAttribute('lang', lang === 'ar' ? 'ar' : 'en');
   html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
 
   // text nodes
@@ -1041,6 +1457,13 @@ function applyLang(lang) {
     const key = el.getAttribute('data-i18n-opt');
     if (t[key] !== undefined) el.textContent = t[key];
   });
+  // unit select options
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    if (el.tagName === 'OPTION') {
+      const key = el.getAttribute('data-i18n');
+      if (t[key] !== undefined) el.textContent = t[key];
+    }
+  });
   // adjType select options
   const adjType = document.getElementById('adjType');
   if (adjType) {
@@ -1055,7 +1478,7 @@ function applyLang(lang) {
 
   // toggle button label
   const btn = document.getElementById('langToggle');
-  if (btn) btn.textContent = lang === 'ar' ? 'KO' : 'AR';
+  if (btn) btn.textContent = lang === 'ar' ? 'EN' : 'AR';
 
   // 현재 활성 탭 동적 콘텐츠 새로고침 (로그인 후에만)
   if (sessionStorage.getItem('wh_token')) {
@@ -1064,7 +1487,7 @@ function applyLang(lang) {
       const id = activePanel.id.replace('tab-', '');
       if (id === 'dashboard')   loadDashboard();
       else if (id === 'ingredients') loadIngredients();
-      else if (id === 'recipes')     loadRecipes();
+      else if (id === 'recipes')     { loadRecipes(); loadSizeRecipes(); }
       else if (id === 'adjust')      loadAdjust();
       else if (id === 'daily')       loadDaily();
       else if (id === 'history')     loadHistory();
@@ -1075,12 +1498,13 @@ function applyLang(lang) {
 }
 
 function toggleLang() {
-  applyLang(currentLang === 'ko' ? 'ar' : 'ko');
+  applyLang(currentLang === 'ar' ? 'en' : 'ar');
 }
 
 let token = sessionStorage.getItem('wh_token') || '';
 let ingredients = [];
 let recipes = [];
+let sizeRecipes = [];
 let _histCache = [];
 
 // ══════════════════════════════════════════════
@@ -1109,7 +1533,7 @@ function localDateStr() {
 // ══════════════════════════════════════════════
 // 3. Race Condition 방지: 버튼 잠금/해제
 // ══════════════════════════════════════════════
-function lockBtn(id, text = '처리 중...') {
+function lockBtn(id, text = '...') {
   const el = document.getElementById(id);
   if (!el) return;
   el.disabled = true;
@@ -1127,7 +1551,7 @@ function unlockBtn(id) {
 // 인증
 // ══════════════════════════════════════════════
 async function doLogin() {
-  lockBtn('loginBtn', '로그인 중...');
+  lockBtn('loginBtn', '...');
   document.getElementById('loginErr').textContent = '';
   try {
     const pw = document.getElementById('loginPw').value;
@@ -1143,10 +1567,10 @@ async function doLogin() {
       document.getElementById('loginOverlay').style.display = 'none';
       init();
     } else {
-      document.getElementById('loginErr').textContent = d.error || '로그인 실패';
+      document.getElementById('loginErr').textContent = d.error || 'فشل تسجيل الدخول';
     }
   } catch (e) {
-    document.getElementById('loginErr').textContent = '서버에 연결할 수 없습니다';
+    document.getElementById('loginErr').textContent = 'تعذّر الاتصال بالخادم';
   } finally {
     unlockBtn('loginBtn');
   }
@@ -1204,12 +1628,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════════
 function showTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+  // 탑바 타이틀 업데이트
+  const titleEl = document.getElementById('topBarTitle');
+  if (titleEl) { const span = btn.querySelector('span[data-i18n]'); if (span) titleEl.textContent = btn.textContent.trim(); }
   if (id === 'dashboard')   loadDashboard();
   if (id === 'ingredients') loadIngredients();
-  if (id === 'recipes')     loadRecipes();
+  if (id === 'recipes')     { loadRecipes(); loadSizeRecipes(); }
   if (id === 'adjust')      loadAdjust();
   if (id === 'daily')       loadDaily();
   if (id === 'history')     loadHistory();
@@ -1260,7 +1687,7 @@ async function loadDashboard() {
           </div>
           <div style="text-align:right">
             <div class="qty">${t('low_item_cur')} ${esc(String(i.current_qty))}${esc(i.unit)} / ${t('low_item_min')} ${esc(String(i.min_qty))}${esc(i.unit)}</div>
-            <div style="font-size:.75rem;color:var(--danger);margin-top:.2rem">📦 ${esc(String(orderQty))}${esc(i.unit)} 주문 필요</div>
+            <div style="font-size:.75rem;color:var(--danger);margin-top:.2rem">📦 ${esc(String(orderQty))}${esc(i.unit)} ${t('order_needed')}</div>
           </div>
         `;
         ll.appendChild(div);
@@ -1279,7 +1706,7 @@ async function loadDashboard() {
       expiring.forEach(i => {
         const daysLeft = i.days_left;
         let badge, badgeColor;
-        if (daysLeft < 0) { badge = '만료됨'; badgeColor = '#6b7280'; }
+        if (daysLeft < 0) { badge = t('expired_badge'); badgeColor = '#6b7280'; }
         else if (daysLeft === 0) { badge = 'D-Day'; badgeColor = 'var(--danger)'; }
         else { badge = `D-${daysLeft}`; badgeColor = daysLeft <= 3 ? 'var(--danger)' : 'var(--warning, #f59e0b)'; }
         const div = document.createElement('div');
@@ -1333,9 +1760,9 @@ async function loadSalesChart(period) {
     if (statsRow) {
       statsRow.innerHTML = `
         <div class="chart-stat"><div class="chart-stat-val">${(d.totals?.total_revenue || 0).toLocaleString()}</div><div class="chart-stat-label">IQD</div></div>
-        <div class="chart-stat"><div class="chart-stat-val">${d.totals?.total_orders || 0}</div><div class="chart-stat-label">${period === 'day' ? '오늘 주문' : period === 'week' ? '주간 주문' : '월간 주문'}</div></div>
-        <div class="chart-stat"><div class="chart-stat-val">${(d.today?.revenue || 0).toLocaleString()}</div><div class="chart-stat-label">오늘 매출</div></div>
-        <div class="chart-stat"><div class="chart-stat-val">${d.today?.order_count || 0}</div><div class="chart-stat-label">오늘 주문수</div></div>
+        <div class="chart-stat"><div class="chart-stat-val">${d.totals?.total_orders || 0}</div><div class="chart-stat-label">${period === 'day' ? t('stat_today_orders') : period === 'week' ? t('stat_week_orders') : t('stat_month_orders')}</div></div>
+        <div class="chart-stat"><div class="chart-stat-val">${(d.today?.revenue || 0).toLocaleString()}</div><div class="chart-stat-label">${t('stat_today_revenue')}</div></div>
+        <div class="chart-stat"><div class="chart-stat-val">${d.today?.order_count || 0}</div><div class="chart-stat-label">${t('stat_today_order_count')}</div></div>
       `;
     }
 
@@ -1376,7 +1803,7 @@ async function loadSalesChart(period) {
         <div class="top5-item">
           <div class="top5-name">${esc(r.menu_item)}</div>
           <div class="top5-bar-wrap"><div class="top5-bar" style="width:${Math.round(r.total_qty / maxQty * 100)}%"></div></div>
-          <div class="top5-qty">${r.total_qty}잔</div>
+          <div class="top5-qty">${r.total_qty}</div>
         </div>
       `).join('');
     }
@@ -1447,8 +1874,8 @@ function fmtQty(i) {
   if (bq && bq > 0 && qty > 0) {
     const boxes = Math.floor(qty / bq);
     const rem = qty % bq;
-    if (boxes > 0 && rem > 0) return `${boxes}박스 ${qty}${unit}`;
-    if (boxes > 0) return `${boxes}박스 ${qty}${unit}`;
+    if (boxes > 0 && rem > 0) return `${boxes}box + ${rem}${unit}`;
+    if (boxes > 0) return `${boxes}box`;
     return `${qty}${unit}`;
   }
   return `${qty} ${unit}`;
@@ -1484,8 +1911,8 @@ async function loadIngredients(render = true) {
 
       if (!items.length) {
         return `<div class="card" style="margin-bottom:1rem;opacity:.55">
-          <h3 style="margin-bottom:.5rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(0종)</span></h3>
-          <p style="text-align:center;color:var(--soft);font-size:.85rem;padding:.6rem 0">재료 없음</p>
+          <h3 style="margin-bottom:.5rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(0)</span></h3>
+          <p style="text-align:center;color:var(--soft);font-size:.85rem;padding:.6rem 0">${t('ing_empty_cat')}</p>
         </div>`;
       }
 
@@ -1511,16 +1938,16 @@ async function loadIngredients(render = true) {
         </tr>`;
       }).join('');
       return `<div class="card" style="margin-bottom:1rem">
-        <h3 style="margin-bottom:.75rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(${items.length}종)</span></h3>
+        <h3 style="margin-bottom:.75rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(${items.length})</span></h3>
         <div class="tbl-wrap"><table>
           <thead><tr>
-            <th data-i18n="col_name_ko">재료명</th>
-            <th data-i18n="col_name_ar">아랍어</th>
-            <th data-i18n="col_cur_qty">현재 재고</th>
-            <th data-i18n="col_min_qty">최소 재고</th>
-            <th data-i18n="col_cost">단위 원가</th>
-            <th data-i18n="col_status">상태</th>
-            <th data-i18n="col_manage">관리</th>
+            <th>${t('col_name_ko')}</th>
+            <th>${t('col_name_ar')}</th>
+            <th>${t('col_cur_qty')}</th>
+            <th>${t('col_min_qty')}</th>
+            <th>${t('col_cost')}</th>
+            <th>${t('col_status')}</th>
+            <th>${t('col_manage')}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table></div>
@@ -1552,7 +1979,7 @@ function toggleCatMgr() {
   const body = document.getElementById('catMgrBody');
   const icon = document.getElementById('catMgrToggle');
   body.classList.toggle('hidden');
-  icon.textContent = body.classList.contains('hidden') ? '▼ 펼치기' : '▲ 접기';
+  icon.textContent = body.classList.contains('hidden') ? t('cat_toggle_expand') : t('cat_toggle_collapse');
   if (!body.classList.contains('hidden')) renderCatManager();
 }
 
@@ -1561,14 +1988,14 @@ function renderCatManager() {
   const list = document.getElementById('catMgrList');
   if (!list) return;
   if (!cats.length) {
-    list.innerHTML = '<p style="font-size:.82rem;color:var(--soft);margin-bottom:.5rem">카테고리 없음</p>';
+    list.innerHTML = `<p style="font-size:.82rem;color:var(--soft);margin-bottom:.5rem">${t('cat_empty')}</p>`;
     return;
   }
   list.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.84rem;margin-bottom:.25rem">
     <thead><tr style="color:var(--soft);font-size:.76rem;border-bottom:1px solid var(--border)">
-      <th style="text-align:left;padding:.2rem .4rem;width:2.5rem">이모지</th>
-      <th style="text-align:left;padding:.2rem .4rem">한국어</th>
-      <th style="text-align:left;padding:.2rem .4rem" class="ar" dir="rtl">عربي</th>
+      <th style="text-align:left;padding:.2rem .4rem;width:2.5rem">${t('col_emoji')}</th>
+      <th style="text-align:left;padding:.2rem .4rem">${t('col_name_lang')}</th>
+      <th style="text-align:left;padding:.2rem .4rem">${t('label_cat_name_ar')}</th>
       <th style="width:9rem"></th>
     </tr></thead>
     <tbody>${cats.map((c, idx) => `<tr style="border-bottom:1px solid var(--border)">
@@ -1595,9 +2022,9 @@ function addCategory() {
   const emoji = document.getElementById('newCatEmoji').value.trim() || '📦';
   const nameAr = document.getElementById('newCatAr').value.trim();
   const msg   = document.getElementById('catMgrMsg');
-  if (!name) { msg.style.color = 'var(--red)'; msg.textContent = '카테고리명을 입력하세요'; return; }
+  if (!name) { msg.style.color = 'var(--red)'; msg.textContent = t('cat_err_name'); return; }
   const cats = loadCatStore();
-  if (cats.find(c => c.name === name)) { msg.style.color = 'var(--red)'; msg.textContent = '이미 있는 카테고리입니다'; return; }
+  if (cats.find(c => c.name === name)) { msg.style.color = 'var(--red)'; msg.textContent = t('cat_err_dup'); return; }
   cats.push({ name, emoji, nameAr });
   saveCatStore(cats);
   syncCatConstants();
@@ -1605,7 +2032,7 @@ function addCategory() {
   document.getElementById('newCatName').value = '';
   document.getElementById('newCatEmoji').value = '';
   document.getElementById('newCatAr').value = '';
-  msg.style.color = 'var(--green)'; msg.textContent = `"${name}" 추가됨`;
+  msg.style.color = 'var(--green)'; msg.textContent = t('cat_added').replace('${name}', name);
   setTimeout(() => { msg.textContent = ''; }, 2500);
   renderCatManager();
   loadIngredients();
@@ -1617,10 +2044,10 @@ function startEditCat(idx) {
   document.getElementById('newCatName').value  = c.name;
   document.getElementById('newCatEmoji').value = c.emoji || '';
   document.getElementById('newCatAr').value    = c.nameAr || '';
-  document.getElementById('catSubmitBtn').textContent = '수정 저장';
+  document.getElementById('catSubmitBtn').textContent = t('cat_btn_save_edit');
   document.getElementById('catCancelBtn').classList.remove('hidden');
   const msg = document.getElementById('catMgrMsg');
-  msg.style.color = 'var(--soft)'; msg.textContent = `"${c.name}" 수정 중...`;
+  msg.style.color = 'var(--soft)'; msg.textContent = t('cat_editing').replace('${name}', c.name);
   document.getElementById('newCatName').focus();
 }
 
@@ -1629,17 +2056,17 @@ function saveEditCat(idx) {
   const emoji  = document.getElementById('newCatEmoji').value.trim() || '📦';
   const nameAr = document.getElementById('newCatAr').value.trim();
   const msg    = document.getElementById('catMgrMsg');
-  if (!name) { msg.style.color = 'var(--red)'; msg.textContent = '카테고리명을 입력하세요'; return; }
+  if (!name) { msg.style.color = 'var(--red)'; msg.textContent = t('cat_err_name'); return; }
   const cats = loadCatStore();
   if (name !== cats[idx].name && cats.find(c => c.name === name)) {
-    msg.style.color = 'var(--red)'; msg.textContent = '이미 있는 카테고리입니다'; return;
+    msg.style.color = 'var(--red)'; msg.textContent = t('cat_err_dup'); return;
   }
   cats[idx] = { name, emoji, nameAr };
   saveCatStore(cats);
   syncCatConstants();
   syncCatDatalist();
   cancelEditCat();
-  msg.style.color = 'var(--green)'; msg.textContent = '수정됨';
+  msg.style.color = 'var(--green)'; msg.textContent = t('cat_saved');
   setTimeout(() => { msg.textContent = ''; }, 2500);
   renderCatManager();
   loadIngredients();
@@ -1650,14 +2077,14 @@ function cancelEditCat() {
   document.getElementById('newCatName').value  = '';
   document.getElementById('newCatEmoji').value = '';
   document.getElementById('newCatAr').value    = '';
-  document.getElementById('catSubmitBtn').textContent = '추가';
+  document.getElementById('catSubmitBtn').textContent = t('cat_btn_add');
   document.getElementById('catCancelBtn').classList.add('hidden');
 }
 
 function deleteCat(idx) {
   const cats = loadCatStore();
   const name = cats[idx].name;
-  if (!confirm(`"${name}" 카테고리를 삭제하시겠습니까?\n이 카테고리의 재료들은 목록에서 맨 아래로 이동됩니다.`)) return;
+  if (!confirm(t('cat_confirm_del').replace('${name}', name))) return;
   cats.splice(idx, 1);
   saveCatStore(cats);
   syncCatConstants();
@@ -1791,23 +2218,27 @@ async function loadRecipes() {
 
         // 카테고리 헤더 행
         const headerTr = document.createElement('tr');
-        headerTr.innerHTML = `<td colspan="6" style="background:var(--bg2,#f4f4f0);padding:.5rem .75rem;font-weight:700;color:var(--green);border-top:2px solid var(--green)">${emoji} ${esc(cat)} <span style="font-size:.8rem;color:var(--soft);font-weight:400">(${catMenus.length}종)</span></td>`;
+        headerTr.innerHTML = `<td colspan="6" style="background:var(--bg2,#f4f4f0);padding:.5rem .75rem;font-weight:700;color:var(--green);border-top:2px solid var(--green)">${emoji} ${esc(cat)} <span style="font-size:.8rem;color:var(--soft);font-weight:400">(${catMenus.length}${t('recipe_cat_count') ? ' '+t('recipe_cat_count') : ''})</span></td>`;
         tb.appendChild(headerTr);
 
         catMenus.forEach(menu => {
           const items = grouped[menu];
-          const totalCost = items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0);
+          const totalCost = items.reduce((s, i) => {
+            const uc = i.capacity_ml > 0 ? i.cost_per_unit / i.capacity_ml : i.cost_per_unit;
+            return s + i.quantity * uc;
+          }, 0);
           items.forEach((item, idx) => {
             const tr = document.createElement('tr');
             let html = '';
             if (idx === 0) {
               html += `<td rowspan="${items.length}"><b>${esc(menu)}</b></td>`;
             }
+            const itemUc = item.capacity_ml > 0 ? item.cost_per_unit / item.capacity_ml : item.cost_per_unit;
             html += `
               <td>${esc(item.name_ko)}</td>
               <td>${esc(String(item.quantity))} ${esc(item.recipe_unit || 'ml')}</td>
               <td>${esc(item.recipe_unit || 'ml')}</td>
-              <td>${Math.round(item.quantity * item.cost_per_unit).toLocaleString()} IQD</td>
+              <td>${Math.round(item.quantity * itemUc).toLocaleString()} IQD</td>
             `;
             if (idx === 0) {
               html += `
@@ -1910,7 +2341,7 @@ function addRecipeRow(ingId = '', qty = '', unit = 'ml') {
 
     dropdown.innerHTML = '';
     if (!filtered.length) {
-      dropdown.innerHTML = `<div class="ing-no-result">검색 결과 없음</div>`;
+      dropdown.innerHTML = `<div class="ing-no-result">${t('ing_no_result')}</div>`;
     } else {
       filtered.forEach(i => {
         const item = document.createElement('div');
@@ -2073,7 +2504,8 @@ async function calcCost() {
     d.items.forEach(i => {
       const line = document.createElement('div');
       line.style.cssText = 'font-size:.85rem;color:var(--mid);margin:.2rem 0';
-      line.textContent = `• ${i.name_ko}: ${i.quantity}${i.unit} × ${i.cost_per_unit.toLocaleString()} = ${Math.round(i.quantity * i.cost_per_unit).toLocaleString()} IQD`;
+      const unitCost = i.capacity_ml > 0 ? i.cost_per_unit / i.capacity_ml : i.cost_per_unit;
+      line.textContent = `• ${i.name_ko}: ${i.quantity}${i.unit} × ${unitCost.toFixed(2)} = ${Math.round(i.quantity * unitCost).toLocaleString()} IQD`;
       box.appendChild(line);
     });
 
@@ -2147,6 +2579,264 @@ async function submitAdjust() {
 }
 
 // ══════════════════════════════════════════════
+// 사이즈 레시피 관리
+// ══════════════════════════════════════════════
+async function loadSizeRecipes() {
+  try {
+    const resp = await fetch('/api/size-recipes', { headers: hdr() });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    sizeRecipes = await resp.json();
+
+    const tb = document.getElementById('sizeRecipeTb');
+    if (!tb) return;
+    tb.innerHTML = '';
+    if (!sizeRecipes.length) {
+      tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--soft);padding:1.5rem">${t('size_recipe_empty')}</td></tr>`;
+      return;
+    }
+    // 메뉴별로 그룹핑
+    const grouped = {};
+    sizeRecipes.forEach(sr => {
+      if (!grouped[sr.menu_item]) grouped[sr.menu_item] = [];
+      grouped[sr.menu_item].push(sr);
+    });
+    Object.entries(grouped).forEach(([menuName, rows]) => {
+      const ingSummary = rows.map(r =>
+        `${esc(r.name_ko || r.name_ar || '')} <span style="font-size:.72rem;color:var(--soft)">(S:${r.s_qty} M:${r.m_qty} L:${r.l_qty})</span>`
+      ).join('<br>');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${esc(menuName)}</b></td>
+        <td style="font-size:.82rem;line-height:1.6">${ingSummary}</td>
+        <td>
+          <div style="display:flex;gap:.3rem;justify-content:center">
+            <button class="btn btn-outline btn-sm" onclick="openSizeRecipeModal(${JSON.stringify(menuName).replace(/"/g,'&quot;')})">${t('btn_edit')}</button>
+            <button class="btn btn-danger btn-sm" onclick="delSizeRecipe(${JSON.stringify(menuName).replace(/"/g,'&quot;')})">${t('btn_delete')}</button>
+          </div>
+        </td>
+      `;
+      tb.appendChild(tr);
+    });
+  } catch (e) {
+    const tb = document.getElementById('sizeRecipeTb');
+    if (tb) tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:1.5rem">${t('err_load')}</td></tr>`;
+  }
+}
+
+function openSizeRecipeModal(existingMenuName) {
+  document.getElementById('srModalMsg').innerHTML = '';
+  document.getElementById('srIngTable').style.display = 'none';
+  document.getElementById('srIngRows').innerHTML = '';
+
+  // 레시피 드롭다운 채우기 (unique menu names)
+  const sel = document.getElementById('srRecipeSelect');
+  const menuNames = [...new Set(recipes.map(r => r.menu_item))].sort();
+  sel.innerHTML = `<option value="">— ${t('opt_select')} —</option>`;
+  menuNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    if (existingMenuName && name === existingMenuName) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('srOrigMenu').value = existingMenuName || '';
+  document.getElementById('sizeRecipeModal').classList.remove('hidden');
+
+  if (existingMenuName) onSrRecipeChange();
+}
+
+function onSrRecipeChange() {
+  const menuName = document.getElementById('srRecipeSelect').value;
+  const tableEl  = document.getElementById('srIngTable');
+  const rowsEl   = document.getElementById('srIngRows');
+  rowsEl.innerHTML = '';
+
+  if (!menuName) { tableEl.style.display = 'none'; return; }
+
+  // 이 메뉴의 레시피 재료 목록
+  const menuIngredients = recipes.filter(r => r.menu_item === menuName);
+  if (!menuIngredients.length) { tableEl.style.display = 'none'; return; }
+
+  // 기존에 저장된 사이즈 레시피 값 (있으면 미리 채우기)
+  const existing = {};
+  sizeRecipes.filter(sr => sr.menu_item === menuName).forEach(sr => {
+    existing[sr.ingredient_id] = sr;
+  });
+
+  menuIngredients.forEach(ing => {
+    const ex = existing[ing.ingredient_id] || {};
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 70px 70px 70px;gap:.4rem;align-items:center;margin-bottom:.4rem';
+    row.innerHTML = `
+      <span style="font-size:.82rem;font-weight:600">${esc(ing.name_ko)}${ing.name_ar ? `<br><span style="font-size:.72rem;color:var(--soft)">${esc(ing.name_ar)}</span>` : ''}</span>
+      <input type="number" min="0" step="0.1" placeholder="g"
+        style="text-align:center;padding:.3rem .25rem;font-size:.82rem"
+        data-ing-id="${ing.ingredient_id}" data-size="s"
+        value="${ex.s_qty != null ? ex.s_qty : ''}">
+      <input type="number" min="0" step="0.1" placeholder="g"
+        style="text-align:center;padding:.3rem .25rem;font-size:.82rem"
+        data-ing-id="${ing.ingredient_id}" data-size="m"
+        value="${ex.m_qty != null ? ex.m_qty : (ing.quantity != null ? ing.quantity : '')}">
+      <input type="number" min="0" step="0.1" placeholder="g"
+        style="text-align:center;padding:.3rem .25rem;font-size:.82rem"
+        data-ing-id="${ing.ingredient_id}" data-size="l"
+        value="${ex.l_qty != null ? ex.l_qty : ''}">
+    `;
+    rowsEl.appendChild(row);
+  });
+
+  tableEl.style.display = 'block';
+}
+
+async function saveSizeRecipe() {
+  const menuName = document.getElementById('srRecipeSelect').value.trim();
+  const msgEl    = document.getElementById('srModalMsg');
+
+  if (!menuName) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_size_menu')}</div>`; return;
+  }
+
+  // 재료별 S/M/L 수집
+  const inputs = document.querySelectorAll('#srIngRows input[data-ing-id]');
+  const itemMap = {};
+  inputs.forEach(inp => {
+    const id   = parseInt(inp.dataset.ingId);
+    const size = inp.dataset.size;
+    if (!itemMap[id]) itemMap[id] = { ingredient_id: id };
+    itemMap[id][`${size}_qty`] = parseFloat(inp.value) || 0;
+  });
+  const items = Object.values(itemMap);
+
+  if (!items.length) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_size_ing')}</div>`; return;
+  }
+  for (const it of items) {
+    if (it.s_qty < 0 || it.m_qty < 0 || it.l_qty < 0) {
+      msgEl.innerHTML = `<div class="alert alert-danger">${t('err_size_qty')}</div>`; return;
+    }
+  }
+
+  // menu_category는 레시피에서 가져옴
+  const recipeRow = recipes.find(r => r.menu_item === menuName);
+  const menu_category = recipeRow?.menu_category || '음료';
+
+  lockBtn('srSaveBtn');
+  try {
+    const res = await apiFetch('/api/size-recipes', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ menu_item: menuName, menu_category, items })
+    });
+    const r = await res.json();
+    if (r.success) {
+      closeModal('sizeRecipeModal');
+      await loadSizeRecipes();
+      renderSizeSalesGrid();
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
+    }
+  } catch (e) {
+    if (e.message !== 'unauthorized') msgEl.innerHTML = `<div class="alert alert-danger">${t('err_network')}</div>`;
+  } finally {
+    unlockBtn('srSaveBtn');
+  }
+}
+
+async function delSizeRecipe(menuItem) {
+  if (!confirm(t('confirm_del_size_recipe'))) return;
+  try {
+    await apiFetch(`/api/size-recipes/menu/${encodeURIComponent(menuItem)}`, { method: 'DELETE', headers: hdr() });
+    await loadSizeRecipes();
+    renderSizeSalesGrid();
+  } catch (e) { /* silent */ }
+}
+
+// ══════════════════════════════════════════════
+// 사이즈 판매 그리드
+// ══════════════════════════════════════════════
+function renderSizeSalesGrid() {
+  const grid = document.getElementById('sizeSalesGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (!sizeRecipes.length) {
+    grid.innerHTML = `<p style="color:var(--soft);font-size:.85rem">${t('size_sales_empty')}</p>`;
+    return;
+  }
+
+  // 헤더
+  const header = document.createElement('div');
+  header.style.cssText = 'display:grid;grid-template-columns:1fr 80px 80px 80px;gap:.4rem;align-items:center;font-size:.78rem;font-weight:800;color:var(--soft);margin-bottom:.3rem;padding:0 .25rem';
+  header.innerHTML = `<span>${t('col_menu')}</span><span style="text-align:center">S</span><span style="text-align:center">M</span><span style="text-align:center">L</span>`;
+  grid.appendChild(header);
+
+  sizeRecipes.forEach(sr => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 80px 80px 80px;gap:.4rem;align-items:center;margin-bottom:.35rem';
+    row.innerHTML = `
+      <span style="font-weight:700;font-size:.9rem">${esc(sr.menu_item)}</span>
+      <input type="number" class="sr-s-input" data-menu="${esc(sr.menu_item)}" min="0" max="9999" step="1" placeholder="0"
+        style="padding:.4rem .3rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;font-family:inherit;width:100%">
+      <input type="number" class="sr-m-input" data-menu="${esc(sr.menu_item)}" min="0" max="9999" step="1" placeholder="0"
+        style="padding:.4rem .3rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;font-family:inherit;width:100%">
+      <input type="number" class="sr-l-input" data-menu="${esc(sr.menu_item)}" min="0" max="9999" step="1" placeholder="0"
+        style="padding:.4rem .3rem;border:2px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-weight:700;text-align:center;font-family:inherit;width:100%">
+    `;
+    grid.appendChild(row);
+  });
+}
+
+async function submitSizeSales() {
+  const date  = document.getElementById('saleDate').value;
+  const msgEl = document.getElementById('sizeSaleMsg');
+
+  if (!date) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_no_date')}</div>`; return; }
+
+  const sales = [];
+  document.querySelectorAll('#sizeSalesGrid [data-menu]').forEach(input => {
+    if (input.classList.contains('sr-s-input')) {
+      const menu = input.dataset.menu;
+      const s = parseInt(input.value) || 0;
+      const mEl = input.parentElement.querySelector('.sr-m-input');
+      const lEl = input.parentElement.querySelector('.sr-l-input');
+      const m = parseInt(mEl?.value) || 0;
+      const l = parseInt(lEl?.value) || 0;
+      if (s > 0 || m > 0 || l > 0) {
+        sales.push({ menu_item: menu, s_count: s, m_count: m, l_count: l });
+      }
+    }
+  });
+
+  if (!sales.length) { msgEl.innerHTML = `<div class="alert alert-warn">${t('err_no_size_sales')}</div>`; return; }
+
+  lockBtn('sizeSaleBtn');
+  try {
+    const res = await apiFetch('/api/size-sales', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify({ sale_date: date, sales })
+    });
+    const r = await res.json();
+    if (r.success) {
+      let html = `<div class="alert alert-success">✅ ${sales.length}${t('size_sales_success')}</div>`;
+      if (r.warnings?.length) {
+        html += r.warnings.map(w => `<div class="alert alert-warn">⚠️ ${esc(w)}</div>`).join('');
+      }
+      msgEl.innerHTML = html;
+      renderSizeSalesGrid();
+      await loadIngredients(false);
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">❌ ${esc(r.error)}</div>`;
+    }
+  } catch (e) {
+    if (e.message !== 'unauthorized') msgEl.innerHTML = `<div class="alert alert-danger">${t('err_network')}</div>`;
+  } finally {
+    unlockBtn('sizeSaleBtn');
+  }
+}
+
+// ══════════════════════════════════════════════
 // 일일 판매 — 수동 메뉴 입력
 // ══════════════════════════════════════════════
 function loadDaily() {
@@ -2156,6 +2846,8 @@ function loadDaily() {
   if (!document.getElementById('saleRows').children.length) {
     addSaleRow();
   }
+  // 사이즈 레시피 로드 후 판매 그리드 렌더
+  loadSizeRecipes().then(() => renderSizeSalesGrid());
 }
 
 function addSaleRow() {
@@ -2261,11 +2953,11 @@ function exportHistoryCSV() {
     const s = String(v ?? '');
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
   };
-  const header = ['재료명', '구분', '수량', '사유', '일시'].join(',');
+  const header = [t('csv_col_name'), t('csv_col_type'), t('csv_col_qty'), t('csv_col_reason'), t('csv_col_dt')].join(',');
   const rows = _histCache.map(h => {
-    const type = h.change_type === 'in' ? '입고' : '출고';
+    const type = h.change_type === 'in' ? t('csv_type_in') : t('csv_type_out');
     const dt = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'))
-      .toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      .toLocaleString('en-GB', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
     return [h.ingredient_name, type, h.quantity, h.reason || '', dt].map(escape).join(',');
   });
   const csv = '\uFEFF' + header + '\n' + rows.join('\n');
@@ -2273,7 +2965,7 @@ function exportHistoryCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `입출고기록_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `${t('csv_filename')}_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -2490,7 +3182,10 @@ async function loadBudgetTracker() {
       if (d < monthStart) return;
       // 재료 단위 원가 찾기
       const ing = ingredients.find(i => i.name_ko === h.ingredient_name || i.name_ar === h.ingredient_name);
-      if (ing && ing.cost_per_unit) spent += h.quantity * ing.cost_per_unit;
+      if (ing && ing.cost_per_unit) {
+        const unitCost = ing.capacity_ml > 0 ? ing.cost_per_unit / ing.capacity_ml : ing.cost_per_unit;
+        spent += h.quantity * unitCost;
+      }
     });
 
     if (!goal) {
@@ -2613,18 +3308,23 @@ async function loadAllCosts(grouped) {
   grid.innerHTML = '';
   menus.forEach(menu => {
     const items = grouped[menu];
-    const totalCost = Math.round(items.reduce((s, i) => s + i.quantity * i.cost_per_unit, 0));
+    const totalCost = Math.round(items.reduce((s, i) => {
+      const unitCost = i.capacity_ml > 0 ? i.cost_per_unit / i.capacity_ml : i.cost_per_unit;
+      return s + i.quantity * unitCost;
+    }, 0));
     const sellingPrice = priceMap[menu] || 0;
     const rate = sellingPrice > 0 ? ((totalCost / sellingPrice) * 100).toFixed(1) : null;
+    const rateNum = rate !== null ? parseFloat(rate) : 0;
+    const rateColor = rateNum > 100 ? '#c0392b' : rateNum > 40 ? 'var(--danger)' : 'var(--green)';
     const rateHtml = rate !== null
-      ? `<div class="menu-rate" style="font-size:.8rem;margin-top:.25rem;color:${parseFloat(rate) > 40 ? 'var(--danger)' : 'var(--green)'}">원가율 ${esc(rate)}%</div>`
-      : `<div class="menu-rate" style="font-size:.75rem;color:var(--soft);margin-top:.25rem">판매가 미설정</div>`;
+      ? `<div class="menu-rate" style="font-size:.8rem;margin-top:.25rem;color:${rateColor}">cost ${esc(rate)}%${rateNum > 100 ? ' ⚠️ LOSS' : ''}</div>`
+      : `<div class="menu-rate" style="font-size:.75rem;color:var(--soft);margin-top:.25rem">${t('price_not_set')}</div>`;
     const card = document.createElement('div');
     card.className = 'cost-menu-card';
     card.innerHTML = `
       <div class="menu-name">${esc(menu)}</div>
       <div class="menu-cost">${totalCost.toLocaleString()} IQD</div>
-      ${sellingPrice > 0 ? `<div style="font-size:.78rem;color:var(--soft)">판매가 ${sellingPrice.toLocaleString()} IQD</div>` : ''}
+      ${sellingPrice > 0 ? `<div style="font-size:.78rem;color:var(--soft)">${t('selling_price_lbl')} ${sellingPrice.toLocaleString()} IQD</div>` : ''}
       ${rateHtml}
       <div class="menu-sub">${items.length} ${t('all_cost_ing_count')}</div>
     `;
@@ -2639,10 +3339,10 @@ function togglePriceEditor() {
   const toggle = document.getElementById('priceEditorToggle');
   if (body.classList.contains('hidden')) {
     body.classList.remove('hidden');
-    toggle.textContent = '▲ 접기';
+    toggle.textContent = t('cat_toggle_collapse');
   } else {
     body.classList.add('hidden');
-    toggle.textContent = '▼ 펼치기';
+    toggle.textContent = t('cat_toggle_expand');
   }
 }
 
@@ -2656,7 +3356,7 @@ function renderPriceEditor(menus, priceMap) {
     div.style.cssText = 'display:flex;align-items:center;gap:.4rem;background:var(--off);border-radius:var(--r-sm);padding:.4rem .6rem';
     div.innerHTML = `
       <span style="flex:1;font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(menu)}">${esc(menu)}</span>
-      <input type="number" min="0" step="100" placeholder="판매가" value="${esc(String(val))}"
+      <input type="number" min="0" step="100" placeholder="${t('selling_price_lbl')}" value="${esc(String(val))}"
         style="width:100px;font-size:.82rem;padding:.25rem .4rem;border:1px solid var(--border);border-radius:.3rem;background:var(--bg)"
         id="price_${esc(menu.replace(/[^a-z0-9]/gi, '_'))}"
         onchange="saveMenuPrice('${esc(menu.replace(/'/g, "\\'"))}', this.value)">
@@ -2825,5 +3525,8 @@ if (token) {
   init();
 }
 </script>
+</main>
+</div><!-- /.main-wrap -->
+</div><!-- /.app -->
 </body>
 </html>

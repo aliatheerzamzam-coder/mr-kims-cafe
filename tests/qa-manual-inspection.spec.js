@@ -107,10 +107,29 @@ test.describe('고객 관점 — 메인 웹사이트 (index.html)', () => {
       console.log('Pickup selected');
     }
 
-    // 메뉴 아이템 클릭 (첫번째)
-    const addBtn = page.locator('button').filter({ hasText: /\+|add/i }).first();
+    // 메뉴 그리드 로드 대기
+    await page.waitForSelector('.btn-add', { timeout: 5000 }).catch(() => {});
+
+    // 메뉴 아이템 클릭 (첫번째 .btn-add)
+    const addBtn = page.locator('.btn-add').first();
     if (await addBtn.count() > 0) {
+      await addBtn.scrollIntoViewIfNeeded();
       await addBtn.click({ force: true });
+      // 사이즈 picker가 열렸을 경우 M 선택 후 확인
+      const sizeOverlay = page.locator('#size-overlay');
+      const overlayVisible = await sizeOverlay.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
+      if (overlayVisible) {
+        const mBtn = page.locator('.size-btn').filter({ hasText: 'M' }).first();
+        if (await mBtn.count() > 0) {
+          await mBtn.scrollIntoViewIfNeeded();
+          await mBtn.click({ force: true });
+        }
+        const confirmBtn = page.locator('.btn-size-confirm');
+        if (await confirmBtn.count() > 0) {
+          await confirmBtn.scrollIntoViewIfNeeded();
+          await confirmBtn.click({ force: true });
+        }
+      }
       console.log('Item added to cart');
     }
 
@@ -414,6 +433,18 @@ test.describe('캐셔 관점 — 캐셔 페이지 (cashier.html)', () => {
 // =====================================================
 test.describe('창고 관리자 관점 — 창고 페이지 (warehouse.html)', () => {
 
+  let adminToken;
+
+  test.beforeAll(async ({ request }) => {
+    const res = await request.post('/api/auth/login', {
+      data: { password: '1234' }
+    });
+    if (res.ok()) {
+      const body = await res.json();
+      adminToken = body.token;
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/warehouse.html');
     await page.waitForLoadState('networkidle');
@@ -440,7 +471,7 @@ test.describe('창고 관리자 관점 — 창고 페이지 (warehouse.html)', (
 
   // --- 재료 관리 ---
   test('재료 목록 API 확인', async ({ page, request }) => {
-    const res = await request.get('/api/ingredients');
+    const res = await request.get('/api/ingredients', { headers: { 'x-auth-token': adminToken } });
     console.log('Ingredients status:', res.status());
     if (res.ok()) {
       const data = await res.json();
@@ -605,7 +636,7 @@ test.describe('창고 관리자 관점 — 창고 페이지 (warehouse.html)', (
 
   // --- 레시피 관리 ---
   test('레시피 목록 조회 API', async ({ page, request }) => {
-    const res = await request.get('/api/recipes');
+    const res = await request.get('/api/recipes', { headers: { 'x-auth-token': adminToken } });
     console.log('Recipes API:', res.status());
     if (res.ok()) {
       const data = await res.json();

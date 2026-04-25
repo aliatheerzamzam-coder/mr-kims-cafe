@@ -4,28 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>كاشير — مستر كيمز</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root {
       --green: #367d4d;
       --green-dark: #285f3b;
+      --green-light: #4a9962;
       --green-pale: #e8f5ee;
+      --green-mist: #f0f9f4;
       --red: #e53e3e;
+      --red-soft: #fff0f0;
       --orange: #d97706;
+      --orange-soft: #fff7ed;
+      --blue: #3b82f6;
+      --blue-soft: #dbeafe;
+      --star: #f5a623;
       --white: #fff;
       --off-white: #f7f9f7;
+      --border: #e0e8e3;
+      --border-soft: #d4e8d8;
       --text-dark: #1a1a1a;
       --text-mid: #4a4a4a;
       --text-soft: #888;
+      --radius-xs: 6px;
       --radius-sm: 12px;
       --radius-md: 20px;
+      --radius-lg: 32px;
       --radius-pill: 9999px;
+      --shadow-xs: 0 2px 8px rgba(0,0,0,0.07);
       --shadow-sm: 0 4px 16px rgba(0,0,0,0.09);
       --shadow-md: 0 8px 32px rgba(0,0,0,0.13);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Cairo', sans-serif;
+      font-family: 'Cairo', 'Nunito', sans-serif;
       background: #f0f4f1;
       color: var(--text-dark);
       min-height: 100vh;
@@ -35,86 +48,124 @@
     .header {
       background: var(--green);
       color: #fff;
-      padding: 16px 28px;
+      height: 62px;
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .header-title { font-size: 1.3rem; font-weight: 900; }
-    .header-meta { font-size: 0.85rem; opacity: 0.8; }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #fff;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+    }
+    .header-logo-dot img {
+      width: 108%;
+      height: 108%;
+      object-fit: cover;
+      margin: -4%;
+    }
+    .header-title { font-size: 1.05rem; font-weight: 900; letter-spacing: 0.01em; }
+    .header-meta { font-size: 0.78rem; opacity: 0.75; margin-top: 1px; font-family: 'Nunito', sans-serif; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
     .header-sound {
-      background: rgba(255,255,255,0.2);
-      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.35);
       color: #fff;
       border-radius: var(--radius-pill);
-      padding: 8px 18px;
-      font-size: 0.85rem;
-      font-weight: 700;
+      padding: 7px 16px;
+      font-size: 0.8rem;
+      font-weight: 800;
       cursor: pointer;
       font-family: inherit;
-      transition: background 0.2s;
+      transition: background 0.2s var(--ease);
     }
-    .header-sound:hover { background: rgba(255,255,255,0.3); }
+    .header-sound:hover { background: rgba(255,255,255,0.28); }
 
     /* Stats bar */
     .stats-bar {
       display: flex;
-      gap: 16px;
-      padding: 16px 28px;
+      gap: 12px;
+      padding: 14px 24px;
       background: var(--white);
-      border-bottom: 1px solid #e0e8e3;
+      border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
+      align-items: center;
     }
     .stat-card {
       background: var(--off-white);
       border-radius: var(--radius-sm);
-      padding: 12px 20px;
+      padding: 10px 20px;
       text-align: center;
-      min-width: 100px;
+      min-width: 96px;
+      border: 1.5px solid transparent;
+      transition: border-color 0.2s;
     }
-    .stat-num { font-size: 1.6rem; font-weight: 900; color: var(--green); direction: ltr; unicode-bidi: plaintext; }
-    .stat-label { font-size: 0.75rem; color: var(--text-soft); margin-top: 2px; }
+    .stat-card:first-child { border-color: var(--orange-soft); background: var(--orange-soft); }
+    .stat-card:nth-child(2) { border-color: var(--green-pale); background: var(--green-pale); }
+    .stat-card:nth-child(3) { border-color: #e8f5e9; background: #e8f5e9; }
+    .stat-num { font-size: 1.55rem; font-weight: 900; color: var(--green); direction: ltr; unicode-bidi: plaintext; font-family: 'Nunito', sans-serif; }
+    .stat-card:first-child .stat-num { color: var(--orange); }
+    .stat-label { font-size: 0.72rem; color: var(--text-soft); margin-top: 2px; font-weight: 700; }
 
     /* Filter tabs */
     .filter-bar {
-      padding: 16px 28px 0;
+      padding: 14px 24px;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
+      background: var(--off-white);
+      border-bottom: 1px solid var(--border);
     }
     .filter-btn {
-      padding: 8px 20px;
+      padding: 8px 18px;
       border-radius: var(--radius-pill);
-      border: 2px solid #d4e8d8;
+      border: 2px solid var(--border-soft);
       background: var(--white);
       font-family: inherit;
-      font-size: 0.85rem;
-      font-weight: 700;
+      font-size: 0.82rem;
+      font-weight: 800;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s var(--ease);
       color: var(--text-mid);
     }
-    .filter-btn:hover { border-color: var(--green); color: var(--green); }
+    .filter-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-mist); }
     .filter-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
 
     /* Orders grid */
     .orders-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 20px;
-      padding: 20px 28px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      padding: 20px 24px;
     }
 
     /* Order card */
     .order-card {
       background: var(--white);
       border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-xs);
       overflow: hidden;
       border-right: 5px solid var(--green);
-      transition: box-shadow 0.2s;
-      animation: slideIn 0.4s ease;
+      transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+      animation: slideIn 0.4s var(--ease);
+    }
+    .order-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(20px); }
@@ -122,17 +173,17 @@
     }
     .order-card.status-new    { border-right-color: var(--orange); }
     .order-card.status-making { border-right-color: var(--green); }
-    .order-card.status-done   { border-right-color: #aaa; opacity: 0.6; }
+    .order-card.status-done   { border-right-color: #bbb; opacity: 0.6; }
 
     .order-card-header {
-      padding: 14px 18px;
-      background: var(--off-white);
+      padding: 13px 18px;
+      background: var(--green-mist);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border);
     }
-    .order-num { font-weight: 900; font-size: 1.1rem; direction: ltr; unicode-bidi: plaintext; }
+    .order-num { font-weight: 900; font-size: 1.05rem; direction: ltr; unicode-bidi: plaintext; font-family: 'Nunito', sans-serif; }
     .order-type-badge {
       padding: 4px 12px;
       border-radius: var(--radius-pill);
@@ -163,16 +214,20 @@
     .order-item-row:last-child { border: none; }
     .item-name { font-weight: 700; }
     .item-qty  { color: var(--green); font-weight: 900; direction: ltr; unicode-bidi: plaintext; }
+    .size-tag  { display: inline-block; background: var(--green-pale); color: var(--green);
+                 border-radius: 9999px; padding: 1px 8px; font-size: 0.72rem;
+                 font-weight: 900; margin-inline-start: 6px; vertical-align: middle; }
 
     .order-total-row {
       padding: 10px 18px;
       background: var(--green-pale);
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-weight: 900;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
     }
-    .order-total-amount { color: var(--green); direction: ltr; unicode-bidi: plaintext; }
+    .order-total-amount { color: var(--green); direction: ltr; unicode-bidi: plaintext; font-family: 'Nunito', sans-serif; font-size: 1rem; }
 
     .order-actions {
       padding: 14px 18px;
@@ -188,21 +243,22 @@
       font-weight: 800;
       cursor: pointer;
       border: none;
-      transition: all 0.2s;
+      transition: all 0.2s var(--ease);
     }
+    .btn-action:active { transform: scale(0.97); }
     .btn-making {
       background: var(--green);
       color: #fff;
     }
-    .btn-making:hover { background: var(--green-dark); }
+    .btn-making:hover { background: var(--green-dark); transform: translateY(-1px); }
     .btn-done {
       background: #e2e8f0;
       color: var(--text-mid);
     }
-    .btn-done:hover { background: #cbd5e0; }
+    .btn-done:hover { background: #cbd5e0; transform: translateY(-1px); }
     .btn-print {
       background: none;
-      border: 2px solid #d4e8d8 !important;
+      border: 2px solid var(--border-soft) !important;
       color: var(--green);
       flex: 0 0 auto;
       padding: 10px 14px;
@@ -219,9 +275,9 @@
       font-size: 0.82rem;
       font-weight: 800;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s var(--ease);
     }
-    .btn-cancel:hover { background: #fff0f0; }
+    .btn-cancel:hover { background: var(--red-soft); }
     .order-card.status-cancelled { border-right-color: #ccc; opacity: 0.5; }
 
     /* Empty state */
@@ -273,32 +329,31 @@
     /* ─── Tabs ─── */
     .page-tabs {
       display: flex;
-      gap: 4px;
-      padding: 16px 28px 0;
-      border-bottom: 2px solid #e0e8e3;
+      gap: 6px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
       background: var(--white);
+      overflow-x: auto;
     }
     .page-tab {
-      padding: 10px 24px;
-      border-radius: 10px 10px 0 0;
+      padding: 9px 20px;
+      border-radius: var(--radius-pill);
       border: 2px solid transparent;
-      border-bottom: none;
       font-family: inherit;
-      font-size: 0.9rem;
+      font-size: 0.84rem;
       font-weight: 800;
       cursor: pointer;
       background: var(--off-white);
       color: var(--text-mid);
-      transition: all 0.2s;
-      position: relative;
-      bottom: -2px;
+      transition: all 0.2s var(--ease);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .page-tab:hover { color: var(--green); background: var(--green-pale); }
+    .page-tab:hover { color: var(--green); border-color: var(--border-soft); background: var(--green-mist); }
     .page-tab.active {
-      background: var(--white);
-      color: var(--green);
-      border-color: #e0e8e3;
-      border-bottom-color: var(--white);
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
     }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
@@ -374,6 +429,8 @@
       padding: 12px 16px;
       font-weight: 800;
       text-align: right;
+      font-size: 0.83rem;
+      letter-spacing: 0.02em;
     }
     .history-table td {
       padding: 12px 16px;
@@ -441,51 +498,294 @@
     }
     .login-box {
       background: #fff;
-      border-radius: 20px;
-      padding: 2.5rem 2rem;
-      width: min(360px, 90vw);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 2.25rem;
+      width: min(380px, 92vw);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.04);
       text-align: center;
     }
-    .login-box h2 { color: var(--green); font-size: 1.5rem; font-weight: 900; margin-bottom: .25rem; }
-    .login-box p  { color: var(--text-soft); font-size: .9rem; margin-bottom: 1.5rem; }
-    .login-box input {
-      width: 100%; padding: .8rem 1rem;
-      border: 2px solid #d4e8d8; border-radius: 12px;
-      font-size: 1rem; font-family: inherit; outline: none;
-      transition: border 0.2s; margin-bottom: .75rem; display: block;
+    .login-logo-wrap {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--green);
+      margin: 0 auto 1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(54,125,77,0.35);
     }
-    .login-box input:focus { border-color: var(--green); }
+    .login-logo-wrap img { width: 110%; height: 110%; object-fit: cover; margin: -5%; }
+    .login-box h2 { color: var(--green); font-size: 1.45rem; font-weight: 900; margin-bottom: .2rem; }
+    .login-box p  { color: var(--text-soft); font-size: .85rem; margin-bottom: 1.5rem; }
+    .login-box input {
+      width: 100%; padding: .85rem 1.1rem;
+      border: 2px solid var(--border-soft); border-radius: var(--radius-xs);
+      font-size: .95rem; font-family: inherit; outline: none;
+      transition: border 0.2s; margin-bottom: .75rem; display: block;
+      background: var(--off-white);
+    }
+    .login-box input:focus { border-color: var(--green); background: #fff; }
     .login-box button {
-      width: 100%; padding: .85rem;
+      width: 100%; padding: .9rem;
       background: var(--green); color: #fff;
       border: none; border-radius: var(--radius-pill);
-      font-size: 1rem; font-weight: 700; cursor: pointer;
-      font-family: inherit; transition: background 0.2s;
+      font-size: .95rem; font-weight: 800; cursor: pointer;
+      font-family: inherit; transition: all 0.2s var(--ease);
     }
-    .login-box button:hover:not(:disabled) { background: var(--green-dark); }
+    .login-box button:hover:not(:disabled) { background: var(--green-dark); transform: translateY(-1px); }
+    .login-box button:active { transform: scale(0.97); }
     .login-box button:disabled { opacity: .6; cursor: not-allowed; }
     .login-err { color: var(--red); font-size: .85rem; margin-top: .5rem; min-height: 1.2rem; }
     .cashier-badge {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.18);
       border-radius: var(--radius-pill);
-      padding: 5px 14px;
-      font-size: 0.82rem;
-      font-weight: 700;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      border: 1.5px solid rgba(255,255,255,0.25);
     }
     .btn-logout {
-      background: rgba(255,255,255,0.15);
-      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.35);
       color: #fff;
       border-radius: var(--radius-pill);
-      padding: 6px 16px;
-      font-size: 0.8rem;
-      font-weight: 700;
+      padding: 7px 16px;
+      font-size: 0.78rem;
+      font-weight: 800;
       cursor: pointer;
       font-family: inherit;
-      transition: background 0.2s;
+      transition: background 0.2s var(--ease);
     }
-    .btn-logout:hover { background: rgba(255,255,255,0.25); }
+    .btn-logout:hover { background: rgba(255,255,255,0.24); }
+
+    /* ─── Stamps tab ─── */
+    .stamps-pane-inner { padding: 20px 24px; }
+    .stamps-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 720px;
+    }
+    .stamp-card {
+      background: #fff;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-xs);
+      border: 1.5px solid var(--border);
+    }
+    .stamp-card-title {
+      font-size: 1.1rem;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .stamp-card-desc {
+      font-size: 0.82rem;
+      color: #888;
+      margin-bottom: 18px;
+    }
+    .stamp-field { margin-bottom: 12px; }
+    .stamp-field label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #555;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .stamp-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #d4e8d8;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .stamp-field input:focus { border-color: var(--green); }
+    .stamp-msg { font-size: 0.82rem; min-height: 18px; margin-bottom: 8px; }
+    .stamp-redeem-info {
+      background: #f0f9f4;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      min-height: 42px;
+      margin-bottom: 10px;
+      color: #555;
+    }
+    .stamp-actions { display: flex; gap: 8px; }
+    .btn-stamp-earn {
+      width: 100%;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 12px;
+      font-size: 0.92rem;
+      font-weight: 900;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-stamp-earn:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .btn-stamp-earn:active { transform: scale(0.97); }
+    .btn-stamp-lookup {
+      flex: 1;
+      background: var(--green-pale);
+      color: var(--green);
+      border: 1.5px solid var(--border-soft);
+      border-radius: var(--radius-pill);
+      padding: 10px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-stamp-lookup:hover { background: var(--green-mist); border-color: var(--green); }
+    .btn-stamp-redeem {
+      flex: 2;
+      background: var(--star);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 10px;
+      font-size: 0.88rem;
+      font-weight: 900;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-stamp-redeem:active { transform: scale(0.97); }
+    .btn-stamp-redeem:hover { background: #d97706; }
+
+    /* ─── QR tab ─── */
+    .qr-pane-inner { padding: 24px 24px; }
+    .qr-gen-bar {
+      background: #fff;
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-xs);
+      border: 1.5px solid var(--border);
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .qr-gen-bar-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; font-weight: 700; }
+    .qr-gen-bar input[type="number"] {
+      width: 120px;
+      padding: 10px 14px;
+      border: 2px solid var(--border-soft);
+      border-radius: var(--radius-xs);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .qr-gen-bar input[type="number"]:focus { border-color: var(--green); }
+    .btn-qr-gen {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 11px 22px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-qr-gen:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .btn-qr-gen:active { transform: scale(0.97); }
+    .qr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+
+    /* ─── Reservations tab ─── */
+    .res-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .meeting-filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .meeting-filter-bar input[type="date"] {
+      padding: 8px 12px;
+      border: 1.5px solid var(--border-soft);
+      border-radius: var(--radius-xs);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .meeting-filter-bar input[type="date"]:focus { border-color: var(--green); }
+    .meeting-count-badge {
+      background: var(--green-pale);
+      color: var(--green);
+      border-radius: var(--radius-pill);
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    /* ─── Reservations subtabs ─── */
+    .res-pane-inner { padding: 20px 24px; }
+    .res-subtab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e8f5ee;
+      padding-bottom: 0;
+    }
+    .res-subtab-btn {
+      padding: 9px 20px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      border: none;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .res-subtab-btn.active { border-bottom-color: var(--green); color: var(--green); }
+    .res-filter-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .res-filter-bar label { font-size: 0.8rem; font-weight: 800; color: #555; }
+    .res-filter-bar input[type="date"] {
+      padding: 8px 12px;
+      border: 1.5px solid var(--border-soft);
+      border-radius: var(--radius-xs);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .res-filter-bar input[type="date"]:focus { border-color: var(--green); }
+    .btn-res-load {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 9px 18px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-res-load:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .btn-res-load:active { transform: scale(0.97); }
+    .res-count-badge {
+      background: var(--green-pale);
+      color: var(--green);
+      border-radius: var(--radius-pill);
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    /* ─── Header live indicator ─── */
+    .header-live { font-size: 0.78rem; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -493,7 +793,8 @@
 <!-- طبقة تسجيل الدخول -->
 <div id="loginOverlay">
   <div class="login-box">
-    <h2>🏪 Cashier Login / تسجيل الدخول</h2>
+    <div class="login-logo-wrap"><img src="logo.jpg" alt="Mr. Kim's" /></div>
+    <h2>Cashier Login / تسجيل الدخول</h2>
     <p>Mr. Kim's Café — كاشير</p>
     <input type="text" id="loginName" placeholder="Name / الاسم" autocomplete="username" />
     <input type="password" id="loginPw" placeholder="Password / كلمة المرور" autocomplete="current-password"
@@ -516,12 +817,17 @@
 
 <!-- Header -->
 <div class="header">
-  <div>
-    <div class="header-title">🏪 كاشير — مستر كيمز</div>
-    <div class="header-meta" id="header-time"></div>
+  <div class="header-brand">
+    <div class="header-logo-dot">
+      <img src="logo.jpg" alt="Mr. Kim's" />
+    </div>
+    <div>
+      <div class="header-title">Mr. Kim's · كاشير</div>
+      <div class="header-meta" id="header-time"></div>
+    </div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;">
-    <span style="font-size:0.78rem;opacity:0.8;">مباشر<span class="conn-dot" id="conn-dot"></span></span>
+  <div class="header-right">
+    <span style="font-size:0.76rem;opacity:0.8;display:flex;align-items:center;gap:4px;">مباشر<span class="conn-dot" id="conn-dot"></span></span>
     <span class="cashier-badge" id="cashier-badge"></span>
     <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 الصوت: تشغيل</button>
     <button class="btn-logout" onclick="doCashierLogout()">Logout / خروج</button>
@@ -593,42 +899,40 @@
 
 <!-- ── Tab: Reservations ── -->
 <div class="tab-pane" id="pane-reservations">
-  <div style="padding:20px 24px">
+  <div class="res-pane-inner">
 
     <!-- Sub-tab buttons -->
-    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid #e8f5ee;padding-bottom:0;">
-      <button id="res-subtab-table" onclick="switchResSubtab('table')"
-        style="padding:9px 20px;font-size:0.88rem;font-weight:800;border:none;border-bottom:3px solid #367d4d;background:transparent;color:#367d4d;cursor:pointer;font-family:inherit;margin-bottom:-2px;">
+    <div class="res-subtab-bar">
+      <button id="res-subtab-table" class="res-subtab-btn active" onclick="switchResSubtab('table')">
         🪑 Table Reservations / حجز الطاولات
       </button>
-      <button id="res-subtab-meeting" onclick="switchResSubtab('meeting')"
-        style="padding:9px 20px;font-size:0.88rem;font-weight:800;border:none;border-bottom:3px solid transparent;background:transparent;color:#888;cursor:pointer;font-family:inherit;margin-bottom:-2px;">
+      <button id="res-subtab-meeting" class="res-subtab-btn" onclick="switchResSubtab('meeting')">
         🏢 Meeting Room / غرفة الاجتماعات
       </button>
     </div>
 
     <!-- Table Reservations -->
     <div id="res-pane-table">
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
-        <label style="font-size:0.8rem;font-weight:800;color:#555;">📅 التاريخ:</label>
-        <input type="date" id="res-filter-date" style="padding:8px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;" />
-        <button onclick="loadReservations()" style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;">عرض</button>
-        <span id="res-count-badge" style="background:#e8f5ee;color:#367d4d;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:800;"></span>
+      <div class="res-filter-bar">
+        <label>📅 التاريخ:</label>
+        <input type="date" id="res-filter-date" />
+        <button class="btn-res-load" onclick="loadReservations()">عرض</button>
+        <span id="res-count-badge" class="res-count-badge"></span>
       </div>
-      <div id="reservations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+      <div id="reservations-list" class="res-list-grid">
         <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض الحجوزات</div>
       </div>
     </div>
 
     <!-- Meeting Room Reservations -->
     <div id="res-pane-meeting" style="display:none;">
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
-        <label style="font-size:0.8rem;font-weight:800;color:#555;">📅 التاريخ:</label>
-        <input type="date" id="meeting-filter-date" style="padding:8px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;" />
-        <button onclick="loadMeetingReservations()" style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;">عرض</button>
-        <span id="meeting-count-badge" style="background:#e8f5ee;color:#367d4d;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:800;"></span>
+      <div class="res-filter-bar">
+        <label>📅 التاريخ:</label>
+        <input type="date" id="meeting-filter-date" />
+        <button class="btn-res-load" onclick="loadMeetingReservations()">عرض</button>
+        <span id="meeting-count-badge" class="res-count-badge"></span>
       </div>
-      <div id="meeting-reservations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+      <div id="meeting-reservations-list" class="res-list-grid">
         <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض حجوزات غرفة الاجتماعات</div>
       </div>
     </div>
@@ -638,50 +942,38 @@
 
 <!-- ── Tab: Stamps ── -->
 <div class="tab-pane" id="pane-stamps">
-  <div style="padding:20px 24px">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:720px;">
+  <div class="stamps-pane-inner">
+    <div class="stamps-grid">
 
       <!-- Earn stamp -->
-      <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
-        <div style="font-size:1.1rem;font-weight:900;margin-bottom:6px;">☕ منح طابع</div>
-        <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">بعد إتمام الطلب، أدخل رقم هاتف العميل</div>
-        <div style="margin-bottom:12px;">
-          <label style="font-size:0.78rem;font-weight:800;color:#555;display:block;margin-bottom:5px;">📱 رقم الهاتف / Customer Phone</label>
-          <input type="text" id="stamp-earn-phone" placeholder="07xx xxx xxxx"
-            style="width:100%;padding:10px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;" />
+      <div class="stamp-card">
+        <div class="stamp-card-title">☕ منح طابع</div>
+        <div class="stamp-card-desc">بعد إتمام الطلب، أدخل رقم هاتف العميل</div>
+        <div class="stamp-field">
+          <label>📱 رقم الهاتف / Customer Phone</label>
+          <input type="text" id="stamp-earn-phone" placeholder="07xx xxx xxxx" />
         </div>
-        <div style="margin-bottom:12px;">
-          <label style="font-size:0.78rem;font-weight:800;color:#555;display:block;margin-bottom:5px;">🆔 رقم الطلب (اختياري)</label>
-          <input type="text" id="stamp-earn-order" placeholder="ORD-xxx"
-            style="width:100%;padding:10px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;" />
+        <div class="stamp-field">
+          <label>🆔 رقم الطلب (اختياري)</label>
+          <input type="text" id="stamp-earn-order" placeholder="ORD-xxx" />
         </div>
-        <div id="stamp-earn-msg" style="font-size:0.82rem;min-height:18px;margin-bottom:8px;"></div>
-        <button onclick="earnStamp()"
-          style="width:100%;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:12px;font-size:0.95rem;font-weight:900;cursor:pointer;font-family:inherit;">
-          ☕ منح طابع
-        </button>
+        <div id="stamp-earn-msg" class="stamp-msg"></div>
+        <button class="btn-stamp-earn" onclick="earnStamp()">☕ منح طابع</button>
       </div>
 
       <!-- Redeem free drink -->
-      <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
-        <div style="font-size:1.1rem;font-weight:900;margin-bottom:6px;">🎁 استرداد مشروب مجاني</div>
-        <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">عندما يطلب العميل مشروبه المجاني (10 طوابع)</div>
-        <div style="margin-bottom:12px;">
-          <label style="font-size:0.78rem;font-weight:800;color:#555;display:block;margin-bottom:5px;">📱 رقم الهاتف / Customer Phone</label>
-          <input type="text" id="stamp-redeem-phone" placeholder="07xx xxx xxxx"
-            style="width:100%;padding:10px 12px;border:1.5px solid #d4e8d8;border-radius:8px;font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;" />
+      <div class="stamp-card">
+        <div class="stamp-card-title">🎁 استرداد مشروب مجاني</div>
+        <div class="stamp-card-desc">عندما يطلب العميل مشروبه المجاني (10 طوابع)</div>
+        <div class="stamp-field">
+          <label>📱 رقم الهاتف / Customer Phone</label>
+          <input type="text" id="stamp-redeem-phone" placeholder="07xx xxx xxxx" />
         </div>
-        <div id="stamp-redeem-info" style="background:#f0f9f4;border-radius:8px;padding:10px 14px;font-size:0.85rem;min-height:42px;margin-bottom:10px;color:#555;"></div>
-        <div id="stamp-redeem-msg" style="font-size:0.82rem;min-height:18px;margin-bottom:8px;"></div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="lookupStamps()"
-            style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:10px;font-size:0.88rem;font-weight:800;cursor:pointer;font-family:inherit;">
-            🔍 بحث
-          </button>
-          <button onclick="redeemStamp()"
-            style="flex:2;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.88rem;font-weight:900;cursor:pointer;font-family:inherit;">
-            🎁 استرداد
-          </button>
+        <div id="stamp-redeem-info" class="stamp-redeem-info"></div>
+        <div id="stamp-redeem-msg" class="stamp-msg"></div>
+        <div class="stamp-actions">
+          <button class="btn-stamp-lookup" onclick="lookupStamps()">🔍 بحث</button>
+          <button class="btn-stamp-redeem" onclick="redeemStamp()">🎁 استرداد</button>
         </div>
       </div>
     </div>
@@ -690,21 +982,17 @@
 
 <!-- ── Tab: Table QR Codes ── -->
 <div class="tab-pane" id="pane-qr">
-  <div style="padding:24px 28px">
+  <div class="qr-pane-inner">
     <!-- نموذج الإنشاء -->
-    <div style="background:#fff;border-radius:16px;padding:20px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:24px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+    <div class="qr-gen-bar">
       <div>
-        <div style="font-size:0.8rem;color:#888;margin-bottom:6px;font-weight:700">رقم الطاولة / Table No.</div>
-        <input type="number" id="qr-table-input" min="1" max="99" placeholder="e.g. 5"
-          style="width:120px;padding:10px 14px;border:2px solid #d4e8d8;border-radius:10px;font-size:1rem;font-family:inherit;outline:none" />
+        <div class="qr-gen-bar-label">رقم الطاولة / Table No.</div>
+        <input type="number" id="qr-table-input" min="1" max="99" placeholder="e.g. 5" />
       </div>
-      <button onclick="generateTableQR()"
-        style="background:#367d4d;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:0.95rem;font-weight:800;cursor:pointer;font-family:inherit">
-        ➕ إنشاء QR / Generate QR
-      </button>
+      <button class="btn-qr-gen" onclick="generateTableQR()">➕ إنشاء QR / Generate QR</button>
     </div>
     <!-- القائمة -->
-    <div id="qr-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px"></div>
+    <div id="qr-list" class="qr-list"></div>
   </div>
 </div>
 
@@ -820,9 +1108,10 @@
       const info = order.customer_name
         ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.customer_phone)}</span>` : ''}${arrivalBadge}</div>`
         : '';
-      const itemsHtml = order.items.map(i =>
-        `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span></span><span class="item-qty">×${esc(String(i.qty))}</span></div>`
-      ).join('');
+      const itemsHtml = order.items.map(i => {
+        const sizeTag = i.size ? `<span class="size-tag">${esc(i.size)}</span>` : '';
+        return `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span>${sizeTag}</span><span class="item-qty">×${esc(String(i.qty))}</span></div>`;
+      }).join('');
 
       const safeId = esc(order.id);
       const actionBtns = order.status === 'new'
@@ -967,7 +1256,8 @@
 <div>النوع: ${typeStr}</div>
 <div style="border-top:1px dashed #000;margin:8px 0;"></div>`;
     o.items.forEach(i => {
-      html += `<div style="display:flex;justify-content:space-between;"><span>${esc(i.emoji)} ${esc(i.nameAr || i.name)} ×${esc(String(i.qty))}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
+      const sizeStr = i.size ? ` [${i.size}]` : '';
+      html += `<div style="display:flex;justify-content:space-between;"><span>${esc(i.emoji)} ${esc(i.nameAr || i.name)}${esc(sizeStr)} ×${esc(String(i.qty))}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
     });
     html += `<div style="border-top:1px dashed #000;margin:8px 0;"></div>
 <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>الإجمالي</span><span>${o.total.toLocaleString()} IQD</span></div>
@@ -1059,10 +1349,8 @@
     document.getElementById('res-pane-meeting').style.display = isTable ? 'none' : '';
     const btnTable = document.getElementById('res-subtab-table');
     const btnMeeting = document.getElementById('res-subtab-meeting');
-    btnTable.style.borderBottomColor = isTable ? '#367d4d' : 'transparent';
-    btnTable.style.color = isTable ? '#367d4d' : '#888';
-    btnMeeting.style.borderBottomColor = isTable ? 'transparent' : '#367d4d';
-    btnMeeting.style.color = isTable ? '#888' : '#367d4d';
+    btnTable.classList.toggle('active', isTable);
+    btnMeeting.classList.toggle('active', !isTable);
     if (!isTable) {
       const meetingDateInput = document.getElementById('meeting-filter-date');
       if (!meetingDateInput.value) meetingDateInput.value = localDateStr();
@@ -1226,7 +1514,10 @@
     const rows = [...data].sort((a,b) => b.timestamp - a.timestamp).map(o => {
       const time = new Date(o.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
       const typeStr = o.type === 'dine' ? `🪑 طاولة ${esc(o.table_num)}` : `🏃 ${esc(o.customer_name||'')}`;
-      const itemsList = o.items.map(i => `${esc(i.emoji)} ${esc(i.nameAr||i.name)} ×${i.qty}`).join('<br>');
+      const itemsList = o.items.map(i => {
+        const sizeTag = i.size ? ` <span class="size-tag">${esc(i.size)}</span>` : '';
+        return `${esc(i.emoji)} ${esc(i.nameAr||i.name)}${sizeTag} ×${i.qty}`;
+      }).join('<br>');
       return `<tr>
         <td style="font-weight:900;">#${o.num}</td>
         <td>${time}</td>
@@ -1298,9 +1589,10 @@
     dot.className = 'conn-dot ' + state;
   }
 
+  let _sseDelay = 2000;
   function connectSSE() {
     const es = new EventSource('/api/orders/stream');
-    es.onopen = () => setConnDot('online');
+    es.onopen = () => { setConnDot('online'); _sseDelay = 2000; };
     es.onmessage = (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === 'connected') { setConnDot('online'); return; }
@@ -1329,7 +1621,8 @@
     es.onerror = () => {
       setConnDot('offline');
       es.close();
-      setTimeout(connectSSE, 4000);
+      setTimeout(connectSSE, _sseDelay);
+      _sseDelay = Math.min(_sseDelay * 2, 60000);
     };
   }
 
@@ -1369,6 +1662,7 @@
         sessionStorage.setItem('cashier_name', cashierName);
         document.getElementById('loginOverlay').style.display = 'none';
         updateCashierBadge();
+        loadOrders();
       } else {
         err.textContent = d.error || 'Login failed / فشل تسجيل الدخول';
       }

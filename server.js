@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const https = require('https');
 const QRCode = require('qrcode');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // ─── أداة تشفير كلمة المرور (bcrypt، دعم SHA-256 القديم) ─────────────────────
 const BCRYPT_ROUNDS = 10;
@@ -107,6 +109,18 @@ db.exec(`
     menu_item  TEXT NOT NULL,
     quantity   INTEGER NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS size_recipes (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    menu_item     TEXT NOT NULL,
+    ingredient_id INTEGER NOT NULL,
+    menu_category TEXT NOT NULL DEFAULT '음료',
+    s_qty         REAL NOT NULL DEFAULT 8,
+    m_qty         REAL NOT NULL DEFAULT 16,
+    l_qty         REAL NOT NULL DEFAULT 24,
+    UNIQUE(menu_item, ingredient_id),
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS orders (
@@ -237,6 +251,30 @@ try { db.exec('ALTER TABLE orders ADD COLUMN cashier_name TEXT'); } catch (_) { 
 try { db.exec('ALTER TABLE reservations ADD COLUMN table_num TEXT'); } catch (_) { }
 try { db.exec('ALTER TABLE ingredients ADD COLUMN expiry_date TEXT'); } catch (_) { }
 try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier TEXT'); } catch (_) { }
+
+// Migration: size_recipes — menu_item UNIQUE → UNIQUE(menu_item, ingredient_id)
+try {
+  const tbl = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='size_recipes'").get();
+  if (tbl && /menu_item\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i.test(tbl.sql)) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS size_recipes_new (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        menu_item     TEXT NOT NULL,
+        ingredient_id INTEGER NOT NULL,
+        menu_category TEXT NOT NULL DEFAULT '음료',
+        s_qty         REAL NOT NULL DEFAULT 8,
+        m_qty         REAL NOT NULL DEFAULT 16,
+        l_qty         REAL NOT NULL DEFAULT 24,
+        UNIQUE(menu_item, ingredient_id),
+        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+      );
+      INSERT OR IGNORE INTO size_recipes_new SELECT * FROM size_recipes;
+      DROP TABLE size_recipes;
+      ALTER TABLE size_recipes_new RENAME TO size_recipes;
+    `);
+    console.log('[Migration] size_recipes schema upgraded');
+  }
+} catch (e) { console.error('[Migration] size_recipes failed:', e.message); }
 
 // جدول أسعار القوائم (menu selling prices)
 db.exec(`
@@ -379,13 +417,38 @@ function broadcastSSE(data) {
 }
 
 // ─── الوسيط ───────────────────────────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 
 
+// ─── Rate Limiters ────────────────────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 10,                   // 최대 10회 시도
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginLimiter, (req, res) => {
   const stored = db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get();
   if (stored && verifyPassword(req.body.password || '', stored.value)) {
     // إعادة تشفير SHA-256 القديم إلى bcrypt
@@ -415,7 +478,7 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
 
 // ─── CASHIER AUTH ─────────────────────────────────────────────────────────────
 
-app.post('/api/cashier/login', (req, res) => {
+app.post('/api/cashier/login', loginLimiter, (req, res) => {
   const { name, password } = req.body;
   if (!name || !password) return res.status(400).json({ error: 'أدخل الاسم وكلمة المرور' });
   const cashier = db.prepare('SELECT * FROM cashiers WHERE name=?').get(name.trim());
@@ -779,7 +842,7 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
 });
 
 // SSE — بث مباشر للكاشير
-app.get('/api/orders/stream', (req, res) => {
+app.get('/api/orders/stream', requireCashierOrAdmin, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -798,12 +861,28 @@ app.get('/api/orders/stream', (req, res) => {
   });
 });
 
-// جلب طلب واحد (لتتبع الحالة من قِبل العميل — لا يحتاج مصادقة، يجب أن يكون بعد /stream)
+// جلب طلب واحد (لتتبع الحالة من قِبل العميل — يجب أن يكون بعد /stream)
+// المصادقة اختيارية: الكاشير/المدير يحصلان على البيانات الكاملة، العميل يحصل على حالة فقط
 app.get('/api/orders/:id', (req, res) => {
   try {
     const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
     if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-    res.json(parseOrder(order));
+
+    const parsed = parseOrder(order);
+
+    // 인증된 캐셔/어드민 여부 확인
+    const adminToken = req.headers['x-auth-token'];
+    const cashierToken = req.headers['x-cashier-token'];
+    const isStaff = (adminToken && db.prepare('SELECT 1 FROM admin_sessions WHERE token=?').get(adminToken)) ||
+                    (cashierToken && db.prepare('SELECT 1 FROM cashier_sessions WHERE token=?').get(cashierToken));
+
+    if (isStaff) {
+      return res.json(parsed);
+    }
+
+    // 미인증 요청: PII(이름, 전화번호) 제거 후 반환
+    const { customer_name, customer_phone, ...safeOrder } = parsed;
+    res.json(safeOrder);
   } catch (e) {
     res.status(500).json({ error: 'فشل في جلب الطلب' });
   }
@@ -871,13 +950,13 @@ app.post('/api/ingredients', requireAuth, (req, res) => {
 });
 
 app.put('/api/ingredients/:id', requireAuth, (req, res) => {
-  const { name_ko, name_ar, unit, min_qty, cost_per_unit, box_qty, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
+  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, box_qty, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
   const existing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
   const category = (bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko);
   db.prepare(
-    'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?, box_qty=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
-  ).run(name_ko, name_ar || '', unit, min_qty, cost_per_unit, category, box_qty ?? 0, capacity_ml ?? 0, expiry_date || null, supplier || null, req.params.id);
+    'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, current_qty=?, min_qty=?, cost_per_unit=?, category=?, box_qty=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
+  ).run(name_ko, name_ar || '', unit, current_qty ?? existing.current_qty ?? 0, min_qty, cost_per_unit, category, box_qty ?? 0, capacity_ml ?? 0, expiry_date || null, supplier || null, req.params.id);
   res.json({ success: true });
 });
 
@@ -981,7 +1060,7 @@ app.get('/api/recipes', requireAuth, (req, res) => {
   res.json(db.prepare(`
     SELECT r.id, r.menu_item, r.ingredient_id, r.quantity,
            r.menu_category, r.unit AS recipe_unit,
-           i.name_ko, i.name_ar, i.unit AS ing_unit, i.cost_per_unit
+           i.name_ko, i.name_ar, i.unit AS ing_unit, i.cost_per_unit, i.capacity_ml
     FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
     ORDER BY r.menu_category, r.menu_item, i.name_ko
   `).all());
@@ -1007,13 +1086,16 @@ app.delete('/api/recipes/menu/:menuItem', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/cost/:menuItem', (req, res) => {
+app.get('/api/cost/:menuItem', requireAuth, (req, res) => {
   const rows = db.prepare(`
-    SELECT r.quantity, i.cost_per_unit, i.unit, i.name_ko
+    SELECT r.quantity, i.cost_per_unit, i.unit, i.name_ko, i.capacity_ml
     FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
     WHERE r.menu_item=?
   `).all(req.params.menuItem);
-  const total = rows.reduce((s, r) => s + r.quantity * r.cost_per_unit, 0);
+  const total = rows.reduce((s, r) => {
+    const unitCost = r.capacity_ml > 0 ? r.cost_per_unit / r.capacity_ml : r.cost_per_unit;
+    return s + r.quantity * unitCost;
+  }, 0);
   res.json({ menu_item: req.params.menuItem, items: rows, total_cost: Math.round(total) });
 });
 
@@ -1030,7 +1112,7 @@ app.post('/api/daily-sales', requireAuth, (req, res) => {
         if (!sale.quantity || sale.quantity <= 0) continue;
         const recipeItems = db.prepare(`
           SELECT r.ingredient_id, r.quantity AS recipe_qty,
-                 i.name_ko, i.current_qty, i.unit
+                 i.name_ko, i.current_qty, i.unit, i.capacity_ml
           FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
           WHERE r.menu_item=?
         `).all(sale.menu_item);
@@ -1039,7 +1121,9 @@ app.post('/api/daily-sales', requireAuth, (req, res) => {
           errors.push(`"${sale.menu_item}" لا توجد وصفة → تم تخطي خصم المخزون`);
         } else {
           for (const item of recipeItems) {
-            const deduct = item.recipe_qty * sale.quantity;
+            const deduct = item.capacity_ml > 0
+              ? (item.recipe_qty / item.capacity_ml) * sale.quantity
+              : item.recipe_qty * sale.quantity;
             const newQty = Math.max(0, item.current_qty - deduct);
             db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, item.ingredient_id);
             db.prepare(
@@ -1064,6 +1148,96 @@ app.get('/api/daily-sales', requireCashierOrAdmin, (req, res) => {
     res.json(db.prepare('SELECT * FROM daily_sales WHERE sale_date=? ORDER BY menu_item').all(date));
   } else {
     res.json(db.prepare('SELECT * FROM daily_sales ORDER BY sale_date DESC, menu_item LIMIT 300').all());
+  }
+});
+
+// ─── SIZE RECIPES ─────────────────────────────────────────────────────────────
+app.get('/api/size-recipes', requireAuth, (_req, res) => {
+  res.json(db.prepare(`
+    SELECT sr.id, sr.menu_item, sr.ingredient_id, sr.menu_category,
+           sr.s_qty, sr.m_qty, sr.l_qty,
+           i.name_ko, i.name_ar, i.unit
+    FROM size_recipes sr JOIN ingredients i ON sr.ingredient_id = i.id
+    ORDER BY sr.menu_category, sr.menu_item
+  `).all());
+});
+
+app.post('/api/size-recipes', requireAuth, (req, res) => {
+  const { menu_item, menu_category, items } = req.body;
+  if (!menu_item || !items?.length)
+    return res.status(400).json({ error: '메뉴명과 재료 목록을 입력하세요' });
+  for (const it of items) {
+    if (!it.ingredient_id || it.s_qty == null || it.m_qty == null || it.l_qty == null)
+      return res.status(400).json({ error: '모든 재료의 S/M/L 수량을 입력하세요' });
+    if (it.s_qty < 0 || it.m_qty < 0 || it.l_qty < 0)
+      return res.status(400).json({ error: '수량은 0 이상이어야 합니다' });
+  }
+  const category = (menu_category && menu_category.trim()) ? menu_category.trim() : '음료';
+  const del = db.prepare('DELETE FROM size_recipes WHERE menu_item=?');
+  const ins = db.prepare(`
+    INSERT INTO size_recipes (menu_item, ingredient_id, menu_category, s_qty, m_qty, l_qty)
+    VALUES (?,?,?,?,?,?)
+  `);
+  db.transaction(() => {
+    del.run(menu_item);
+    for (const it of items) {
+      ins.run(menu_item, it.ingredient_id, category, it.s_qty, it.m_qty, it.l_qty);
+    }
+  })();
+  res.json({ success: true });
+});
+
+app.delete('/api/size-recipes/menu/:menuItem', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM size_recipes WHERE menu_item=?').run(req.params.menuItem);
+  res.json({ success: true });
+});
+
+// ─── SIZE SALES ───────────────────────────────────────────────────────────────
+app.post('/api/size-sales', requireAuth, (req, res) => {
+  const { sale_date, sales } = req.body;
+  if (!sale_date || !sales?.length)
+    return res.status(400).json({ error: '날짜와 판매 데이터를 입력하세요' });
+
+  const warnings = [];
+  try {
+    const process = db.transaction(() => {
+      for (const sale of sales) {
+        const s = parseInt(sale.s_count) || 0;
+        const m = parseInt(sale.m_count) || 0;
+        const l = parseInt(sale.l_count) || 0;
+        if (s + m + l === 0) continue;
+
+        const recipeRows = db.prepare(`
+          SELECT sr.ingredient_id, sr.s_qty, sr.m_qty, sr.l_qty,
+                 i.name_ko, i.current_qty
+          FROM size_recipes sr JOIN ingredients i ON sr.ingredient_id = i.id
+          WHERE sr.menu_item=?
+        `).all(sale.menu_item);
+
+        if (!recipeRows.length) {
+          warnings.push(`"${sale.menu_item}" 사이즈 레시피 없음 → 재고 차감 생략`);
+          continue;
+        }
+
+        for (const recipe of recipeRows) {
+          const deduct = s * recipe.s_qty + m * recipe.m_qty + l * recipe.l_qty;
+          const newQty = Math.max(0, recipe.current_qty - deduct);
+          db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, recipe.ingredient_id);
+          db.prepare(
+            'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+          ).run(recipe.ingredient_id, recipe.name_ko, 'out', deduct,
+            `${sale_date} | ${sale.menu_item} S×${s} M×${m} L×${l} = ${deduct}g`);
+        }
+
+        const totalQty = s + m + l;
+        db.prepare('INSERT INTO daily_sales (sale_date, menu_item, quantity) VALUES (?,?,?)').run(sale_date, sale.menu_item, totalQty);
+      }
+    });
+    process();
+    res.json({ success: true, warnings });
+  } catch (e) {
+    console.error('사이즈 판매 저장 오류:', e);
+    res.status(500).json({ error: '저장 실패: ' + e.message });
   }
 });
 
@@ -1369,6 +1543,26 @@ app.get('/api/sales/summary', requireCashierOrAdmin, (req, res) => {
     totals,
     today: todayTotals
   });
+});
+
+// ─── CONTACT FORM ─────────────────────────────────────────────────────────────
+// Create contact_messages table if not exists
+db.prepare(`CREATE TABLE IF NOT EXISTS contact_messages (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  name      TEXT NOT NULL,
+  email     TEXT NOT NULL,
+  message   TEXT NOT NULL,
+  lang      TEXT DEFAULT 'en',
+  created_at INTEGER DEFAULT (strftime('%s','now'))
+)`).run();
+
+app.post('/api/contact', (req, res) => {
+  const { name, email, message, lang } = req.body;
+  if (!name || !email || !message)
+    return res.status(400).json({ error: 'Missing required fields' });
+  db.prepare('INSERT INTO contact_messages (name, email, message, lang) VALUES (?,?,?,?)')
+    .run(name.trim(), email.trim().toLowerCase(), message.trim(), lang || 'en');
+  res.json({ success: true });
 });
 
 // ─── START ────────────────────────────────────────────────────────────────────

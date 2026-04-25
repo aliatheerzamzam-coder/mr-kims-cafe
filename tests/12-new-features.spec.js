@@ -294,3 +294,48 @@ test.describe('캐셔 주문 연동 — dine-in/pickup 모두 캐셔에 표시',
     expect(data.success).toBe(true);
   });
 });
+
+test.describe('음료 사이즈 — 주문 생성 및 캐셔 표시', () => {
+  const sizeTS = Date.now().toString().slice(-6);
+
+  test('size 포함 주문 생성 → API에 size 저장됨', async () => {
+    const cashierToken = await cashierLogin();
+    const { status, data } = await createOrder({
+      type: 'pickup',
+      items: [{ key: 'latte', name: 'Latte', nameAr: 'لاتيه', emoji: '☕', price: 4500, qty: 1, size: 'M' }],
+      total: 4500,
+      customerName: '사이즈테스트',
+      customerPhone: `0779${sizeTS}`,
+      arrivalTime: '16:00',
+    });
+    expect(status).toBe(200);
+    const orderId = data.order.id;
+
+    // 캐셔가 주문 목록 조회 → size 필드 포함 확인
+    const { data: orders } = await apiRequest('GET', '/api/orders', null, { 'x-cashier-token': cashierToken });
+    const order = orders.find(o => o.id === orderId);
+    expect(order).toBeTruthy();
+    const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
+    expect(items[0].size).toBe('M');
+  });
+
+  test('size 없는 주문 → items[0].size는 null 또는 undefined', async () => {
+    const cashierToken = await cashierLogin();
+    const { status, data } = await createOrder({
+      type: 'pickup',
+      items: [{ key: 'cookie', name: 'Cookie', price: 2000, qty: 1 }],
+      total: 2000,
+      customerName: '사이즈없음',
+      customerPhone: `0780${sizeTS}`,
+      arrivalTime: '17:00',
+    });
+    expect(status).toBe(200);
+    const orderId = data.order.id;
+
+    const { data: orders } = await apiRequest('GET', '/api/orders', null, { 'x-cashier-token': cashierToken });
+    const order = orders.find(o => o.id === orderId);
+    expect(order).toBeTruthy();
+    const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
+    expect(items[0].size ?? null).toBeNull();
+  });
+});
