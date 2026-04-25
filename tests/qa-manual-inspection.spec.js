@@ -379,23 +379,28 @@ test.describe('캐셔 관점 — 캐셔 페이지 (cashier.html)', () => {
   });
 
   // --- SSE 실시간 알림 ---
-  test('주문 스트림 SSE 연결 확인', async ({ page }) => {
-    // SSE 엔드포인트 존재 확인 — fetch 후 즉시 abort (SSE는 연결을 끊지 않으므로)
-    const result = await page.evaluate(async () => {
-      const ctrl = new AbortController();
-      try {
-        const res = await fetch('/api/orders/stream', { signal: ctrl.signal });
-        const status = res.status;
-        const ct = res.headers.get('content-type') || '';
-        ctrl.abort();
-        return { status, ct };
-      } catch (e) {
-        return { status: -1, ct: '' };
-      }
-    });
-    console.log('SSE stream status:', result.status, 'content-type:', result.ct);
-    expect(result.status).toBe(200);
-    expect(result.ct).toContain('text/event-stream');
+  test('주문 스트림 SSE 연결 확인', async ({ request }) => {
+    const loginRes = await request.post('/api/cashier/login', { data: { name: 'ali atheer', password: '1234' } });
+    expect(loginRes.ok()).toBeTruthy();
+    const { token } = await loginRes.json();
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    let status = -1;
+    let ct = '';
+    try {
+      const res = await fetch('http://localhost:3000/api/orders/stream', {
+        headers: { 'x-cashier-token': token },
+        signal: ctrl.signal,
+      });
+      status = res.status;
+      ct = res.headers.get('content-type') || '';
+      ctrl.abort();
+    } catch (_) {}
+    clearTimeout(timer);
+    console.log('SSE stream status:', status, 'content-type:', ct);
+    expect(status).toBe(200);
+    expect(ct).toContain('text/event-stream');
   });
 
   // --- 대시보드 ---

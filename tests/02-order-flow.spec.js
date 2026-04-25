@@ -212,7 +212,8 @@ test.describe('주문 데이터 정합성 검증', () => {
     });
 
     const orderId = orderData.order.id;
-    const { status, data: fetchedOrder } = await apiRequest('GET', `/api/orders/${orderId}`);
+    const adminToken = await adminLogin();
+    const { status, data: fetchedOrder } = await apiRequest('GET', `/api/orders/${orderId}`, null, { 'x-auth-token': adminToken });
 
     expect(status).toBe(200);
     expect(fetchedOrder.id).toBe(orderId);

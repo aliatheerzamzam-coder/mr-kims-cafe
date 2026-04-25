@@ -531,12 +531,12 @@ test.describe('Mobile 375px QA - Cross-page verification', () => {
       await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 
       // Check for text visibility
-      const textElements = await page.locator('body *:visible').all();
-      console.log(`${pageUrl}: ${textElements.length} visible elements`);
+      const textElements = await page.locator('body *').all();
+      console.log(`${pageUrl}: ${textElements.length} elements`);
 
       // Check if elements have reasonable line-height and don't overlap visually
       const overlapCheck = await page.evaluate(() => {
-        const elements = document.querySelectorAll('body *:visible');
+        const elements = document.querySelectorAll('body *');
         let hasIssue = false;
 
         // Sample check first 20 visible elements with text

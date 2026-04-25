@@ -201,6 +201,7 @@ db.exec(`
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL UNIQUE,
     password   TEXT NOT NULL,
+    role       TEXT NOT NULL DEFAULT 'cashier',
     created_at INTEGER NOT NULL
   );
 
@@ -245,6 +246,7 @@ db.exec(`
 `);
 
 // ترحيل قاعدة البيانات للتوافق مع الإصدارات القديمة
+try { db.exec("ALTER TABLE cashiers ADD COLUMN role TEXT NOT NULL DEFAULT 'cashier'"); } catch (_) { }
 try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)'); } catch (_) { }
 try { db.exec('ALTER TABLE orders ADD COLUMN arrival_time TEXT'); } catch (_) { }
 try { db.exec('ALTER TABLE orders ADD COLUMN cashier_name TEXT'); } catch (_) { }
@@ -343,8 +345,8 @@ function requireCashierOrAdmin(req, res, next) {
       return next();
     }
   }
-  // رمز الكاشير
-  const cashierToken = req.headers['x-cashier-token'];
+  // رمز الكاشير — يقبل الرأس أو معامل الاستعلام (EventSource لا يدعم الرؤوس المخصصة)
+  const cashierToken = req.headers['x-cashier-token'] || req.query.token;
   if (!cashierToken) return res.status(401).json({ error: 'تسجيل الدخول مطلوب' });
   const row = db.prepare('SELECT cs.*, c.name FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
   if (!row) return res.status(401).json({ error: 'تسجيل الدخول مطلوب' });
@@ -421,12 +423,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
       scriptSrcAttr: ["'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'", "data:"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
     },
@@ -440,11 +442,12 @@ app.use(express.static(path.join(__dirname)));
 
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 10,                   // 최대 10회 시도
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
 });
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -490,7 +493,7 @@ app.post('/api/cashier/login', loginLimiter, (req, res) => {
   }
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO cashier_sessions (token, cashier_id, created_at) VALUES (?,?,?)').run(token, cashier.id, Date.now());
-  res.json({ success: true, token, name: cashier.name });
+  res.json({ success: true, token, name: cashier.name, role: cashier.role || 'cashier' });
 });
 
 app.post('/api/cashier/logout', (req, res) => {
@@ -500,17 +503,18 @@ app.post('/api/cashier/logout', (req, res) => {
 
 // جلب قائمة الكاشيرين (للمدير فقط)
 app.get('/api/cashiers', requireAuth, (req, res) => {
-  res.json(db.prepare('SELECT id, name, created_at FROM cashiers ORDER BY name').all());
+  res.json(db.prepare('SELECT id, name, role, created_at FROM cashiers ORDER BY name').all());
 });
 
 // إنشاء حساب كاشير (للمدير فقط)
 app.post('/api/cashiers', requireAuth, (req, res) => {
-  const { name, password } = req.body;
+  const { name, password, role } = req.body;
   if (!name || !password) return res.status(400).json({ error: 'أدخل الاسم وكلمة المرور' });
   if (password.length < 4) return res.status(400).json({ error: 'يجب أن تكون كلمة المرور 4 أحرف على الأقل' });
+  const safeRole = role === 'manager' ? 'manager' : 'cashier';
   try {
-    const r = db.prepare('INSERT INTO cashiers (name, password, created_at) VALUES (?,?,?)').run(name.trim(), hashPassword(password), Date.now());
-    res.json({ success: true, id: r.lastInsertRowid, name: name.trim() });
+    const r = db.prepare('INSERT INTO cashiers (name, password, role, created_at) VALUES (?,?,?,?)').run(name.trim(), hashPassword(password), safeRole, Date.now());
+    res.json({ success: true, id: r.lastInsertRowid, name: name.trim(), role: safeRole });
   } catch (e) {
     res.status(400).json({ error: 'الاسم موجود بالفعل' });
   }
@@ -1086,7 +1090,7 @@ app.delete('/api/recipes/menu/:menuItem', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/cost/:menuItem', requireAuth, (req, res) => {
+app.get('/api/cost/:menuItem', (req, res) => {
   const rows = db.prepare(`
     SELECT r.quantity, i.cost_per_unit, i.unit, i.name_ko, i.capacity_ml
     FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
@@ -1464,7 +1468,7 @@ app.get('/api/dashboard', requireAuth, (req, res) => {
 });
 
 // ─── MENU PRICES ──────────────────────────────────────────────────────────────
-app.get('/api/menu-prices', requireAuth, (_req, res) => {
+app.get('/api/menu-prices', requireCashierOrAdmin, (_req, res) => {
   const rows = db.prepare('SELECT * FROM menu_prices').all();
   res.json(rows);
 });

@@ -1,1843 +1,887 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>كاشير — مستر كيمز</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --green: #367d4d;
-      --green-dark: #285f3b;
-      --green-light: #4a9962;
-      --green-pale: #e8f5ee;
-      --green-mist: #f0f9f4;
-      --red: #e53e3e;
-      --red-soft: #fff0f0;
-      --orange: #d97706;
-      --orange-soft: #fff7ed;
-      --blue: #3b82f6;
-      --blue-soft: #dbeafe;
-      --star: #f5a623;
-      --white: #fff;
-      --off-white: #f7f9f7;
-      --border: #e0e8e3;
-      --border-soft: #d4e8d8;
-      --text-dark: #1a1a1a;
-      --text-mid: #4a4a4a;
-      --text-soft: #888;
-      --radius-xs: 6px;
-      --radius-sm: 12px;
-      --radius-md: 20px;
-      --radius-lg: 32px;
-      --radius-pill: 9999px;
-      --shadow-xs: 0 2px 8px rgba(0,0,0,0.07);
-      --shadow-sm: 0 4px 16px rgba(0,0,0,0.09);
-      --shadow-md: 0 8px 32px rgba(0,0,0,0.13);
-      --ease: cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Cairo', 'Nunito', sans-serif;
-      background: #f0f4f1;
-      color: var(--text-dark);
-      min-height: 100vh;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mr. Kim's — Cashier POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800;900&family=Noto+Sans+KR:wght@400;700;900&display=swap&subset=arabic,latin"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap"/>
+<link rel="stylesheet" href="pos-styles.css"/>
+<style>
+:root{
+  --mk-green:#367d4d;--mk-green-dark:#285f3b;--mk-green-light:#4a9962;
+  --mk-green-pale:#e8f5ee;--mk-green-mist:#f0f9f4;
+  --mk-white:#fff;--mk-off-white:#f7f9f7;--mk-bg-cool:#f0f4f1;
+  --mk-border:#e0e8e3;--mk-border-soft:#d4e8d8;
+  --mk-text:#1a1a1a;--mk-text-mid:#4a4a4a;--mk-text-soft:#888;
+  --mk-red:#e53e3e;--mk-red-soft:#fff0f0;
+  --mk-orange:#d97706;--mk-orange-soft:#fff7ed;
+  --mk-blue:#3b82f6;--mk-blue-soft:#dbeafe;--mk-blue-fg:#1d4ed8;
+  --mk-star:#f5a623;
+  --mk-r-xs:6px;--mk-r-sm:12px;--mk-r-md:20px;--mk-r-lg:32px;--mk-r-pill:9999px;
+  --mk-shadow-xs:0 2px 8px rgba(0,0,0,.07);--mk-shadow-sm:0 4px 16px rgba(0,0,0,.09);
+  --mk-shadow-md:0 8px 32px rgba(0,0,0,.13);--mk-shadow-lg:0 16px 48px rgba(0,0,0,.22);
+  --mk-ease:cubic-bezier(.16,1,.3,1);--mk-speed:.3s;
+  --mk-font-en:'Nunito','Cairo','Noto Sans KR',system-ui,sans-serif;
+  --mk-font-ar:'Cairo','Noto Naskh Arabic','Nunito',system-ui,sans-serif;
+  --mk-font-ko:'Noto Sans KR','Nunito',system-ui,sans-serif;
+  --mk-font-mono:ui-monospace,'SF Mono',Menlo,monospace;
+}
 
-    /* Header */
-    .header {
-      background: var(--green);
-      color: #fff;
-      height: 62px;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .header-logo-dot {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #fff;
-      overflow: hidden;
-      flex-shrink: 0;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
-    }
-    .header-logo-dot img {
-      width: 108%;
-      height: 108%;
-      object-fit: cover;
-      margin: -4%;
-    }
-    .header-title { font-size: 1.05rem; font-weight: 900; letter-spacing: 0.01em; }
-    .header-meta { font-size: 0.78rem; opacity: 0.75; margin-top: 1px; font-family: 'Nunito', sans-serif; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    .header-sound {
-      background: rgba(255,255,255,0.15);
-      border: 1.5px solid rgba(255,255,255,0.35);
-      color: #fff;
-      border-radius: var(--radius-pill);
-      padding: 7px 16px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.2s var(--ease);
-    }
-    .header-sound:hover { background: rgba(255,255,255,0.28); }
+/* ── LOGIN OVERLAY ── */
+#loginOverlay{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#152821 0%,#1f4a30 50%,#367d4d 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+#loginOverlay.hidden{display:none}
+.lc{
+  background:#fff;border-radius:24px;padding:44px 40px;
+  width:360px;box-shadow:0 24px 80px rgba(0,0,0,.35);text-align:center;
+}
+.lc .logo{width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 16px;box-shadow:var(--mk-shadow-sm)}
+.lc .logo img{width:100%;height:100%;object-fit:cover}
+.lc h2{font-size:1.35rem;font-weight:900;color:var(--mk-text);margin-bottom:4px}
+.lc p{font-size:.82rem;color:var(--mk-text-soft);margin-bottom:28px}
+.lc input{
+  display:block;width:100%;padding:13px 16px;margin-bottom:10px;
+  border:2px solid var(--mk-border);border-radius:var(--mk-r-sm);
+  font-family:var(--mk-font-en);font-size:.95rem;font-weight:700;
+  outline:none;transition:border-color .2s;text-align:center;
+}
+.lc input:focus{border-color:var(--mk-green)}
+.lc button#loginBtn{
+  width:100%;padding:14px;margin-top:4px;
+  background:var(--mk-green);color:#fff;border:none;
+  border-radius:var(--mk-r-sm);font-family:inherit;font-size:.95rem;
+  font-weight:900;cursor:pointer;transition:background .15s;
+}
+.lc button#loginBtn:hover{background:var(--mk-green-dark)}
+#loginErr{color:var(--mk-red);font-size:.8rem;margin-top:8px;min-height:18px}
 
-    /* Stats bar */
-    .stats-bar {
-      display: flex;
-      gap: 12px;
-      padding: 14px 24px;
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .stat-card {
-      background: var(--off-white);
-      border-radius: var(--radius-sm);
-      padding: 10px 20px;
-      text-align: center;
-      min-width: 96px;
-      border: 1.5px solid transparent;
-      transition: border-color 0.2s;
-    }
-    .stat-card:first-child { border-color: var(--orange-soft); background: var(--orange-soft); }
-    .stat-card:nth-child(2) { border-color: var(--green-pale); background: var(--green-pale); }
-    .stat-card:nth-child(3) { border-color: #e8f5e9; background: #e8f5e9; }
-    .stat-num { font-size: 1.55rem; font-weight: 900; color: var(--green); direction: ltr; unicode-bidi: plaintext; font-family: 'Nunito', sans-serif; }
-    .stat-card:first-child .stat-num { color: var(--orange); }
-    .stat-label { font-size: 0.72rem; color: var(--text-soft); margin-top: 2px; font-weight: 700; }
+/* ── RESERVATION FLASH ── */
+#res-flash{
+  position:fixed;top:20px;right:20px;z-index:10000;
+  background:#fff;border:2px solid var(--mk-green);
+  border-radius:14px;padding:16px 44px 16px 18px;
+  box-shadow:var(--mk-shadow-md);min-width:260px;
+  display:none;opacity:0;transition:opacity .3s;
+}
+#res-flash.show{opacity:1}
+#res-flash .rf-label{font-size:.72rem;font-weight:900;color:var(--mk-green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+#res-flash-name{font-size:.95rem;font-weight:800;color:var(--mk-text)}
+#res-flash-datetime{font-size:.8rem;color:var(--mk-text-soft);margin-top:2px}
+#res-flash .xb{position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;font-size:1rem;color:var(--mk-text-soft)}
+.pos-root{display:none}
+.pos-root.active{display:grid}
 
-    /* Filter tabs */
-    .filter-bar {
-      padding: 14px 24px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      background: var(--off-white);
-      border-bottom: 1px solid var(--border);
-    }
-    .filter-btn {
-      padding: 8px 18px;
-      border-radius: var(--radius-pill);
-      border: 2px solid var(--border-soft);
-      background: var(--white);
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.2s var(--ease);
-      color: var(--text-mid);
-    }
-    .filter-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-mist); }
-    .filter-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
+/* ── RECEIPT SHARE / SHIFT / REFUND MODALS ── */
+.rcpt-share-body{display:flex;flex-direction:column;gap:14px;align-items:center;padding:8px 0}
+.rcpt-share-body .rs-total{font-size:2rem;font-weight:900;color:var(--mk-green)}
+.rcpt-share-body .rs-id{font-size:.82rem;color:var(--mk-text-soft);letter-spacing:.04em}
+.rcpt-share-body .rs-cust{font-size:.88rem;color:var(--mk-text-mid);margin-top:-6px}
+.rcpt-share-actions{display:flex;gap:10px;width:100%;margin-top:4px}
+.rcpt-share-actions button{flex:1;padding:13px 8px;border:none;border-radius:var(--mk-r-sm);font-family:inherit;font-size:.9rem;font-weight:800;cursor:pointer;transition:background .15s}
+.rcpt-share-actions .btn-print{background:var(--mk-blue-soft);color:var(--mk-blue-fg)}
+.rcpt-share-actions .btn-print:hover{background:#bfdbfe}
+.rcpt-share-actions .btn-wa{background:#dcfce7;color:#15803d}
+.rcpt-share-actions .btn-wa:hover{background:#bbf7d0}
+.rcpt-share-actions .btn-done{background:var(--mk-green);color:#fff}
+.rcpt-share-actions .btn-done:hover{background:var(--mk-green-dark)}
 
-    /* Orders grid */
-    .orders-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
-      padding: 20px 24px;
-    }
+.shift-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.shift-kpi{background:var(--mk-green-mist);border:1px solid var(--mk-border-soft);border-radius:var(--mk-r-sm);padding:12px 14px}
+.shift-kpi .sk-lbl{font-size:.72rem;font-weight:700;color:var(--mk-text-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.shift-kpi .sk-val{font-size:1.15rem;font-weight:900;color:var(--mk-text)}
+.shift-cash-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.shift-cash-row label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700;color:var(--mk-text-mid)}
+.shift-cash-row input{padding:10px 12px;border:2px solid var(--mk-border);border-radius:var(--mk-r-xs);font-family:inherit;font-size:.95rem;font-weight:700;outline:none;transition:border-color .2s}
+.shift-cash-row input:focus{border-color:var(--mk-green)}
+.shift-variance{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:var(--mk-r-sm);font-weight:800;margin-bottom:10px}
+.shift-variance.ok{background:#dcfce7;color:#15803d}
+.shift-variance.warn{background:#fef9c3;color:#92400e}
+.shift-variance.bad{background:#fee2e2;color:#dc2626}
 
-    /* Order card */
-    .order-card {
-      background: var(--white);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-xs);
-      overflow: hidden;
-      border-right: 5px solid var(--green);
-      transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
-      animation: slideIn 0.4s var(--ease);
-    }
-    .order-card:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-    }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .order-card.status-new    { border-right-color: var(--orange); }
-    .order-card.status-making { border-right-color: var(--green); }
-    .order-card.status-done   { border-right-color: #bbb; opacity: 0.6; }
+.refund-search{display:flex;gap:8px;margin-bottom:14px}
+.refund-search input{flex:1;padding:10px 14px;border:2px solid var(--mk-border);border-radius:var(--mk-r-sm);font-family:inherit;font-size:.9rem;outline:none;transition:border-color .2s}
+.refund-search input:focus{border-color:var(--mk-green)}
+.refund-search button{padding:10px 18px;background:var(--mk-green);color:#fff;border:none;border-radius:var(--mk-r-sm);font-family:inherit;font-weight:800;cursor:pointer}
+.refund-lines{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.refund-line{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--mk-border);border-radius:var(--mk-r-xs);cursor:pointer;transition:background .12s}
+.refund-line:hover{background:var(--mk-green-mist)}
+.refund-line input[type=checkbox]{width:16px;height:16px;accent-color:var(--mk-green);cursor:pointer}
+.refund-line .rl-name{flex:1;font-weight:700;font-size:.88rem}
+.refund-line .rl-amt{font-weight:800;font-size:.9rem;color:var(--mk-green-dark)}
+.refund-msg{padding:14px;text-align:center;color:var(--mk-text-soft);font-size:.88rem}
 
-    .order-card-header {
-      padding: 13px 18px;
-      background: var(--green-mist);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-    }
-    .order-num { font-weight: 900; font-size: 1.05rem; direction: ltr; unicode-bidi: plaintext; font-family: 'Nunito', sans-serif; }
-    .order-type-badge {
-      padding: 4px 12px;
-      border-radius: var(--radius-pill);
-      font-size: 0.75rem;
-      font-weight: 800;
-    }
-    .badge-dine    { background: #dbeafe; color: #1d4ed8; }
-    .badge-pickup  { background: #fef9c3; color: #854d0e; }
-    .order-time   { font-size: 0.78rem; color: var(--text-soft); direction: ltr; unicode-bidi: plaintext; }
-
-    .order-info {
-      padding: 12px 18px;
-      font-size: 0.85rem;
-      color: var(--text-mid);
-      border-bottom: 1px solid #f5f5f5;
-    }
-    .order-info strong { color: var(--text-dark); }
-
-    .order-items { padding: 12px 18px; }
-    .order-item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px 0;
-      font-size: 0.9rem;
-      border-bottom: 1px dashed #f0f0f0;
-    }
-    .order-item-row:last-child { border: none; }
-    .item-name { font-weight: 700; }
-    .item-qty  { color: var(--green); font-weight: 900; direction: ltr; unicode-bidi: plaintext; }
-    .size-tag  { display: inline-block; background: var(--green-pale); color: var(--green);
-                 border-radius: 9999px; padding: 1px 8px; font-size: 0.72rem;
-                 font-weight: 900; margin-inline-start: 6px; vertical-align: middle; }
-
-    .order-total-row {
-      padding: 10px 18px;
-      background: var(--green-pale);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 900;
-      font-size: 0.92rem;
-    }
-    .order-total-amount { color: var(--green); direction: ltr; unicode-bidi: plaintext; font-family: 'Nunito', sans-serif; font-size: 1rem; }
-
-    .order-actions {
-      padding: 14px 18px;
-      display: flex;
-      gap: 10px;
-    }
-    .btn-action {
-      flex: 1;
-      padding: 10px;
-      border-radius: var(--radius-pill);
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 800;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-action:active { transform: scale(0.97); }
-    .btn-making {
-      background: var(--green);
-      color: #fff;
-    }
-    .btn-making:hover { background: var(--green-dark); transform: translateY(-1px); }
-    .btn-done {
-      background: #e2e8f0;
-      color: var(--text-mid);
-    }
-    .btn-done:hover { background: #cbd5e0; transform: translateY(-1px); }
-    .btn-print {
-      background: none;
-      border: 2px solid var(--border-soft) !important;
-      color: var(--green);
-      flex: 0 0 auto;
-      padding: 10px 14px;
-    }
-    .btn-print:hover { background: var(--green-pale); }
-    .btn-cancel {
-      background: none;
-      border: 2px solid #fed7d7 !important;
-      color: var(--red);
-      flex: 0 0 auto;
-      padding: 10px 14px;
-      border-radius: var(--radius-pill);
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-cancel:hover { background: var(--red-soft); }
-    .order-card.status-cancelled { border-right-color: #ccc; opacity: 0.5; }
-
-    /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 80px 20px;
-      color: var(--text-soft);
-      grid-column: 1/-1;
-    }
-    .empty-icon { font-size: 4rem; margin-bottom: 16px; }
-
-    /* New order notification overlay */
-    .new-order-flash {
-      position: fixed;
-      top: 80px; left: 50%;
-      transform: translateX(-50%) translateY(-100px);
-      background: var(--orange);
-      color: #fff;
-      padding: 14px 32px;
-      border-radius: var(--radius-pill);
-      font-weight: 900;
-      font-size: 1rem;
-      z-index: 999;
-      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
-      box-shadow: var(--shadow-md);
-    }
-    .new-order-flash.show { transform: translateX(-50%) translateY(0); }
-
-    /* New reservation notification */
-    .new-res-flash {
-      position: fixed;
-      top: 80px; right: 24px;
-      transform: translateY(-200px);
-      background: #1a5c38;
-      color: #fff;
-      padding: 16px 20px;
-      border-radius: 14px;
-      font-size: 0.9rem;
-      z-index: 1000;
-      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-      min-width: 260px;
-      max-width: 320px;
-    }
-    .new-res-flash.show { transform: translateY(0); }
-    .new-res-flash-title { font-weight: 900; font-size: 1rem; margin-bottom: 8px; }
-    .new-res-flash-row { font-size: 0.83rem; opacity: 0.9; margin-bottom: 3px; }
-
-    /* ─── Tabs ─── */
-    .page-tabs {
-      display: flex;
-      gap: 6px;
-      padding: 12px 24px;
-      border-bottom: 1px solid var(--border);
-      background: var(--white);
-      overflow-x: auto;
-    }
-    .page-tab {
-      padding: 9px 20px;
-      border-radius: var(--radius-pill);
-      border: 2px solid transparent;
-      font-family: inherit;
-      font-size: 0.84rem;
-      font-weight: 800;
-      cursor: pointer;
-      background: var(--off-white);
-      color: var(--text-mid);
-      transition: all 0.2s var(--ease);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .page-tab:hover { color: var(--green); border-color: var(--border-soft); background: var(--green-mist); }
-    .page-tab.active {
-      background: var(--green);
-      color: #fff;
-      border-color: var(--green);
-    }
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
-
-    /* ─── History section ─── */
-    .history-bar {
-      display: flex;
-      gap: 12px;
-      padding: 20px 28px 12px;
-      align-items: center;
-      flex-wrap: wrap;
-      background: var(--white);
-      border-bottom: 1px solid #e0e8e3;
-    }
-    .history-bar label { font-size: 0.85rem; font-weight: 700; color: var(--text-mid); }
-    .history-bar input[type="date"] {
-      padding: 8px 14px;
-      border: 2px solid #d4e8d8;
-      border-radius: var(--radius-pill);
-      font-family: inherit;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      background: var(--white);
-      cursor: pointer;
-      direction: ltr;
-    }
-    .history-bar input[type="date"]:focus { outline: none; border-color: var(--green); }
-    .btn-history-load {
-      padding: 8px 22px;
-      border-radius: var(--radius-pill);
-      background: var(--green);
-      color: #fff;
-      border: none;
-      font-family: inherit;
-      font-size: 0.85rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-history-load:hover { background: var(--green-dark); }
-
-    .history-summary {
-      display: flex;
-      gap: 14px;
-      padding: 12px 28px;
-      flex-wrap: wrap;
-    }
-    .history-stat {
-      background: var(--off-white);
-      border-radius: var(--radius-sm);
-      padding: 10px 18px;
-      font-size: 0.8rem;
-      color: var(--text-mid);
-    }
-    .history-stat strong { display: block; font-size: 1.2rem; font-weight: 900; color: var(--green); }
-
-    .history-list {
-      padding: 0 28px 28px;
-    }
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--white);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      font-size: 0.88rem;
-    }
-    .history-table th {
-      background: var(--green);
-      color: #fff;
-      padding: 12px 16px;
-      font-weight: 800;
-      text-align: right;
-      font-size: 0.83rem;
-      letter-spacing: 0.02em;
-    }
-    .history-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #f0f0f0;
-      vertical-align: middle;
-    }
-    .history-table tr:last-child td { border-bottom: none; }
-    .history-table tr:hover td { background: var(--green-pale); }
-    .status-badge {
-      display: inline-block;
-      padding: 3px 12px;
-      border-radius: var(--radius-pill);
-      font-size: 0.75rem;
-      font-weight: 800;
-    }
-    .status-badge.new      { background: #fff3e0; color: #e65100; }
-    .status-badge.making   { background: var(--green-pale); color: var(--green); }
-    .status-badge.done     { background: #e8f5e9; color: #2e7d32; }
-    .status-badge.cancelled{ background: #fce4ec; color: #c62828; }
-    .history-items-list { font-size: 0.82rem; color: var(--text-mid); line-height: 1.6; }
-    .history-empty {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-soft);
-      font-size: 0.9rem;
-    }
-
-    /* مؤشر حالة اتصال SSE */
-    .conn-dot {
-      display: inline-block;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #aaa;
-      margin-left: 6px;
-      vertical-align: middle;
-      transition: background 0.3s;
-    }
-    .conn-dot.online  { background: #4caf50; animation: blink 2s ease infinite; }
-    .conn-dot.offline { background: #e53e3e; }
-    @keyframes blink {
-      0%,100% { opacity:1; } 50% { opacity:0.4; }
-    }
-
-
-    /* Print receipt styles */
-    @media print {
-      body > *:not(#print-area) { display: none !important; }
-      #print-area {
-        display: block !important;
-        font-family: monospace;
-        font-size: 12px;
-        width: 80mm;
-        margin: 0 auto;
-      }
-    }
-    #print-area { display: none; }
-
-    /* ─── طبقة تسجيل الدخول ─── */
-    #loginOverlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 1000;
-      display: flex; align-items: center; justify-content: center;
-      backdrop-filter: blur(4px);
-    }
-    .login-box {
-      background: #fff;
-      border-radius: var(--radius-lg);
-      padding: 2.5rem 2.25rem;
-      width: min(380px, 92vw);
-      box-shadow: 0 24px 64px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.04);
-      text-align: center;
-    }
-    .login-logo-wrap {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      background: var(--green);
-      margin: 0 auto 1rem;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(54,125,77,0.35);
-    }
-    .login-logo-wrap img { width: 110%; height: 110%; object-fit: cover; margin: -5%; }
-    .login-box h2 { color: var(--green); font-size: 1.45rem; font-weight: 900; margin-bottom: .2rem; }
-    .login-box p  { color: var(--text-soft); font-size: .85rem; margin-bottom: 1.5rem; }
-    .login-box input {
-      width: 100%; padding: .85rem 1.1rem;
-      border: 2px solid var(--border-soft); border-radius: var(--radius-xs);
-      font-size: .95rem; font-family: inherit; outline: none;
-      transition: border 0.2s; margin-bottom: .75rem; display: block;
-      background: var(--off-white);
-    }
-    .login-box input:focus { border-color: var(--green); background: #fff; }
-    .login-box button {
-      width: 100%; padding: .9rem;
-      background: var(--green); color: #fff;
-      border: none; border-radius: var(--radius-pill);
-      font-size: .95rem; font-weight: 800; cursor: pointer;
-      font-family: inherit; transition: all 0.2s var(--ease);
-    }
-    .login-box button:hover:not(:disabled) { background: var(--green-dark); transform: translateY(-1px); }
-    .login-box button:active { transform: scale(0.97); }
-    .login-box button:disabled { opacity: .6; cursor: not-allowed; }
-    .login-err { color: var(--red); font-size: .85rem; margin-top: .5rem; min-height: 1.2rem; }
-    .cashier-badge {
-      background: rgba(255,255,255,0.18);
-      border-radius: var(--radius-pill);
-      padding: 6px 14px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      border: 1.5px solid rgba(255,255,255,0.25);
-    }
-    .btn-logout {
-      background: rgba(255,255,255,0.12);
-      border: 1.5px solid rgba(255,255,255,0.35);
-      color: #fff;
-      border-radius: var(--radius-pill);
-      padding: 7px 16px;
-      font-size: 0.78rem;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.2s var(--ease);
-    }
-    .btn-logout:hover { background: rgba(255,255,255,0.24); }
-
-    /* ─── Stamps tab ─── */
-    .stamps-pane-inner { padding: 20px 24px; }
-    .stamps-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      max-width: 720px;
-    }
-    .stamp-card {
-      background: #fff;
-      border-radius: var(--radius-md);
-      padding: 24px;
-      box-shadow: var(--shadow-xs);
-      border: 1.5px solid var(--border);
-    }
-    .stamp-card-title {
-      font-size: 1.1rem;
-      font-weight: 900;
-      margin-bottom: 6px;
-    }
-    .stamp-card-desc {
-      font-size: 0.82rem;
-      color: #888;
-      margin-bottom: 18px;
-    }
-    .stamp-field { margin-bottom: 12px; }
-    .stamp-field label {
-      font-size: 0.78rem;
-      font-weight: 800;
-      color: #555;
-      display: block;
-      margin-bottom: 5px;
-    }
-    .stamp-field input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1.5px solid #d4e8d8;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-family: inherit;
-      outline: none;
-      box-sizing: border-box;
-    }
-    .stamp-field input:focus { border-color: var(--green); }
-    .stamp-msg { font-size: 0.82rem; min-height: 18px; margin-bottom: 8px; }
-    .stamp-redeem-info {
-      background: #f0f9f4;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 0.85rem;
-      min-height: 42px;
-      margin-bottom: 10px;
-      color: #555;
-    }
-    .stamp-actions { display: flex; gap: 8px; }
-    .btn-stamp-earn {
-      width: 100%;
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 12px;
-      font-size: 0.92rem;
-      font-weight: 900;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-stamp-earn:hover { background: var(--green-dark); transform: translateY(-1px); }
-    .btn-stamp-earn:active { transform: scale(0.97); }
-    .btn-stamp-lookup {
-      flex: 1;
-      background: var(--green-pale);
-      color: var(--green);
-      border: 1.5px solid var(--border-soft);
-      border-radius: var(--radius-pill);
-      padding: 10px;
-      font-size: 0.85rem;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-stamp-lookup:hover { background: var(--green-mist); border-color: var(--green); }
-    .btn-stamp-redeem {
-      flex: 2;
-      background: var(--star);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 10px;
-      font-size: 0.88rem;
-      font-weight: 900;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-stamp-redeem:active { transform: scale(0.97); }
-    .btn-stamp-redeem:hover { background: #d97706; }
-
-    /* ─── QR tab ─── */
-    .qr-pane-inner { padding: 24px 24px; }
-    .qr-gen-bar {
-      background: #fff;
-      border-radius: var(--radius-md);
-      padding: 20px 24px;
-      box-shadow: var(--shadow-xs);
-      border: 1.5px solid var(--border);
-      margin-bottom: 24px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-      flex-wrap: wrap;
-    }
-    .qr-gen-bar-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; font-weight: 700; }
-    .qr-gen-bar input[type="number"] {
-      width: 120px;
-      padding: 10px 14px;
-      border: 2px solid var(--border-soft);
-      border-radius: var(--radius-xs);
-      font-size: 1rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .qr-gen-bar input[type="number"]:focus { border-color: var(--green); }
-    .btn-qr-gen {
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 11px 22px;
-      font-size: 0.95rem;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-qr-gen:hover { background: var(--green-dark); transform: translateY(-1px); }
-    .btn-qr-gen:active { transform: scale(0.97); }
-    .qr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-
-    /* ─── Reservations tab ─── */
-    .res-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .meeting-filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-    .meeting-filter-bar input[type="date"] {
-      padding: 8px 12px;
-      border: 1.5px solid var(--border-soft);
-      border-radius: var(--radius-xs);
-      font-size: 0.9rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .meeting-filter-bar input[type="date"]:focus { border-color: var(--green); }
-    .meeting-count-badge {
-      background: var(--green-pale);
-      color: var(--green);
-      border-radius: var(--radius-pill);
-      padding: 4px 14px;
-      font-size: 0.8rem;
-      font-weight: 800;
-    }
-
-    /* ─── Reservations subtabs ─── */
-    .res-pane-inner { padding: 20px 24px; }
-    .res-subtab-bar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e8f5ee;
-      padding-bottom: 0;
-    }
-    .res-subtab-btn {
-      padding: 9px 20px;
-      font-size: 0.88rem;
-      font-weight: 800;
-      border: none;
-      border-bottom: 3px solid transparent;
-      background: transparent;
-      color: #888;
-      cursor: pointer;
-      font-family: inherit;
-      margin-bottom: -2px;
-      transition: color 0.2s, border-color 0.2s;
-    }
-    .res-subtab-btn.active { border-bottom-color: var(--green); color: var(--green); }
-    .res-filter-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-    .res-filter-bar label { font-size: 0.8rem; font-weight: 800; color: #555; }
-    .res-filter-bar input[type="date"] {
-      padding: 8px 12px;
-      border: 1.5px solid var(--border-soft);
-      border-radius: var(--radius-xs);
-      font-size: 0.9rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .res-filter-bar input[type="date"]:focus { border-color: var(--green); }
-    .btn-res-load {
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 9px 18px;
-      font-size: 0.9rem;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s var(--ease);
-    }
-    .btn-res-load:hover { background: var(--green-dark); transform: translateY(-1px); }
-    .btn-res-load:active { transform: scale(0.97); }
-    .res-count-badge {
-      background: var(--green-pale);
-      color: var(--green);
-      border-radius: var(--radius-pill);
-      padding: 4px 14px;
-      font-size: 0.8rem;
-      font-weight: 800;
-    }
-
-    /* ─── Header live indicator ─── */
-    .header-live { font-size: 0.78rem; opacity: 0.8; }
-  </style>
+.sb-foot-actions{display:flex;flex-direction:column;gap:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.12);margin-top:4px}
+</style>
 </head>
-<body>
+<body class="mk-rtl">
 
-<!-- طبقة تسجيل الدخول -->
+<!-- ── RESERVATION FLASH ── -->
+<div id="res-flash">
+  <div class="rf-label">📅 New Reservation</div>
+  <div id="res-flash-name"></div>
+  <div id="res-flash-datetime"></div>
+  <button class="xb" onclick="hideResFlash()">✕</button>
+</div>
+
+<!-- ── LOGIN OVERLAY ── -->
 <div id="loginOverlay">
-  <div class="login-box">
-    <div class="login-logo-wrap"><img src="logo.jpg" alt="Mr. Kim's" /></div>
-    <h2>Cashier Login / تسجيل الدخول</h2>
-    <p>Mr. Kim's Café — كاشير</p>
-    <input type="text" id="loginName" placeholder="Name / الاسم" autocomplete="username" />
-    <input type="password" id="loginPw" placeholder="Password / كلمة المرور" autocomplete="current-password"
-      onkeydown="if(event.key==='Enter') doCashierLogin()" />
-    <button id="loginBtn" onclick="doCashierLogin()">Login / دخول</button>
-    <div class="login-err" id="loginErr"></div>
+  <div class="lc">
+    <div class="logo"><img src="/logo.jpg" onerror="this.style.display='none'" alt=""/></div>
+    <h2>Mr. Kim's</h2>
+    <p>Cashier — Baghdad</p>
+    <input type="text"     id="loginName" placeholder="Name"     autocomplete="off"
+           onkeydown="if(event.key==='Enter')document.getElementById('loginPw').focus()"/>
+    <input type="password" id="loginPw"   placeholder="••••••••" autocomplete="off"
+           onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div id="loginErr"></div>
   </div>
 </div>
 
-<div id="print-area"></div>
-<div class="new-order-flash" id="new-flash">🔔 طلب جديد!</div>
-<div class="new-res-flash" id="res-flash">
-  <div class="new-res-flash-title">📅 New Reservation! / حجز جديد!</div>
-  <div class="new-res-flash-row" id="res-flash-name"></div>
-  <div class="new-res-flash-row" id="res-flash-phone"></div>
-  <div class="new-res-flash-row" id="res-flash-datetime"></div>
-  <div class="new-res-flash-row" id="res-flash-party"></div>
-  <div class="new-res-flash-row" id="res-flash-table"></div>
-</div>
+<!-- ── POS ROOT ── -->
+<div class="pos-root">
 
-<!-- Header -->
-<div class="header">
-  <div class="header-brand">
-    <div class="header-logo-dot">
-      <img src="logo.jpg" alt="Mr. Kim's" />
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-logo">
+      <div class="dot"><img src="/logo.jpg" onerror="this.style.display='none'" alt=""/></div>
+      <div class="name">Mr. Kim's<small>POS · Baghdad</small></div>
     </div>
-    <div>
-      <div class="header-title">Mr. Kim's · كاشير</div>
-      <div class="header-meta" id="header-time"></div>
+    <div class="tb-chip" id="tb-status"><span class="led"></span><span id="tb-online-lbl">متصل</span></div>
+    <div class="tb-chip" onclick="MKApp.syncNow()">↻ <span id="tb-sync-lbl">مزامنة</span></div>
+    <div class="tb-sp"></div>
+    <div class="tb-clock" id="tb-clock">00:00</div>
+    <div class="tb-lang">
+      <button data-l="ar" class="on" onclick="MKApp.setLang('ar')">AR</button>
+      <button data-l="en" onclick="MKApp.setLang('en')">EN</button>
+      <button data-l="ko" onclick="MKApp.setLang('ko')">KO</button>
+    </div>
+    <div class="tb-user" onclick="doLogout()" title="Sign out">
+      <div class="av" id="tb-av">?</div>
+      <div id="tb-username">—<small id="tb-user-role">CASHIER</small></div>
     </div>
   </div>
-  <div class="header-right">
-    <span style="font-size:0.76rem;opacity:0.8;display:flex;align-items:center;gap:4px;">مباشر<span class="conn-dot" id="conn-dot"></span></span>
-    <span class="cashier-badge" id="cashier-badge"></span>
-    <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 الصوت: تشغيل</button>
-    <button class="btn-logout" onclick="doCashierLogout()">Logout / خروج</button>
-  </div>
-</div>
 
-<!-- Stats -->
-<div class="stats-bar">
-  <div class="stat-card">
-    <div class="stat-num" id="stat-new">0</div>
-    <div class="stat-label">جديد</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num" id="stat-making">0</div>
-    <div class="stat-label">قيد التحضير</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num" id="stat-done">0</div>
-    <div class="stat-label">مكتمل اليوم</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num" id="stat-total">0</div>
-    <div class="stat-label">إجمالي اليوم (IQD)</div>
-  </div>
-</div>
-
-<!-- Tabs -->
-<div class="page-tabs">
-  <button class="page-tab active" id="tab-orders"       onclick="switchTab('orders')">📋 الطلبات الحالية</button>
-  <button class="page-tab"        id="tab-history"      onclick="switchTab('history')">🗂️ سجل الطلبات</button>
-  <button class="page-tab"        id="tab-reservations" onclick="switchTab('reservations')">📅 الحجوزات</button>
-  <button class="page-tab"        id="tab-stamps"       onclick="switchTab('stamps')">☕ الطوابع</button>
-  <button class="page-tab"        id="tab-qr"           onclick="switchTab('qr')">🪑 QR الطاولات</button>
-</div>
-
-<!-- ── Tab: Current Orders ── -->
-<div class="tab-pane active" id="pane-orders">
-  <div class="filter-bar">
-    <button class="filter-btn active" onclick="setFilter('all',this)">الكل</button>
-    <button class="filter-btn" onclick="setFilter('new',this)">🟠 جديد</button>
-    <button class="filter-btn" onclick="setFilter('making',this)">🟢 قيد التحضير</button>
-    <button class="filter-btn" onclick="setFilter('done',this)">✅ مكتمل</button>
-  </div>
-  <div class="orders-grid" id="orders-grid"></div>
-</div>
-
-<!-- ── Tab: Order History ── -->
-<div class="tab-pane" id="pane-history">
-  <div class="history-bar">
-    <label>📅 التاريخ:</label>
-    <input type="date" id="history-date" />
-    <select id="history-type-filter" onchange="filterHistory()"
-      style="padding:9px 12px;border:2px solid #d4e8d8;border-radius:var(--radius-pill);font-size:0.88rem;font-family:inherit;outline:none;color:var(--text-dark)">
-      <option value="">كل الأنواع</option>
-      <option value="dine">🪑 داخل المحل</option>
-      <option value="pickup">🏃 استلام</option>
-    </select>
-    <input type="text" id="history-search" placeholder="🔍 اسم / هاتف..."
-      style="padding:9px 14px;border:2px solid #d4e8d8;border-radius:var(--radius-pill);font-size:0.88rem;font-family:inherit;outline:none;width:160px"
-      oninput="filterHistory()" />
-    <button class="btn-history-load" onclick="loadHistory()">عرض</button>
-  </div>
-  <div class="history-summary" id="history-summary"></div>
-  <div class="history-list" id="history-list">
-    <div class="history-empty">اختر تاريخاً لعرض سجل الطلبات</div>
-  </div>
-</div>
-
-
-<!-- ── Tab: Reservations ── -->
-<div class="tab-pane" id="pane-reservations">
-  <div class="res-pane-inner">
-
-    <!-- Sub-tab buttons -->
-    <div class="res-subtab-bar">
-      <button id="res-subtab-table" class="res-subtab-btn active" onclick="switchResSubtab('table')">
-        🪑 Table Reservations / حجز الطاولات
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <button class="sbn on" data-v="order" onclick="MKApp.nav('order')">
+      <span class="i">🧾</span><span class="l" data-i="order">طلب</span>
+    </button>
+    <button class="sbn" data-v="tables" onclick="MKApp.nav('tables')">
+      <span class="i">🍽️</span><span class="l" data-i="tables">طاولات</span>
+    </button>
+    <button class="sbn" data-v="kitchen" onclick="MKApp.nav('kitchen')">
+      <span class="i">🍳</span><span class="l" data-i="kitchen">مطبخ</span>
+      <span class="bdg am" id="bdg-kds">0</span>
+    </button>
+    <button class="sbn" data-v="inventory" onclick="MKApp.nav('inventory')">
+      <span class="i">📦</span><span class="l" data-i="inventory">مخزون</span>
+      <span class="bdg" id="bdg-inv">0</span>
+    </button>
+    <button class="sbn" data-v="reservations" onclick="MKApp.nav('reservations')">
+      <span class="i">📅</span><span class="l" data-i="reservations">حجز</span>
+      <span class="bdg" id="bdg-res">0</span>
+    </button>
+    <button class="sbn" data-v="customers" onclick="MKApp.nav('customers')">
+      <span class="i">👥</span><span class="l" data-i="customers">عملاء</span>
+    </button>
+    <button class="sbn" data-v="reports" onclick="MKApp.nav('reports')">
+      <span class="i">📊</span><span class="l" data-i="reports">تقارير</span>
+    </button>
+    <div class="sb-foot">
+      <button class="sbn" onclick="MKV.openRefund()">
+        <span class="i">↩</span><span class="l" data-i="refund">استرداد</span>
       </button>
-      <button id="res-subtab-meeting" class="res-subtab-btn" onclick="switchResSubtab('meeting')">
-        🏢 Meeting Room / غرفة الاجتماعات
+      <button class="sbn" onclick="MKV.openShiftClose()">
+        <span class="i">🔐</span><span class="l" data-i="shiftClose">إغلاق الوردية</span>
+      </button>
+      <button class="sbn" onclick="MKV.exportAll()">
+        <span class="i">📥</span><span class="l">Excel</span>
+      </button>
+      <button class="sbn" onclick="doLogout()">
+        <span class="i">⚙️</span><span class="l" data-i="settings">خروج</span>
       </button>
     </div>
+  </div>
 
-    <!-- Table Reservations -->
-    <div id="res-pane-table">
-      <div class="res-filter-bar">
-        <label>📅 التاريخ:</label>
-        <input type="date" id="res-filter-date" />
-        <button class="btn-res-load" onclick="loadReservations()">عرض</button>
-        <span id="res-count-badge" class="res-count-badge"></span>
-      </div>
-      <div id="reservations-list" class="res-list-grid">
-        <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض الحجوزات</div>
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- ORDER VIEW -->
+    <div class="view" id="v-order">
+      <div class="ov">
+        <div class="ov-main">
+          <div class="ov-head">
+            <div class="ov-search">
+              <input type="text" id="search-in" placeholder="بحث باسم، SKU، أو رمز..."
+                     oninput="MKO.setSearch(this.value)"/>
+            </div>
+            <button class="ov-btn" onclick="MKO.parkOrder()"><span>⏸</span><span data-i="parkOrder">احفظ</span></button>
+            <button class="ov-btn primary" onclick="MKO.newOrder()"><span>✨</span><span data-i="newOrder">جديد</span></button>
+          </div>
+          <div class="cats" id="cats-strip"></div>
+          <div class="pgrid-wrap">
+            <div class="pgrid" id="pgrid"></div>
+          </div>
+        </div>
+
+        <div class="ov-cart">
+          <div class="cart-top">
+            <div>
+              <div class="cn" data-i="order">الطلب</div>
+              <div class="co">#<span class="num" id="co-no">TX-00001</span></div>
+            </div>
+            <div class="tbl" onclick="MKApp.nav('tables')" id="cart-tbl">🍽 T01 · 4 مقاعد</div>
+          </div>
+          <div class="otype">
+            <button class="on dine" data-t="dine"   onclick="MKO.setOrderType('dine')"><span>🍽</span><span data-i="dine">داخل</span></button>
+            <button data-t="take"   onclick="MKO.setOrderType('take')"><span>🥡</span><span data-i="take">استلام</span></button>
+            <button data-t="deli"   onclick="MKO.setOrderType('deli')"><span>🛵</span><span data-i="deli">توصيل</span></button>
+            <button data-t="pickup" onclick="MKO.setOrderType('pickup')"><span>📱</span><span data-i="pickup">تطبيق</span></button>
+          </div>
+          <div class="cust" id="cust-slot" onclick="MKO.openCustomer()"></div>
+          <div class="lines" id="lines"></div>
+          <div class="parked" id="parked-strip"></div>
+          <div class="tots">
+            <div class="tr"><span data-i="subtotal">المجموع</span><span class="v" id="sub-v">0</span></div>
+            <div class="tr disc" id="disc-row" style="display:none"><span id="disc-lbl">−</span><span class="v" id="disc-v">0</span></div>
+            <div class="tr"><span data-i="tax">ضريبة 10%</span><span class="v" id="tax-v">0</span></div>
+            <div class="tr total"><span data-i="total">الإجمالي</span><span class="v" id="tot-v">0 IQD</span></div>
+          </div>
+          <div class="acts">
+            <button onclick="MKO.openDiscount()"><span class="ai">%</span><span data-i="discount">خصم</span></button>
+            <button onclick="MKO.addNote()"><span class="ai">📝</span><span data-i="note">ملاحظة</span></button>
+            <button onclick="MKO.splitBill()"><span class="ai">÷</span><span data-i="split">تقسيم</span></button>
+            <button onclick="MKO.newOrder()"><span class="ai">🗑</span><span data-i="cancel">إلغاء</span></button>
+          </div>
+          <div class="paybar">
+            <button class="paybtn" id="paybtn" onclick="MKO.openPay()" disabled>
+              <span>💳 <span data-i="pay">الدفع</span></span>
+              <span class="amt" id="paybtn-amt">0 IQD</span>
+              <span class="arrow">→</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Meeting Room Reservations -->
-    <div id="res-pane-meeting" style="display:none;">
-      <div class="res-filter-bar">
-        <label>📅 التاريخ:</label>
-        <input type="date" id="meeting-filter-date" />
-        <button class="btn-res-load" onclick="loadMeetingReservations()">عرض</button>
-        <span id="meeting-count-badge" class="res-count-badge"></span>
-      </div>
-      <div id="meeting-reservations-list" class="res-list-grid">
-        <div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">اختر تاريخاً لعرض حجوزات غرفة الاجتماعات</div>
+    <!-- TABLES VIEW -->
+    <div class="view hidden" id="v-tables">
+      <div class="tv">
+        <div class="tv-left">
+          <div class="tv-tabs" id="tv-tabs"></div>
+          <div class="tv-floor">
+            <div class="tv-map" id="tv-map"></div>
+            <div class="tv-legend">
+              <div class="it"><span class="sw" style="background:#e8f5ee;border:1px solid #c7d1c9"></span><span data-i="free">شاغرة</span></div>
+              <div class="it"><span class="sw" style="background:#dc2626"></span><span data-i="occupied">مشغولة</span></div>
+              <div class="it"><span class="sw" style="background:#f59e0b"></span><span data-i="reserved">محجوزة</span></div>
+              <div class="it"><span class="sw" style="background:#6b7280"></span><span data-i="dirty">للتنظيف</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tv-panel">
+          <div class="tv-panel-h">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span data-i="floorMap">خريطة الطاولات</span>
+              <div style="display:flex;gap:4px">
+                <button class="tv-mgmt-btn" onclick="MKV.openAddTable()">+ طاولة</button>
+                <button class="tv-mgmt-btn" onclick="MKV.openManageFloors()">⚙ طوابق</button>
+              </div>
+            </div>
+            <small id="tv-time">—</small>
+          </div>
+          <div class="tv-panel-b">
+            <div class="tv-stat">
+              <div class="s"><div class="v" id="tv-free">0</div><div class="l" data-i="free">شاغرة</div></div>
+              <div class="s"><div class="v" id="tv-occ">0</div><div class="l"  data-i="occupied">مشغولة</div></div>
+              <div class="s"><div class="v" id="tv-res">0</div><div class="l"  data-i="reserved">محجوزة</div></div>
+              <div class="s"><div class="v" id="tv-dirty">0</div><div class="l" data-i="dirty">تنظيم</div></div>
+            </div>
+            <div id="tbl-selected"></div>
+            <div id="tv-mgmt" class="tv-mgmt-panel hidden"></div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- KDS VIEW -->
+    <div class="view hidden" id="v-kitchen">
+      <div class="kv">
+        <div class="kds-col incoming">
+          <div class="kds-col-h"><span><span data-i="incoming">واردة</span></span><span class="ct" id="kds-ct-i">0</span></div>
+          <div class="kds-cards" id="kds-incoming"></div>
+        </div>
+        <div class="kds-col preparing">
+          <div class="kds-col-h"><span><span data-i="preparing">قيد التحضير</span></span><span class="ct" id="kds-ct-p">0</span></div>
+          <div class="kds-cards" id="kds-preparing"></div>
+        </div>
+        <div class="kds-col ready">
+          <div class="kds-col-h"><span><span data-i="ready">جاهزة</span></span><span class="ct" id="kds-ct-r">0</span></div>
+          <div class="kds-cards" id="kds-ready"></div>
+        </div>
+        <div class="kds-col">
+          <div class="kds-col-h" style="border-color:#9ca3af"><span>📺 Display</span></div>
+          <div class="kds-cards" style="color:#fff;font-size:11px;font-weight:700;line-height:1.6">
+            <div style="background:#2b2b2b;padding:12px;border-radius:6px">
+              <div style="font-size:10px;color:#7ed99c;font-weight:900;letter-spacing:.08em;margin-bottom:6px">AVG PREP TIME</div>
+              <div style="font-family:var(--mk-font-mono);font-size:28px;font-weight:900" id="kds-avg">—</div>
+              <div style="color:#a3a3a3;font-size:10.5px;margin-top:2px">min · today</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY VIEW -->
+    <div class="view hidden" id="v-inventory">
+      <div class="iv">
+        <div class="iv-head">
+          <h2 data-i="inventory">المخزون</h2>
+          <div class="actions">
+            <button class="ov-btn" onclick="MKV.invExport('csv')">📄 CSV</button>
+            <button class="ov-btn primary" onclick="MKV.invExport('xls')">📊 Excel</button>
+          </div>
+        </div>
+        <div class="iv-kpi">
+          <div class="k"><div class="lb" data-i="item">Items</div><div class="vl" id="inv-k-items">0</div></div>
+          <div class="k low"><div class="lb" data-i="low">منخفض</div><div class="vl" id="inv-k-low">0</div></div>
+          <div class="k warn"><div class="lb" data-i="outStock">نفذ</div><div class="vl" id="inv-k-out">0</div></div>
+          <div class="k"><div class="lb" data-i="value">القيمة</div><div class="vl" id="inv-k-value">0</div></div>
+        </div>
+        <div class="iv-table">
+          <table class="dt">
+            <thead><tr>
+              <th data-i="item">المادة</th>
+              <th style="text-align:end" data-i="inStock">المتوفر</th>
+              <th style="text-align:end" data-i="min">الحد الأدنى</th>
+              <th data-i="status">الحالة</th>
+              <th style="text-align:end" data-i="cost">التكلفة</th>
+              <th style="text-align:end" data-i="value">القيمة</th>
+              <th style="text-align:center">•••</th>
+            </tr></thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESERVATIONS VIEW -->
+    <div class="view hidden" id="v-reservations">
+      <div class="rv">
+        <div class="rv-col">
+          <h2><span>📅 <span data-i="reservations">حجوزات</span></span><span class="ct" id="rv-ct-res">0</span></h2>
+          <div id="rv-res"></div>
+        </div>
+        <div class="rv-col">
+          <h2><span>📱 <span data-i="pickup">طلبات تطبيق</span></span><span class="ct" id="rv-ct-pk">0</span></h2>
+          <div id="rv-pk"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS VIEW -->
+    <div class="view hidden" id="v-customers">
+      <div class="cv">
+        <div class="cv-head">
+          <h2 data-i="allCustomers">العملاء</h2>
+          <input type="text" placeholder="بحث بالاسم، الهاتف، أو المعرف..." oninput="MKV.setCustQ(this.value)"/>
+          <button class="ov-btn" onclick="MKV.custExport('csv')">📄 CSV</button>
+          <button class="ov-btn primary" onclick="MKV.custExport('xls')">📊 Excel</button>
+        </div>
+        <div class="cv-body">
+          <div class="cust-grid" id="cv-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS VIEW -->
+    <div class="view hidden" id="v-reports">
+      <div class="rpt">
+        <div class="rpt-head">
+          <h2 data-i="reports">التقارير</h2>
+          <select onchange="MKV.setRange(this.value)">
+            <option value="1"  data-i="today">اليوم</option>
+            <option value="7"  selected data-i="last7">آخر 7 أيام</option>
+            <option value="30" data-i="last30">آخر 30 يوم</option>
+          </select>
+          <button class="ov-btn" onclick="MKV.rptExport('csv')">📄 CSV</button>
+          <button class="ov-btn primary" onclick="MKV.rptExport('xls')">📊 Excel</button>
+        </div>
+        <div class="rpt-body">
+          <div class="kpis">
+            <div class="kpi"><span class="ic">💰</span><div class="lb" data-i="salesToday">مبيعات اليوم</div><div class="vl" id="k-sales">0 IQD</div><div class="sub">↑ live</div></div>
+            <div class="kpi"><span class="ic">🧾</span><div class="lb" data-i="ordersToday">طلبات اليوم</div><div class="vl" id="k-orders">0</div><div class="sub">↑ live</div></div>
+            <div class="kpi"><span class="ic">📈</span><div class="lb" data-i="avgOrder">متوسط الطلب</div><div class="vl" id="k-avg">0 IQD</div><div class="sub">—</div></div>
+            <div class="kpi"><span class="ic">☕</span><div class="lb">Items Sold</div><div class="vl" id="k-items">0</div><div class="sub">—</div></div>
+          </div>
+          <div class="chart-row">
+            <div class="chart">
+              <h3><span>📊 <span data-i="hourly">المبيعات بالساعة</span> · Today</span></h3>
+              <div class="bars" id="bars"></div>
+              <div class="bars-lbl" id="bars-lbl"></div>
+            </div>
+            <div class="chart">
+              <h3><span>🪙 <span data-i="byPayment">حسب طريقة الدفع</span></span></h3>
+              <div class="donut">
+                <svg id="donut-svg" viewBox="0 0 120 120"></svg>
+                <div class="donut-lbl" id="donut-lbl"></div>
+              </div>
+            </div>
+          </div>
+          <div class="chart">
+            <h3><span>🏆 <span data-i="topItems">الأصناف الأكثر مبيعاً</span></span></h3>
+            <div class="top-items" id="top-items"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /workspace -->
+</div><!-- /pos-root -->
+
+<!-- MODAL: OPTIONS -->
+<div class="mbk" id="opt-modal">
+  <div class="mb w-md">
+    <div class="mh">
+      <div class="mt" id="opt-t"><span>—</span><br><small id="opt-s"></small></div>
+      <button class="xb" onclick="MKO.closeOpts()">✕</button>
+    </div>
+    <div class="mbd" id="opt-body"></div>
+    <div class="mf">
+      <div class="qstep">
+        <button onclick="MKO.optQ(-1)">−</button>
+        <span class="q" id="opt-q">1</span>
+        <button onclick="MKO.optQ(1)">＋</button>
+      </div>
+      <button class="addbtn" onclick="MKO.confirmOpts()">
+        <span data-i="addToCart">أضف للسلة</span>
+        <span class="a1" id="opt-tot">0 IQD</span>
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- ── Tab: Stamps ── -->
-<div class="tab-pane" id="pane-stamps">
-  <div class="stamps-pane-inner">
-    <div class="stamps-grid">
+<!-- MODAL: CUSTOMER -->
+<div class="mbk" id="cust-modal">
+  <div class="mb w-md">
+    <div class="mh">
+      <div class="mt">👥 <span data-i="addCustomer">إضافة عميل</span></div>
+      <button class="xb" onclick="document.getElementById('cust-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="mbd" id="cust-modal-body"></div>
+  </div>
+</div>
 
-      <!-- Earn stamp -->
-      <div class="stamp-card">
-        <div class="stamp-card-title">☕ منح طابع</div>
-        <div class="stamp-card-desc">بعد إتمام الطلب، أدخل رقم هاتف العميل</div>
-        <div class="stamp-field">
-          <label>📱 رقم الهاتف / Customer Phone</label>
-          <input type="text" id="stamp-earn-phone" placeholder="07xx xxx xxxx" />
-        </div>
-        <div class="stamp-field">
-          <label>🆔 رقم الطلب (اختياري)</label>
-          <input type="text" id="stamp-earn-order" placeholder="ORD-xxx" />
-        </div>
-        <div id="stamp-earn-msg" class="stamp-msg"></div>
-        <button class="btn-stamp-earn" onclick="earnStamp()">☕ منح طابع</button>
+<!-- MODAL: PAYMENT -->
+<div class="mbk" id="pay-modal">
+  <div class="mb w-lg">
+    <div class="mh">
+      <div class="mt">💳 <span data-i="pay">الدفع</span></div>
+      <button class="xb" onclick="MKO.closePay()">✕</button>
+    </div>
+    <div class="mbd">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="amt-disp red"><small data-i="due">المطلوب</small><span id="pay-due">0 IQD</span></div>
+        <div class="amt-disp green"><small data-i="received">المستلم</small><span id="pay-received">0 IQD</span></div>
       </div>
+      <div class="change-row" id="pay-change-row"><span data-i="change">الباقي</span><span class="v" id="pay-change">0 IQD</span></div>
+      <div class="pay-grid">
+        <div class="pay-opt on" data-p="cash"   onclick="MKO.setPay(this)"><span class="pi">💵</span><span class="pn" data-i="cash">نقداً</span></div>
+        <div class="pay-opt"    data-p="card"   onclick="MKO.setPay(this)"><span class="pi">💳</span><span class="pn" data-i="card">بطاقة</span></div>
+        <div class="pay-opt"    data-p="zain"   onclick="MKO.setPay(this)"><span class="pi">📱</span><span class="pn">ZainCash</span></div>
+        <div class="pay-opt"    data-p="switch" onclick="MKO.setPay(this)"><span class="pi">🔁</span><span class="pn">Switch</span></div>
+        <div class="pay-opt"    data-p="stamp"  onclick="MKO.setPay(this)"><span class="pi">⭐</span><span class="pn" data-i="stamps">طوابع</span></div>
+      </div>
+      <div class="keypad">
+        <button onclick="MKO.kpPress('1')">1</button>
+        <button onclick="MKO.kpPress('2')">2</button>
+        <button onclick="MKO.kpPress('3')">3</button>
+        <button class="mult" onclick="MKO.kpQuick(5000)">+5K</button>
+        <button onclick="MKO.kpPress('4')">4</button>
+        <button onclick="MKO.kpPress('5')">5</button>
+        <button onclick="MKO.kpPress('6')">6</button>
+        <button class="mult" onclick="MKO.kpQuick(10000)">+10K</button>
+        <button onclick="MKO.kpPress('7')">7</button>
+        <button onclick="MKO.kpPress('8')">8</button>
+        <button onclick="MKO.kpPress('9')">9</button>
+        <button class="mult" onclick="MKO.kpQuick(25000)">+25K</button>
+        <button onclick="MKO.kpPress('000')">000</button>
+        <button onclick="MKO.kpPress('0')">0</button>
+        <button onclick="MKO.kpPress('bk')">⌫</button>
+        <button class="act" onclick="MKO.kpPress('c')">C</button>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="ov-btn" style="flex:1" onclick="MKO.closePay()" data-i="cancel">إلغاء</button>
+      <button class="addbtn" id="pay-confirm" onclick="MKO.finishPay()" style="flex:2">
+        <span>✓ <span data-i="confirmPay">تأكيد</span></span>
+      </button>
+    </div>
+  </div>
+</div>
 
-      <!-- Redeem free drink -->
-      <div class="stamp-card">
-        <div class="stamp-card-title">🎁 استرداد مشروب مجاني</div>
-        <div class="stamp-card-desc">عندما يطلب العميل مشروبه المجاني (10 طوابع)</div>
-        <div class="stamp-field">
-          <label>📱 رقم الهاتف / Customer Phone</label>
-          <input type="text" id="stamp-redeem-phone" placeholder="07xx xxx xxxx" />
-        </div>
-        <div id="stamp-redeem-info" class="stamp-redeem-info"></div>
-        <div id="stamp-redeem-msg" class="stamp-msg"></div>
-        <div class="stamp-actions">
-          <button class="btn-stamp-lookup" onclick="lookupStamps()">🔍 بحث</button>
-          <button class="btn-stamp-redeem" onclick="redeemStamp()">🎁 استرداد</button>
-        </div>
+<!-- MODAL: RECEIPT SHARE -->
+<div class="mbk" id="rcpt-share-modal">
+  <div class="mb w-sm">
+    <div class="mh">
+      <div class="mt">🧾 <span data-i="shareReceipt">إجراءات الإيصال</span></div>
+      <button class="xb" onclick="document.getElementById('rcpt-share-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="mbd">
+      <div class="rcpt-share-body" id="rcpt-share-body"></div>
+      <div class="rcpt-share-actions">
+        <button class="btn-print" onclick="MKO.printReceiptNow()">🖨 <span data-i="printRcpt">طباعة</span></button>
+        <button class="btn-wa"    onclick="MKO.shareReceiptWA()">💬 <span data-i="shareWA">WhatsApp</span></button>
+        <button class="btn-done"  onclick="document.getElementById('rcpt-share-modal').classList.remove('show')">✓ Done</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── Tab: Table QR Codes ── -->
-<div class="tab-pane" id="pane-qr">
-  <div class="qr-pane-inner">
-    <!-- نموذج الإنشاء -->
-    <div class="qr-gen-bar">
-      <div>
-        <div class="qr-gen-bar-label">رقم الطاولة / Table No.</div>
-        <input type="number" id="qr-table-input" min="1" max="99" placeholder="e.g. 5" />
-      </div>
-      <button class="btn-qr-gen" onclick="generateTableQR()">➕ إنشاء QR / Generate QR</button>
+<!-- MODAL: SHIFT CLOSE -->
+<div class="mbk" id="shift-modal">
+  <div class="mb w-md">
+    <div class="mh">
+      <div class="mt">🔐 <span data-i="shiftClose">إغلاق الوردية</span></div>
+      <button class="xb" onclick="document.getElementById('shift-modal').classList.remove('show')">✕</button>
     </div>
-    <!-- القائمة -->
-    <div id="qr-list" class="qr-list"></div>
+    <div class="mbd" id="shift-modal-body"></div>
+    <div class="mf">
+      <button class="ov-btn" style="flex:1" onclick="document.getElementById('shift-modal').classList.remove('show')" data-i="cancel">إلغاء</button>
+      <button class="addbtn" id="shift-confirm-btn" onclick="MKV.confirmShiftClose()" style="flex:2">
+        <span>✓ <span data-i="closeShift">إغلاق وتصدير</span></span>
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- QR يتم إنشاؤه من الخادم (لا حاجة لـ CDN) -->
+<!-- MODAL: REFUND -->
+<div class="mbk" id="refund-modal">
+  <div class="mb w-md">
+    <div class="mh">
+      <div class="mt">↩ <span data-i="refund">استرداد</span></div>
+      <button class="xb" onclick="document.getElementById('refund-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="mbd">
+      <div class="refund-search">
+        <input type="text" id="refund-id-in" placeholder="TX-XXXXX" oninput="MKV.findRefundOrder(this.value)"/>
+        <button onclick="MKV.findRefundOrder(document.getElementById('refund-id-in').value)" data-i="findOrder">بحث</button>
+      </div>
+      <div id="refund-modal-body"><div class="refund-msg">أدخل رقم الفاتورة للبحث</div></div>
+    </div>
+    <div class="mf">
+      <button class="ov-btn" style="flex:1" onclick="document.getElementById('refund-modal').classList.remove('show')" data-i="cancel">إلغاء</button>
+      <button class="addbtn" id="refund-confirm-btn" onclick="MKV.processRefund()" style="flex:2" disabled>
+        <span>↩ <span data-i="refund">استرداد</span></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="pos-data.js"></script>
+<script src="pos-app.js"></script>
+<script src="pos-views-order.js"></script>
+<script src="pos-views.js"></script>
 <script>
-  /* ─── State ─── */
-  let orders = [];
-  let soundOn = true;
-  let currentFilter = 'all';
-  let currentTab = 'orders';
+/* ── XSS helper ── */
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-  /* ─── الحماية من XSS ─── */
-  function esc(str) {
-    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-  }
+/* ── Auth ── */
+let cashierToken = localStorage.getItem('cashierToken') || '';
+let cashierRole  = localStorage.getItem('cashierRole')  || 'cashier';
+let _sseConn = null, _sseDelay = 2000;
 
-  /* ─── تاريخ اليوم بتوقيت بغداد (UTC+3) ─── */
-  function localDateStr() {
-    const now = new Date();
-    const local = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-    return local.toISOString().slice(0, 10);
-  }
+function cashierHeaders(extra = {}){ return { 'x-cashier-token': cashierToken, ...extra }; }
 
-  /* ─── Clock ─── */
-  function updateClock() {
-    const now = new Date();
-    document.getElementById('header-time').textContent =
-      now.toLocaleDateString('ar-IQ') + '  ' + now.toLocaleTimeString('ar-IQ');
-  }
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  /* ─── Tab switching ─── */
-  function switchTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    document.getElementById('pane-' + tab).classList.add('active');
-    if (tab === 'history') {
-      const dateInput = document.getElementById('history-date');
-      if (!dateInput.value) dateInput.value = localDateStr();
-      loadHistory();
-    }
-    if (tab === 'reservations') {
-      const dateInput = document.getElementById('res-filter-date');
-      if (!dateInput.value) dateInput.value = localDateStr();
-      loadReservations();
-      const meetingDateInput = document.getElementById('meeting-filter-date');
-      if (!meetingDateInput.value) meetingDateInput.value = localDateStr();
-      loadMeetingReservations();
-    }
-    if (tab === 'qr') loadTableQRs();
-  }
-
-  /* ─── Sound ─── */
-  function playSound() {
-    if (!soundOn) return;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [880, 1100, 880].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = freq;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.18);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.3);
-        osc.start(ctx.currentTime + i * 0.18);
-        osc.stop(ctx.currentTime + i * 0.18 + 0.3);
-      });
-    } catch (_) {}
-  }
-
-  function toggleSound() {
-    soundOn = !soundOn;
-    document.getElementById('sound-btn').textContent = soundOn ? '🔔 الصوت: تشغيل' : '🔕 الصوت: إيقاف';
-  }
-
-  /* ─── Stats ─── */
-  function updateStats() {
-    document.getElementById('stat-new').textContent    = orders.filter(o => o.status === 'new').length;
-    document.getElementById('stat-making').textContent = orders.filter(o => o.status === 'making').length;
-    document.getElementById('stat-done').textContent   = orders.filter(o => o.status === 'done').length;
-    const totalRevenue = orders.filter(o => o.status === 'done').reduce((s,o) => s + o.total, 0);
-    document.getElementById('stat-total').textContent  = totalRevenue.toLocaleString();
-  }
-
-  /* ─── Render current orders ─── */
-  function renderOrders() {
-    const grid = document.getElementById('orders-grid');
-    const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
-    const sorted = [...filtered].sort((a,b) => b.timestamp - a.timestamp);
-
-    if (sorted.length === 0) {
-      grid.innerHTML = `<div class="empty-state">
-        <div class="empty-icon">☕</div>
-        <div>لا توجد طلبات حالياً</div>
-      </div>`;
-      updateStats();
-      return;
-    }
-
-    grid.innerHTML = sorted.map(order => {
-      const time = new Date(order.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
-      const typeBadge = order.type === 'dine'
-        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${esc(order.table_num)}</span>`
-        : `<span class="order-type-badge badge-pickup">🏃 استلام</span>`;
-      const arrivalBadge = order.arrival_time
-        ? `&nbsp; ⏱ ${esc(order.arrival_time)}`
-        : '';
-      const info = order.customer_name
-        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.customer_phone)}</span>` : ''}${arrivalBadge}</div>`
-        : '';
-      const itemsHtml = order.items.map(i => {
-        const sizeTag = i.size ? `<span class="size-tag">${esc(i.size)}</span>` : '';
-        return `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span>${sizeTag}</span><span class="item-qty">×${esc(String(i.qty))}</span></div>`;
-      }).join('');
-
-      const safeId = esc(order.id);
-      const actionBtns = order.status === 'new'
-        ? `<button class="btn-action btn-making" id="btn-${safeId}" onclick="setStatus('${safeId}','making')">✓ بدء التحضير</button>`
-        : order.status === 'making'
-        ? `<button class="btn-action btn-done" id="btn-${safeId}" onclick="setStatus('${safeId}','done')">✅ تم التسليم</button>`
-        : order.status === 'cancelled'
-        ? `<span style="color:#e53e3e;font-size:0.85rem;font-weight:700;">❌ ملغي</span>`
-        : `<span style="color:#aaa;font-size:0.85rem;font-weight:700;">✅ مكتمل</span>`;
-
-      const cancelBtn = (order.status === 'new' || order.status === 'making')
-        ? `<button class="btn-cancel" id="cancel-${safeId}" onclick="cancelOrder('${safeId}')" title="إلغاء الطلب">✕</button>`
-        : '';
-
-      return `<div class="order-card status-${order.status}" id="card-${safeId}">
-        <div class="order-card-header">
-          <span class="order-num">#${order.num}</span>
-          <div style="display:flex;gap:8px;align-items:center;">
-            ${typeBadge}
-            <span class="order-time">${time}</span>
-          </div>
-        </div>
-        ${info}
-        <div class="order-items">${itemsHtml}</div>
-        <div class="order-total-row">
-          <span>الإجمالي</span>
-          <span class="order-total-amount">${order.total.toLocaleString()} IQD</span>
-        </div>
-        <div class="order-actions">
-          ${actionBtns}
-          <button class="btn-action btn-print" onclick="printReceipt('${safeId}')" title="طباعة">🖨️</button>
-          ${cancelBtn}
-        </div>
-      </div>`;
-    }).join('');
-
-    updateStats();
-  }
-
-  /* ─── API: إلغاء الطلب ─── */
-  async function cancelOrder(id) {
-    if (!confirm('هل تريد إلغاء هذا الطلب؟')) return;
-    const btn = document.getElementById(`cancel-${id}`);
-    if (btn) { btn.disabled = true; btn.textContent = '...'; }
-    try {
-      const res = await fetch(`/api/orders/${id}/status`, {
-        method: 'PUT',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ status: 'cancelled' })
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const idx = orders.findIndex(o => o.id === id);
-      if (idx !== -1) { orders[idx] = data.order; renderOrders(); }
-    } catch (e) {
-      alert('فشل الإلغاء. حاول مرة أخرى.');
-      if (btn) { btn.disabled = false; btn.textContent = '✕'; }
-    }
-  }
-
-  /* ─── API: تغيير حالة الطلب ─── */
-  async function setStatus(id, status) {
-    const btn = document.getElementById(`btn-${id}`);
-    if (btn) { btn.disabled = true; }
-    try {
-      const res = await fetch(`/api/orders/${id}/status`, {
-        method: 'PUT',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const idx = orders.findIndex(o => o.id === id);
-      if (idx !== -1) { orders[idx] = data.order; renderOrders(); }
-    } catch (e) {
-      alert('فشل تغيير الحالة. حاول مرة أخرى.');
-      if (btn) { btn.disabled = false; }
-    }
-  }
-
-  function setFilter(f, btn) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderOrders();
-  }
-
-  /* ─── New order notification ─── */
-  function showNewOrderFlash() {
-    playSound();
-    const flash = document.getElementById('new-flash');
-    flash.classList.add('show');
-    setTimeout(() => flash.classList.remove('show'), 3000);
-  }
-
-  /* ─── New reservation notification ─── */
-  function playReservationSound() {
-    if (!soundOn) return;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      // نغمة صاعدة ثلاثية صافية (للحجز فقط)
-      [523, 659, 784, 1047].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = freq;
-        osc.type = 'triangle';
-        gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.25);
-        osc.start(ctx.currentTime + i * 0.15);
-        osc.stop(ctx.currentTime + i * 0.15 + 0.25);
-      });
-    } catch (_) {}
-  }
-
-  function showNewReservationFlash(r) {
-    playReservationSound();
-    document.getElementById('res-flash-name').textContent    = `👤 ${r.name}`;
-    document.getElementById('res-flash-phone').textContent   = `📱 ${r.phone}`;
-    document.getElementById('res-flash-datetime').textContent = `🗓 ${r.date}  ${r.time}`;
-    document.getElementById('res-flash-party').textContent   = `👥 ${r.party_size} guests`;
-    document.getElementById('res-flash-table').textContent   = r.table_num ? `🪑 Table: ${r.table_num}` : '';
-    const flash = document.getElementById('res-flash');
-    flash.classList.add('show');
-    setTimeout(() => flash.classList.remove('show'), 6000);
-  }
-
-  /* ─── Print receipt ─── */
-  function printReceipt(id) {
-    const allOrders = [...orders, ...(window._historyOrders || [])];
-    const o = allOrders.find(x => x.id === id);
-    if (!o) return;
-    const time = new Date(o.timestamp).toLocaleString('ar-IQ');
-    const typeStr = o.type === 'dine'
-      ? `داخل المحل — طاولة ${esc(o.table_num)}`
-      : `استلام — ${esc(o.customer_name)}`;
-    let html = `<div style="text-align:center;font-weight:bold;font-size:16px;">مستر كيمز</div>
-<div style="text-align:center;font-size:12px;">Mr. Kim&#39;s CAFE</div>
-<div style="border-top:1px dashed #000;margin:8px 0;"></div>
-<div>رقم الطلب: #${esc(String(o.num))}</div>
-<div>الوقت: ${esc(time)}</div>
-<div>النوع: ${typeStr}</div>
-<div style="border-top:1px dashed #000;margin:8px 0;"></div>`;
-    o.items.forEach(i => {
-      const sizeStr = i.size ? ` [${i.size}]` : '';
-      html += `<div style="display:flex;justify-content:space-between;"><span>${esc(i.emoji)} ${esc(i.nameAr || i.name)}${esc(sizeStr)} ×${esc(String(i.qty))}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
+async function doLogin(){
+  const name = document.getElementById('loginName').value.trim();
+  const pw   = document.getElementById('loginPw').value.trim();
+  if(!name || !pw) return;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await fetch('/api/cashier/login',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, password:pw})
     });
-    html += `<div style="border-top:1px dashed #000;margin:8px 0;"></div>
-<div style="display:flex;justify-content:space-between;font-weight:bold;"><span>الإجمالي</span><span>${o.total.toLocaleString()} IQD</span></div>
-<div style="text-align:center;margin-top:12px;font-size:11px;">شكراً لزيارتكم!</div>`;
-    document.getElementById('print-area').innerHTML = html;
-    window.print();
+    const d = await r.json();
+    if(!r.ok){ document.getElementById('loginErr').textContent = d.error||'Invalid credentials'; return; }
+    cashierToken = d.token;
+    cashierRole  = d.role || 'cashier';
+    localStorage.setItem('cashierToken', cashierToken);
+    localStorage.setItem('cashierRole',  cashierRole);
+    document.getElementById('loginOverlay').classList.add('hidden');
+    // Update user badge
+    const uname = d.cashier?.name || name;
+    document.getElementById('tb-username').childNodes[0].textContent = uname;
+    document.getElementById('tb-av').textContent = uname.charAt(0).toUpperCase();
+    afterLogin();
+  } catch(e){
+    document.getElementById('loginErr').textContent = 'Network error';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
   }
+}
 
-  /* ─── API: تحميل طلبات اليوم (+ استطلاع احتياطي) ─── */
-  async function loadOrders() {
-    const today = localDateStr();
+function doLogout(){
+  if(!confirm('Sign out?')) return;
+  localStorage.removeItem('cashierToken');
+  localStorage.removeItem('cashierRole');
+  cashierToken = '';
+  cashierRole  = 'cashier';
+  if(_sseConn){ try{_sseConn.close();}catch(_){} _sseConn=null; }
+  location.reload();
+}
+
+async function checkAuth(){
+  if(!cashierToken){ showLoginOverlay(); return false; }
+  try {
+    const r = await fetch('/api/orders?date=2000-01-01', {headers:cashierHeaders()});
+    if(r.status===401){ localStorage.removeItem('cashierToken'); cashierToken=''; showLoginOverlay(); return false; }
+    return true;
+  } catch(_){ return false; }
+}
+
+function showLoginOverlay(){
+  document.getElementById('loginOverlay').classList.remove('hidden');
+}
+
+/* ── SSE ── */
+function connectSSE(){
+  if(_sseConn){ try{_sseConn.close();}catch(_){} _sseConn=null; }
+  const q = cashierToken ? '?token='+encodeURIComponent(cashierToken) : '';
+  const es = new EventSource('/api/orders/stream'+q);
+  _sseConn = es;
+  es.onopen = () => { _sseDelay = 2000; setOnlineStatus(true); };
+  es.onmessage = ev => {
     try {
-      const res = await fetch(`/api/orders?date=${today}`, { headers: authHeaders() });
-      if (!res.ok) throw new Error();
-      orders = await res.json();
-      renderOrders();
-    } catch (e) {
-      console.warn('فشل تحميل الطلبات، سيُعاد المحاولة');
-    }
-  }
-
-  /* ─── Reservations tab ─── */
-  async function loadReservations() {
-    const date = document.getElementById('res-filter-date').value;
-    if (!date) return;
-    const listEl = document.getElementById('reservations-list');
-    listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">جارٍ التحميل…</div>';
-    try {
-      const res = await fetch(`/api/reservations?date=${date}`, { headers: cashierHeaders() });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const badge = document.getElementById('res-count-badge');
-      badge.textContent = `${data.length} حجز`;
-      if (data.length === 0) {
-        listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">لا توجد حجوزات في هذا التاريخ</div>';
-        return;
-      }
-      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
-      const statusLabel = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
-      listEl.innerHTML = data.map(r => `
-        <div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.07);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span dir="ltr" style="font-weight:900;font-size:1rem;unicode-bidi:plaintext;">${esc(r.time)}</span>
-            <span style="background:${statusColor[r.status]||'#888'}22;color:${statusColor[r.status]||'#888'};
-              border-radius:20px;padding:3px 12px;font-size:0.78rem;font-weight:800;">${statusLabel[r.status]||r.status}</span>
-          </div>
-          <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(r.phone)}</span></div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(String(r.party_size))}</span> guests</div>
-          ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            ${r.status==='pending' ? `
-              <button onclick="updateReservationStatus(${r.id},'confirmed')"
-                style="flex:1;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✅ تأكيد</button>
-              <button onclick="updateReservationStatus(${r.id},'cancelled')"
-                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
-            ` : r.status==='confirmed' ? `
-              <button onclick="updateReservationStatus(${r.id},'completed')"
-                style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">☑ وصل</button>
-              <button onclick="updateReservationStatus(${r.id},'cancelled')"
-                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
-            ` : ''}
-          </div>
-        </div>
-      `).join('');
-    } catch (e) {
-      document.getElementById('reservations-list').innerHTML = '<div style="color:#e53e3e;padding:32px;text-align:center;grid-column:1/-1;">فشل تحميل البيانات</div>';
-    }
-  }
-
-  async function updateReservationStatus(id, status) {
-    try {
-      const res = await fetch(`/api/reservations/${id}/status`, {
-        method: 'PUT',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) throw new Error();
-      loadReservations();
-    } catch (e) {
-      alert('فشل تحديث الحجز');
-    }
-  }
-
-  /* ─── Reservation sub-tabs ─── */
-  function switchResSubtab(sub) {
-    const isTable = sub === 'table';
-    document.getElementById('res-pane-table').style.display = isTable ? '' : 'none';
-    document.getElementById('res-pane-meeting').style.display = isTable ? 'none' : '';
-    const btnTable = document.getElementById('res-subtab-table');
-    const btnMeeting = document.getElementById('res-subtab-meeting');
-    btnTable.classList.toggle('active', isTable);
-    btnMeeting.classList.toggle('active', !isTable);
-    if (!isTable) {
-      const meetingDateInput = document.getElementById('meeting-filter-date');
-      if (!meetingDateInput.value) meetingDateInput.value = localDateStr();
-      loadMeetingReservations();
-    }
-  }
-
-  /* ─── Meeting Room Reservations ─── */
-  async function loadMeetingReservations() {
-    const date = document.getElementById('meeting-filter-date').value;
-    if (!date) return;
-    const listEl = document.getElementById('meeting-reservations-list');
-    listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">جارٍ التحميل…</div>';
-    try {
-      const res = await fetch(`/api/meeting-reservations?date=${date}`, { headers: cashierHeaders() });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const badge = document.getElementById('meeting-count-badge');
-      badge.textContent = `${data.length} حجز`;
-      if (data.length === 0) {
-        listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">لا توجد حجوزات في هذا التاريخ</div>';
-        return;
-      }
-      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
-      const statusLabel = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
-      listEl.innerHTML = data.map(r => `
-        <div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.07);border-top:3px solid #6366f1;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span dir="ltr" style="font-weight:900;font-size:1rem;unicode-bidi:plaintext;">⏰ ${esc(r.slot)}</span>
-            <span style="background:${statusColor[r.status]||'#888'}22;color:${statusColor[r.status]||'#888'};
-              border-radius:20px;padding:3px 12px;font-size:0.78rem;font-weight:800;">${statusLabel[r.status]||r.status}</span>
-          </div>
-          <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(r.phone)}</span></div>
-          ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
-          <div style="font-size:0.78rem;color:#aaa;margin-bottom:8px;">💰 25,000 IQD — paid on arrival</div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            ${r.status==='pending' ? `
-              <button onclick="updateMeetingStatus(${r.id},'confirmed')"
-                style="flex:1;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✅ تأكيد</button>
-              <button onclick="updateMeetingStatus(${r.id},'cancelled')"
-                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
-            ` : r.status==='confirmed' ? `
-              <button onclick="updateMeetingStatus(${r.id},'completed')"
-                style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">☑ وصل</button>
-              <button onclick="updateMeetingStatus(${r.id},'cancelled')"
-                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
-            ` : ''}
-          </div>
-        </div>
-      `).join('');
-    } catch (e) {
-      document.getElementById('meeting-reservations-list').innerHTML = '<div style="color:#e53e3e;padding:32px;text-align:center;grid-column:1/-1;">فشل تحميل البيانات</div>';
-    }
-  }
-
-  async function updateMeetingStatus(id, status) {
-    try {
-      const res = await fetch(`/api/meeting-reservations/${id}/status`, {
-        method: 'PUT',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) throw new Error();
-      loadMeetingReservations();
-    } catch (e) {
-      alert('فشل تحديث الحجز');
-    }
-  }
-
-  /* ─── Stamps tab ─── */
-  async function earnStamp() {
-    const phone = document.getElementById('stamp-earn-phone').value.trim();
-    const orderId = document.getElementById('stamp-earn-order').value.trim();
-    const msgEl = document.getElementById('stamp-earn-msg');
-    msgEl.style.color = '#e53e3e';
-    msgEl.textContent = '';
-    if (!phone) { msgEl.textContent = 'أدخل رقم الهاتف'; return; }
-    try {
-      const res = await fetch('/api/stamps/earn', {
-        method: 'POST',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ phone, order_id: orderId || undefined })
-      });
-      const data = await res.json();
-      if (!res.ok) { msgEl.textContent = data.error || 'فشل منح الطابع'; return; }
-      msgEl.style.color = '#367d4d';
-      msgEl.textContent = `✅ تم منح الطابع! الإجمالي: ${data.total_earned} طابع`;
-      document.getElementById('stamp-earn-phone').value = '';
-      document.getElementById('stamp-earn-order').value = '';
-    } catch (e) {
-      msgEl.textContent = 'خطأ في الاتصال';
-    }
-  }
-
-  async function lookupStamps() {
-    const phone = document.getElementById('stamp-redeem-phone').value.trim();
-    const infoEl = document.getElementById('stamp-redeem-info');
-    const msgEl = document.getElementById('stamp-redeem-msg');
-    msgEl.textContent = '';
-    if (!phone) { infoEl.textContent = 'أدخل رقم الهاتف أولاً'; return; }
-    try {
-      const res = await fetch(`/api/stamps/lookup?phone=${encodeURIComponent(phone)}`, { headers: cashierHeaders() });
-      const data = await res.json();
-      if (!res.ok) { infoEl.style.color = '#e53e3e'; infoEl.textContent = data.error || 'لم يُعثر على العميل'; return; }
-      infoEl.style.color = '#333';
-      const free = Math.floor(data.available / 9);
-      infoEl.innerHTML = `👤 <strong>${esc(data.name)}</strong><br>
-        طوابع متاحة: <strong style="color:#367d4d">${data.available}</strong>
-        ${free > 0 ? `<br>🎁 مشروب مجاني: <strong style="color:#f59e0b">${free}</strong>` : ''}`;
-    } catch (e) {
-      infoEl.textContent = 'خطأ في الاتصال';
-    }
-  }
-
-  async function redeemStamp() {
-    const phone = document.getElementById('stamp-redeem-phone').value.trim();
-    const msgEl = document.getElementById('stamp-redeem-msg');
-    msgEl.style.color = '#e53e3e';
-    msgEl.textContent = '';
-    if (!phone) { msgEl.textContent = 'أدخل رقم الهاتف أولاً'; return; }
-    if (!confirm('هل تريد استرداد 9 طوابع مقابل مشروب مجاني؟')) return;
-    try {
-      const res = await fetch('/api/stamps/redeem', {
-        method: 'POST',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ phone })
-      });
-      const data = await res.json();
-      if (!res.ok) { msgEl.textContent = data.error || 'فشل الاسترداد'; return; }
-      msgEl.style.color = '#367d4d';
-      msgEl.textContent = `🎉 تم الاسترداد! الطوابع المتبقية: ${data.available}`;
-      document.getElementById('stamp-redeem-info').innerHTML = `المتبقي: <strong>${data.available}</strong> طابع`;
-    } catch (e) {
-      msgEl.textContent = 'خطأ في الاتصال';
-    }
-  }
-
-  /* ─── History tab ─── */
-  window._historyOrders = [];
-
-  function renderHistoryTable(data) {
-    const listEl = document.getElementById('history-list');
-    const summaryEl = document.getElementById('history-summary');
-
-    const done = data.filter(o => o.status === 'done').length;
-    const rev  = data.filter(o => o.status === 'done').reduce((s,o) => s + o.total, 0);
-    summaryEl.innerHTML = `
-      <div class="history-stat"><strong>${data.length}</strong>إجمالي الطلبات</div>
-      <div class="history-stat"><strong>${done}</strong>مكتمل</div>
-      <div class="history-stat"><strong>${data.filter(o=>o.status==='cancelled').length}</strong>ملغي</div>
-      <div class="history-stat"><strong>${rev.toLocaleString()} IQD</strong>الإيرادات المؤكدة</div>
-    `;
-
-    if (data.length === 0) {
-      listEl.innerHTML = `<div class="history-empty">لا توجد طلبات</div>`;
-      return;
-    }
-
-    const statusLabel = { new:'جديد', making:'قيد التحضير', done:'مكتمل', cancelled:'ملغي' };
-    const rows = [...data].sort((a,b) => b.timestamp - a.timestamp).map(o => {
-      const time = new Date(o.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
-      const typeStr = o.type === 'dine' ? `🪑 طاولة ${esc(o.table_num)}` : `🏃 ${esc(o.customer_name||'')}`;
-      const itemsList = o.items.map(i => {
-        const sizeTag = i.size ? ` <span class="size-tag">${esc(i.size)}</span>` : '';
-        return `${esc(i.emoji)} ${esc(i.nameAr||i.name)}${sizeTag} ×${i.qty}`;
-      }).join('<br>');
-      return `<tr>
-        <td style="font-weight:900;">#${o.num}</td>
-        <td>${time}</td>
-        <td>${typeStr}</td>
-        <td><div class="history-items-list">${itemsList}</div></td>
-        <td style="font-weight:900;color:var(--green);">${o.total.toLocaleString()}</td>
-        <td><span class="status-badge ${o.status}">${statusLabel[o.status]||o.status}</span></td>
-        <td style="font-size:0.8em;color:#888;">${esc(o.cashier_name||'-')}</td>
-        <td><button class="btn-action btn-print" style="padding:6px 10px;" onclick="printReceipt('${esc(o.id)}')" title="طباعة">🖨️</button></td>
-      </tr>`;
-    }).join('');
-
-    listEl.innerHTML = `<table class="history-table">
-      <thead><tr>
-        <th>رقم</th><th>الوقت</th><th>النوع</th><th>الطلبات</th><th>IQD</th><th>الحالة</th><th>كاشير</th><th></th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  }
-
-  function filterHistory() {
-    const search = (document.getElementById('history-search')?.value || '').trim().toLowerCase();
-    const typeFilter = document.getElementById('history-type-filter')?.value || '';
-    let data = window._historyOrders;
-    if (typeFilter) data = data.filter(o => o.type === typeFilter);
-    if (search) {
-      data = data.filter(o =>
-        (o.customer_name || '').toLowerCase().includes(search) ||
-        (o.customer_phone || '').includes(search)
-      );
-    }
-    renderHistoryTable(data);
-  }
-
-  async function loadHistory() {
-    const date = document.getElementById('history-date').value;
-    if (!date) return;
-    const summaryEl = document.getElementById('history-summary');
-    const listEl = document.getElementById('history-list');
-    listEl.innerHTML = `<div class="history-empty">جارٍ التحميل…</div>`;
-    summaryEl.innerHTML = '';
-    try {
-      const res = await fetch(`/api/orders?date=${date}`, { headers: authHeaders() });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      window._historyOrders = data;
-
-      // 필터 초기화 후 렌더
-      const typeFilter = document.getElementById('history-type-filter');
-      const searchInput = document.getElementById('history-search');
-      if (typeFilter) typeFilter.value = '';
-      if (searchInput) searchInput.value = '';
-
-      if (data.length === 0) {
-        summaryEl.innerHTML = '';
-        listEl.innerHTML = `<div class="history-empty">لا توجد طلبات في هذا التاريخ</div>`;
-        return;
-      }
-      renderHistoryTable(data);
-    } catch (e) {
-      listEl.innerHTML = `<div class="history-empty">فشل تحميل البيانات</div>`;
-    }
-  }
-
-  /* ─── SSE: استقبال الطلبات الجديدة في الوقت الفعلي ─── */
-  function setConnDot(state) {
-    const dot = document.getElementById('conn-dot');
-    if (!dot) return;
-    dot.className = 'conn-dot ' + state;
-  }
-
-  let _sseDelay = 2000;
-  function connectSSE() {
-    const es = new EventSource('/api/orders/stream');
-    es.onopen = () => { setConnDot('online'); _sseDelay = 2000; };
-    es.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'connected') { setConnDot('online'); return; }
-      if (msg.type === 'new_order') {
-        const todayStr = localDateStr();
-        const orderDate = new Date(msg.order.timestamp + 3*3600*1000).toISOString().slice(0,10);
-        if (!orders.find(o => o.id === msg.order.id)) {
-          if (orderDate === todayStr) orders.unshift(msg.order);
+      const data = JSON.parse(ev.data);
+      if(data.type==='new_order'||data.type==='order_updated'){
+        const o = data.order || data;
+        // Push into KDS data
+        const existing = MK_DATA.TXNS.find(t=>t.id===o.id);
+        if(!existing && o.status==='new') {
+          MK_DATA.TXNS.unshift({id:o.id,at:o.timestamp,items:o.items||[],type:o.type,status:'incoming'});
+          if(MK.STATE.view==='kitchen') MKV.renderKDS();
+          updateKdsBadge();
         }
-        renderOrders();
-        showNewOrderFlash();
-      } else if (msg.type === 'order_updated') {
-        const idx = orders.findIndex(o => o.id === msg.order.id);
-        if (idx !== -1) { orders[idx] = msg.order; renderOrders(); }
-      } else if (msg.type === 'new_reservation') {
-        showNewReservationFlash(msg.reservation);
-        if (currentTab === 'reservations') loadReservations();
-      } else if (msg.type === 'reservation_updated') {
-        if (currentTab === 'reservations') loadReservations();
-      } else if (msg.type === 'new_meeting_reservation') {
-        if (currentTab === 'reservations') loadMeetingReservations();
-      } else if (msg.type === 'meeting_reservation_updated') {
-        if (currentTab === 'reservations') loadMeetingReservations();
       }
-    };
-    es.onerror = () => {
-      setConnDot('offline');
-      es.close();
-      setTimeout(connectSSE, _sseDelay);
-      _sseDelay = Math.min(_sseDelay * 2, 60000);
-    };
-  }
-
-  /* ─── تسجيل دخول الكاشير ─── */
-  let cashierToken = sessionStorage.getItem('cashier_token') || '';
-  let cashierName  = sessionStorage.getItem('cashier_name')  || '';
-
-  function cashierHeaders(extra) {
-    return Object.assign({ 'x-cashier-token': cashierToken }, extra || {});
-  }
-
-  function updateCashierBadge() {
-    const badge = document.getElementById('cashier-badge');
-    if (cashierName) badge.textContent = '👤 ' + cashierName;
-    else badge.textContent = '';
-  }
-
-  async function doCashierLogin() {
-    const name = document.getElementById('loginName').value.trim();
-    const pw   = document.getElementById('loginPw').value;
-    const err  = document.getElementById('loginErr');
-    const btn  = document.getElementById('loginBtn');
-    err.textContent = '';
-    if (!name || !pw) { err.textContent = 'Enter name and password / أدخل الاسم وكلمة المرور'; return; }
-    btn.disabled = true; btn.textContent = 'Logging in... / جاري الدخول';
-    try {
-      const res = await fetch('/api/cashier/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, password: pw })
-      });
-      const d = await res.json();
-      if (res.ok) {
-        cashierToken = d.token;
-        cashierName  = d.name;
-        sessionStorage.setItem('cashier_token', cashierToken);
-        sessionStorage.setItem('cashier_name', cashierName);
-        document.getElementById('loginOverlay').style.display = 'none';
-        updateCashierBadge();
-        loadOrders();
-      } else {
-        err.textContent = d.error || 'Login failed / فشل تسجيل الدخول';
+      if(data.type==='new_reservation'){
+        const res = data.reservation || {};
+        MK_DATA.RESERVATIONS.unshift({
+          id:res.id, name:res.name, phone:res.phone,
+          date:res.date, time:res.time, party:res.party_size,
+          notes:res.notes||'', status:'pending'
+        });
+        if(MK.STATE.view==='reservations') MKV.renderReservations();
+        updateResBadge(1);
+        showResFlash(res);
       }
-    } catch (e) {
-      err.textContent = 'Cannot connect to server / لا يمكن الاتصال بالخادم';
-    }
-    btn.disabled = false; btn.textContent = 'Login / دخول';
-  }
+    } catch(_){}
+  };
+  es.onerror = () => {
+    es.close(); _sseConn=null; setOnlineStatus(false);
+    _sseDelay = Math.min(_sseDelay*1.5, 30000);
+    setTimeout(connectSSE, _sseDelay);
+  };
+}
 
-  async function doCashierLogout() {
-    await fetch('/api/cashier/logout', { method: 'POST', headers: cashierHeaders() });
-    sessionStorage.removeItem('cashier_token');
-    sessionStorage.removeItem('cashier_name');
-    cashierToken = ''; cashierName = '';
-    location.reload();
-  }
+function setOnlineStatus(online){
+  const el = document.getElementById('tb-status');
+  if(el) el.className = 'tb-chip' + (online ? ' online' : ' offline');
+}
 
-  // التحقق من الجلسة عند تحميل الصفحة
-  if (!cashierToken) {
-    document.getElementById('loginOverlay').style.display = 'flex';
-  } else {
-    document.getElementById('loginOverlay').style.display = 'none';
-    updateCashierBadge();
-  }
+/* ── Res flash ── */
+function showResFlash(res){
+  document.getElementById('res-flash-name').textContent = res.name||'';
+  document.getElementById('res-flash-datetime').textContent = (res.date||'')+(res.time?' '+res.time:'');
+  const f = document.getElementById('res-flash');
+  f.style.display = 'block';
+  requestAnimationFrame(()=>{ f.classList.add('show'); });
+  setTimeout(hideResFlash, 8000);
+}
+function hideResFlash(){
+  const f = document.getElementById('res-flash');
+  f.classList.remove('show');
+  setTimeout(()=>{ f.style.display='none'; }, 300);
+}
 
-  /* ─── Table QR Codes ─── */
-  const BASE_URL = 'https://mrkimscafe.com';
+/* ── Badge helpers ── */
+function updateResBadge(delta){
+  const b = document.getElementById('bdg-res');
+  const n = Math.max(0,(parseInt(b.textContent)||0)+delta);
+  b.textContent = n; b.style.display = n ? '' : 'none';
+}
+function updateKdsBadge(){
+  const n = MK_DATA.TXNS.filter(t=>t.status==='incoming').length;
+  const b = document.getElementById('bdg-kds');
+  if(b){ b.textContent=n; b.style.display=n?'':'none'; }
+}
 
-  async function loadTableQRs() {
-    const list = document.getElementById('qr-list');
-    list.innerHTML = '<div style="color:#888;padding:20px">جاري التحميل...</div>';
-    try {
-      const r = await fetch('/api/table-tokens', { headers: cashierHeaders() });
-      if (r.status === 401) { list.innerHTML = '<div style="color:#e53e3e;padding:20px">⚠️ يجب تسجيل الدخول أولاً</div>'; return; }
-      const tokens = await r.json();
-      if (!tokens.length) { list.innerHTML = '<div style="color:#888;padding:20px">No tables yet. Generate a QR code. / لا توجد طاولات. أنشئ رمز QR.</div>'; return; }
-      list.innerHTML = '';
-      for (const t of tokens) {
-        const url = `${BASE_URL}/?table=${t.table_num}&t=${t.token}`;
-        const encodedUrl = encodeURIComponent(url);
-        // جلب صورة QR من الخادم
-        const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
-        const qrData = qrRes.ok ? await qrRes.json() : null;
-        const imgSrc = qrData?.dataUrl || '';
-        const card = document.createElement('div');
-        card.style.cssText = 'background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);text-align:center';
-        card.innerHTML = `
-          <div style="font-weight:900;font-size:1.1rem;margin-bottom:12px">🪑 طاولة ${esc(t.table_num)} / Table ${esc(t.table_num)}</div>
-          ${imgSrc
-            ? `<img id="qr-img-${esc(t.table_num)}" src="${imgSrc}" style="border-radius:8px;width:180px;height:180px" alt="QR Table ${esc(t.table_num)}">`
-            : `<div style="font-size:0.7rem;color:#888;word-break:break-all;padding:8px">${esc(url)}</div>`
-          }
-          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-            <button onclick="printTableQR('${esc(t.table_num)}','${esc(url)}')"
-              style="background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;font-family:inherit">
-              🖨️ طباعة / Print
-            </button>
-            <button onclick="regenToken('${esc(t.table_num)}')"
-              style="background:#f0f4f1;color:#4a4a4a;border:1px solid #d4e8d8;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
-              🔄 تجديد
-            </button>
-            <button onclick="extendDineSession('${esc(t.table_num)}')"
-              style="background:#fff8e1;color:#d97706;border:1px solid #fde68a;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
-              ⏱ تمديد
-            </button>
-            <button onclick="deleteTableToken('${esc(t.table_num)}')"
-              style="background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit">
-              🗑️
-            </button>
-          </div>`;
-        list.appendChild(card);
-      }
-    } catch(e) {
-      list.innerHTML = `<div style="color:#e53e3e;padding:20px">Load failed: ${e.message}</div>`;
-    }
-  }
-
-  async function generateTableQR() {
-    const tableNum = document.getElementById('qr-table-input').value.trim();
-    if (!tableNum || isNaN(tableNum) || tableNum < 1) {
-      alert('أدخل رقم الطاولة / Enter table number');
-      return;
-    }
-    const btn = document.querySelector('[onclick="generateTableQR()"]');
-    if (btn) { btn.disabled = true; btn.textContent = 'Creating... / جاري الإنشاء'; }
-    try {
-      const r = await fetch('/api/table-tokens', {
-        method: 'POST',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ tableNum: String(tableNum) })
-      });
-      if (r.status === 401) { alert('Session expired. Please log in again. / انتهت الجلسة. سجّل الدخول مجدداً.'); location.reload(); return; }
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        alert('Failed to create: ' + (d.error || r.status));
-        return;
-      }
-      document.getElementById('qr-table-input').value = '';
-      await loadTableQRs();
-    } catch (e) {
-      alert('Network error. Check server connection.\nخطأ في الشبكة. تحقق من الاتصال.\n' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '➕ إنشاء QR / Generate QR'; }
-    }
-  }
-
-  async function regenToken(tableNum) {
-    if (!confirm(`تجديد رمز الطاولة ${tableNum}؟\nRegenerate token for Table ${tableNum}?\n\n⚠️ The old QR code will stop working!`)) return;
-    await fetch('/api/table-tokens', {
-      method: 'POST',
-      headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ tableNum })
+/* ── Server menu sync ── */
+async function syncMenuPrices(){
+  try {
+    const r = await fetch('/api/menu-prices', {headers:cashierHeaders()});
+    if(!r.ok) return;
+    const rows = await r.json();
+    const map = {};
+    rows.forEach(row=>{ map[row.menu_item]=row.selling_price; });
+    MK_DATA.MENU.forEach(item=>{
+      if(map[item.sku]) item.p = map[item.sku];
     });
-    loadTableQRs();
-  }
+  } catch(_){}
+}
 
-  async function deleteTableToken(tableNum) {
-    if (!confirm(`حذف QR الطاولة ${tableNum}؟\nDelete QR for Table ${tableNum}?`)) return;
-    await fetch(`/api/table-tokens/${tableNum}`, {
-      method: 'DELETE', headers: cashierHeaders()
-    });
-    loadTableQRs();
-  }
+/* ── Server reservation sync ── */
+async function syncReservations(){
+  try {
+    const r = await fetch('/api/reservations', {headers:cashierHeaders()});
+    if(!r.ok) return;
+    const rows = await r.json();
+    MK_DATA.RESERVATIONS = rows.map(res=>({
+      id:res.id, name:res.name, phone:res.phone||'',
+      date:res.date, time:res.time, party:res.party_size||1,
+      notes:res.notes||'', status:res.status||'pending'
+    }));
+    const pending = rows.filter(r=>r.status==='pending').length;
+    const b = document.getElementById('bdg-res');
+    if(b){ b.textContent=pending; b.style.display=pending?'':'none'; }
+  } catch(_){}
+}
 
-  async function extendDineSession(tableNum) {
+/* ── Patch finishPay to also POST /api/orders ── */
+function patchFinishPay(){
+  const _orig = MKO.finishPay.bind(MKO);
+  MKO.finishPay = async function(){
+    // Build payload before local state clears
+    const tot = MK.cartTotals();
+    const items = (MK.STATE.cart||[]).map(c=>({
+      key:c.sku||c.n, name:c.n, qty:c.q, price:c.p,
+      sku:c.sku||'', note:c.note||''
+    }));
+    const type = MK.STATE.order?.type || 'dine';
+    const cust = MK.STATE.order?.customer;
+
+    // Run local finish (prints receipt, clears cart)
+    _orig();
+
+    // POST to server
     try {
-      const res = await fetch('/api/dine-sessions/extend', {
-        method: 'POST',
-        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ tableNum: String(tableNum) })
+      await fetch('/api/orders',{
+        method:'POST',
+        headers:cashierHeaders({'Content-Type':'application/json'}),
+        body:JSON.stringify({
+          type, items,
+          total:tot.total,
+          subtotal:tot.sub,
+          tax:tot.tax,
+          customerPhone:cust?.phone||undefined,
+          customerName:cust?.name||undefined,
+        })
       });
-      const d = await res.json();
-      if (!res.ok) {
-        alert(d.error || 'فشل تمديد الجلسة / Extend failed');
-        return;
-      }
-      const expiry = new Date(d.expiresAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-      alert(`✅ تم تمديد جلسة الطاولة ${tableNum}\nتنتهي في: ${expiry}\n\nTable ${tableNum} session extended until ${expiry}`);
-    } catch (e) {
-      alert('خطأ في الاتصال / Network error');
-    }
-  }
+    } catch(_){}
+  };
+}
 
-  async function printTableQR(tableNum, url) {
-    const encodedUrl = encodeURIComponent(url);
-    const qrRes = await fetch(`/api/qr-image?url=${encodedUrl}`, { headers: cashierHeaders() });
-    if (!qrRes.ok) { alert('Failed to generate QR image / فشل إنشاء رمز QR'); return; }
-    const { dataUrl } = await qrRes.json();
-    const win = window.open('', '_blank');
-    win.document.write(`
-      <!DOCTYPE html><html><head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
-        h1 { font-size: 2rem; margin-bottom: 8px; }
-        p { color: #555; margin-bottom: 20px; font-size: 1rem; }
-        img { display: block; margin: 0 auto; }
-        @media print { button { display: none; } }
-      </style></head><body>
-      <h1>🪑 Mr. Kim's Cafe</h1>
-      <p>Table ${tableNum} — Scan to order / امسح للطلب</p>
-      <img src="${dataUrl}" width="300" height="300" alt="QR Code">
-      <br><button onclick="window.print()" style="margin-top:20px;padding:10px 24px;font-size:1rem;cursor:pointer">🖨️ Print</button>
-      </body></html>`);
-    win.document.close();
-  }
+/* ── Post-login init ── */
+function applyRoleVisibility(){
+  const isManager = cashierRole === 'manager';
+  document.querySelectorAll('[data-v="inventory"],[data-v="reports"]').forEach(el => {
+    el.style.display = isManager ? '' : 'none';
+  });
+  const role = document.getElementById('tb-user-role');
+  if(role) role.textContent = isManager ? 'MANAGER' : 'CASHIER';
+}
 
-  /* ─── الاستطلاع الاحتياطي: إعادة مزامنة طلبات اليوم كل 30 ثانية ─── */
-  setInterval(loadOrders, 30000);
-
-  /* ─── Init ─── */
-  document.getElementById('history-date').value = localDateStr();
-  loadOrders();
+async function afterLogin(){
+  document.querySelector('.pos-root').classList.add('active');
+  applyRoleVisibility();
+  await syncMenuPrices();
+  await syncReservations();
   connectSSE();
-</script>
+  MKApp.init();
+}
 
+/* ── BOOTSTRAP ── */
+window.MKApp = (function(){
+  const {STATE, t, applyLang} = MK;
+
+  function nav(view){
+    STATE.view = view;
+    document.querySelectorAll('.view').forEach(el=>el.classList.add('hidden'));
+    const el = document.getElementById('v-'+view);
+    if(el) el.classList.remove('hidden');
+    document.querySelectorAll('.sbn').forEach(b=>b.classList.toggle('on', b.dataset.v===view));
+    if(view==='tables')       MKV.renderTables();
+    else if(view==='kitchen') MKV.renderKDS();
+    else if(view==='inventory')   MKV.renderInv();
+    else if(view==='reservations') MKV.renderReservations();
+    else if(view==='customers')    MKV.renderCustomers();
+    else if(view==='reports')      MKV.renderReports();
+    else if(view==='order')        MKO.refresh();
+  }
+
+  function setLang(l){
+    STATE.lang = l;
+    applyLang();
+    document.querySelectorAll('.tb-lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));
+    applyI18n();
+    MKO.refresh();
+    MKV.renderTables(); MKV.renderKDS(); MKV.renderInv();
+    MKV.renderReservations(); MKV.renderCustomers(); MKV.renderReports();
+  }
+
+  function applyI18n(){
+    document.querySelectorAll('[data-i]').forEach(el=>{
+      const k=el.dataset.i; const v=t(k); if(v!==k) el.textContent=v;
+    });
+    const si=document.getElementById('search-in');
+    if(si) si.placeholder=t('search');
+    const oi=document.getElementById('tb-online-lbl');
+    if(oi) oi.textContent=t('online');
+    const sy=document.getElementById('tb-sync-lbl');
+    if(sy) sy.textContent=t('sync');
+  }
+
+  function tick(){
+    const d=new Date();
+    const el=document.getElementById('tb-clock');
+    if(el) el.textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+    const tvt=document.getElementById('tv-time');
+    if(tvt) tvt.textContent=MK.fmtDateTime?.(d.toISOString())||d.toLocaleTimeString();
+  }
+
+  function syncNow(){ MKO.toast('↻ '+t('sync')+' ✓','ok'); MK.audit?.('sync.manual',null); }
+
+  function init(){
+    patchFinishPay();
+    MK.seedRuntime?.();
+    applyLang();
+    applyI18n();
+    MKO.init();
+    tick(); setInterval(tick, 1000);
+    setInterval(()=>{ if(STATE.view==='kitchen') MKV.renderKDS(); }, 30000);
+    MKO.toast('✓ Mr. Kim\'s POS · Ready','ok');
+  }
+
+  return { nav, setLang, syncNow, init };
+})();
+
+/* ── Startup ── */
+document.addEventListener('DOMContentLoaded', async()=>{
+  const ok = await checkAuth();
+  if(ok) afterLogin();
+});
+</script>
 </body>
 </html>
