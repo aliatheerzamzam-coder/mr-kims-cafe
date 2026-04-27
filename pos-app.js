@@ -50,7 +50,10 @@ window.MK = (function(){
       shiftClose:'إغلاق الوردية', shiftSummary:'ملخص الوردية', openingCash:'النقد الافتتاحي',
       cashSalesLbl:'مبيعات نقدية', expectedCash:'النقد المتوقع', countedCash:'النقد المحسوب',
       variance:'الفارق', closeShift:'إغلاق وتصدير', refund:'استرداد', findOrder:'بحث',
-      shareReceipt:'إجراءات الإيصال', printRcpt:'طباعة', shareWA:'مشاركة WhatsApp', lowStockWarn:'مخزون منخفض'
+      shareReceipt:'إجراءات الإيصال', printRcpt:'طباعة', shareWA:'مشاركة WhatsApp', lowStockWarn:'مخزون منخفض',
+      onlineOrders:'طلبات الإنترنت', accept:'قبول', reject:'رفض', noShow:'لم يحضر',
+      autoCancelled:'تم الإلغاء تلقائياً', arrivalTime:'وقت الوصول', minutesLeft:'دقيقة متبقية',
+      overdue:'متأخر', noOnlineOrders:'لا توجد طلبات إنترنت'
     },
     en: {
       order:'Order', tables:'Tables', kitchen:'Kitchen', inventory:'Inventory', reservations:'Reservations',
@@ -82,40 +85,12 @@ window.MK = (function(){
       shiftClose:'Shift Close', shiftSummary:'Shift Summary', openingCash:'Opening Cash',
       cashSalesLbl:'Cash Sales', expectedCash:'Expected Cash', countedCash:'Counted Cash',
       variance:'Variance', closeShift:'Close & Export', refund:'Refund', findOrder:'Search',
-      shareReceipt:'Receipt Actions', printRcpt:'Print', shareWA:'Share WhatsApp', lowStockWarn:'Low Stock'
-    },
-    ko: {
-      order:'주문', tables:'테이블', kitchen:'주방', inventory:'재고', reservations:'예약',
-      customers:'고객', reports:'리포트', settings:'설정', logout:'로그아웃',
-      search:'이름, SKU, 단축키로 검색...', scan:'스캔', newOrder:'새 주문', parkOrder:'보류',
-      all:'전체', dine:'매장', take:'포장', deli:'배달', pickup:'앱 픽업',
-      cart:'카트', subtotal:'소계', discount:'할인', tax:'세금 10%', total:'합계', pay:'결제',
-      emptyCart:'카트 비어있음', tapToAdd:'항목을 탭하여 추가', table:'테이블', guest:'손님', addCustomer:'고객 추가',
-      note:'메모', split:'분할', cash:'현금', card:'카드', zaincash:'ZainCash', switchPay:'Switch', stamps:'스탬프',
-      received:'받은 금액', change:'거스름', due:'청구액', confirmPay:'결제 및 인쇄',
-      size:'사이즈', temp:'온도', milk:'우유', shots:'샷', qty:'수량', addToCart:'카트 추가',
-      floorMap:'플로어 맵', free:'비어있음', occupied:'사용중', reserved:'예약됨', dirty:'청소필요',
-      transfer:'이동', merge:'합치기', seats:'석',
-      kds:'주방 디스플레이', incoming:'수신', preparing:'제조중', ready:'완료', bump:'처리',
-      item:'품목', inStock:'재고', min:'최소', status:'상태', cost:'원가', value:'금액',
-      adjust:'조정', receive:'입고', good:'양호', low:'부족', outStock:'품절',
-      upcoming:'예정', time:'시간', party:'인원', phone:'전화', confirmed:'확정', pendingCap:'대기',
-      seat:'배정', cancel:'취소', today:'오늘',
-      allCustomers:'전체 고객', visits:'방문', totalSpent:'총 지출', tier:'등급',
-      gold:'Gold', silver:'Silver', bronze:'Bronze', redeemStamp:'스탬프 사용',
-      salesToday:'오늘 매출', ordersToday:'오늘 주문', avgOrder:'평균 주문', topItems:'인기 품목',
-      hourly:'시간대별 매출', byPayment:'결제 수단별', byType:'주문 유형별',
-      export:'Excel 내보내기', exportCSV:'CSV', exportJSON:'JSON',
-      date:'날짜', dateRange:'기간', last7:'최근 7일', last30:'최근 30일',
-      save:'저장', close:'닫기', confirm:'확인', yes:'예', no:'아니오', remove:'삭제',
-      online:'온라인', offline:'오프라인', sync:'동기화',
-      rcptTitle:'영수증', rcptNo:'번호', rcptDate:'날짜', rcptCashier:'직원', thank:'감사합니다',
-      day0:'일', day1:'월', day2:'화', day3:'수', day4:'목', day5:'금', day6:'토',
-      shiftClose:'교대 마감', shiftSummary:'교대 요약', openingCash:'시작 현금',
-      cashSalesLbl:'현금 매출', expectedCash:'예상 현금', countedCash:'실제 현금',
-      variance:'차이', closeShift:'마감 및 내보내기', refund:'환불', findOrder:'검색',
-      shareReceipt:'영수증 관리', printRcpt:'인쇄', shareWA:'WhatsApp 공유', lowStockWarn:'재고 부족'
+      shareReceipt:'Receipt Actions', printRcpt:'Print', shareWA:'Share WhatsApp', lowStockWarn:'Low Stock',
+      onlineOrders:'Online Orders', accept:'Accept', reject:'Reject', noShow:'No-show',
+      autoCancelled:'Auto-cancelled', arrivalTime:'Arrival', minutesLeft:'min left',
+      overdue:'overdue', noOnlineOrders:'No online orders'
     }
+    // NOTE: Korean (ko:) i18n removed per Iraq market requirement (English/Arabic only)
   };
 
   // ---------- STATE ----------
@@ -135,6 +110,8 @@ window.MK = (function(){
     },
     parked: [],
     kdsQueue: [],
+    kdsFilter: 'all',        // all | barista | kitchen
+
     onlineTables: {},        // T01 -> {status, orderId}
     audit: [],
     shift: { startedAt: new Date().toISOString(), openingCash: 0 }
@@ -142,23 +119,23 @@ window.MK = (function(){
 
   // Seed a KDS queue + table states
   function seedRuntime(){
-    // Tables default to free; mark some occupied, reserved, dirty
+    // Tables default to free; live SSE/server state will override.
     MK_DATA.TABLES.forEach(t=>{ STATE.onlineTables[t.id] = {status:'free'}; });
-    ['T01','T03','T05','T07','B01'].forEach(id=> STATE.onlineTables[id] = {status:'occupied', orderId:'TX-2482'+id.slice(-1)});
-    ['T04','P01'].forEach(id=> STATE.onlineTables[id] = {status:'reserved'});
-    ['T06'].forEach(id=> STATE.onlineTables[id] = {status:'dirty'});
 
-    // KDS seed
-    const seedKds = (id, tbl, items, age) => ({
-      id, table:tbl, at: new Date(Date.now()-age*60000).toISOString(), status: age>2?'preparing':'incoming',
-      items
+    // Demo data only: gated by window.MK_DEMO so production cashiers don't see fake orders.
+    if(!window.MK_DEMO) return;
+
+    ['T01','T03','T05','T07','B01'].forEach(id=>{
+      if(STATE.onlineTables[id]) STATE.onlineTables[id] = {status:'occupied', orderId:'TX-2482'+id.slice(-1)};
     });
-    STATE.kdsQueue = [
-      seedKds('TX-24817','T01',[{name:'لاتيه فانيلا',q:2,mods:'كبير · شوفان'},{name:'تيراميسو',q:1}], 1),
-      seedKds('TX-24818','T05',[{name:'آيس موكا',q:3,mods:'كبير'},{name:'كرواسون جبنة',q:2}], 3),
-      seedKds('TX-24819','B01',[{name:'أمريكانو',q:1}], 5),
-      seedKds('TX-24820','TG-7',[{name:'فرابتشينو',q:2,mods:'كبير'}], 7)
-    ];
+    ['T04','P01'].forEach(id=>{
+      if(STATE.onlineTables[id]) STATE.onlineTables[id] = {status:'reserved'};
+    });
+    ['T06'].forEach(id=>{
+      if(STATE.onlineTables[id]) STATE.onlineTables[id] = {status:'dirty'};
+    });
+
+    STATE.kdsQueue = [];
   }
 
   // ---------- FORMATTING ----------
@@ -200,47 +177,14 @@ window.MK = (function(){
     return 'good';
   }
   function isOutOfStock(item){
-    if(item.out) return true;
-    if(!item.rec) return false;
-    // If recipe includes ingredient with qty<=0, out
-    for(const k of Object.keys(item.rec)){
-      const inv = MK_DATA.INV.find(i=>i.k===k);
-      if(inv && inv.qty<=0) return true;
-    }
-    return false;
+    return item && item.out === true;
   }
-  function consumeIngredients(line){
-    // Each unit consumes recipe base amounts (g/ml)
-    const base = {esp:18, milk:180, ice:100, water:250, vanilla:15, caramel:15, choc:25,
-                  matcha:6, tea_g:4, tea_b:4, mint:8, straw:120, mango:120, berry:120, yog:120, lemon:1};
-    const it = MK_DATA.MENU.find(m=>m.sku===line.sku);
-    if(!it || !it.rec) return;
-    Object.keys(it.rec).forEach(k=>{
-      const amt = (base[k]||10) * it.rec[k] * line.q;
-      let key = k;
-      // Milk swap
-      if(line.opts && line.opts.milk==='oat' && k==='milk') key='oat_m';
-      if(line.opts && line.opts.milk==='almond' && k==='milk') key='alm_m';
-      if(line.opts && line.opts.milk==='no' && k==='milk') return;
-      const inv = MK_DATA.INV.find(i=>i.k===key);
-      if(inv) inv.qty = Math.max(0, inv.qty - amt);
-    });
+  function consumeIngredients(_line){
+    // Server is authoritative on inventory deduction (server.js handles on order done).
   }
 
-  function restoreIngredients(line){
-    const base = {esp:18, milk:180, ice:100, water:250, vanilla:15, caramel:15, choc:25,
-                  matcha:6, tea_g:4, tea_b:4, mint:8, straw:120, mango:120, berry:120, yog:120, lemon:1};
-    const it = MK_DATA.MENU.find(m=>m.sku===line.sku);
-    if(!it || !it.rec) return;
-    Object.keys(it.rec).forEach(k=>{
-      const amt = (base[k]||10) * it.rec[k] * (line.q||1);
-      let key = k;
-      if(line.opts && line.opts.milk==='oat' && k==='milk') key='oat_m';
-      if(line.opts && line.opts.milk==='almond' && k==='milk') key='alm_m';
-      if(line.opts && line.opts.milk==='no' && k==='milk') return;
-      const inv = MK_DATA.INV.find(i=>i.k===key);
-      if(inv) inv.qty = Math.max(0, inv.qty + amt);
-    });
+  function restoreIngredients(_line){
+    // Server is authoritative on inventory restore (server.js handles on refund).
   }
 
   // ---------- CSV / XLSX (xml) ----------
