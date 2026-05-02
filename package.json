@@ -6,18 +6,30 @@
   "scripts": {
     "start": "node server.js",
     "test": "playwright test",
-    "test:report": "playwright test --reporter=html && playwright show-report test-results/html"
+    "test:report": "playwright test --reporter=html && playwright show-report test-results/html",
+    "agent:daily-qa": "node scripts/run-daily-qa.js",
+    "agent:daily-qa:dry": "node scripts/run-daily-qa.js --no-notify",
+    "agent:daily-report": "node scripts/run-daily-report.js",
+    "agent:daily-report:dry": "node scripts/run-daily-report.js --no-notify",
+    "agent:daily-teams": "node scripts/run-team-reports.js",
+    "agent:daily-teams:dry": "node scripts/run-team-reports.js --no-claude",
+    "agent:test-email": "node scripts/lib/notify-email.js",
+    "agent:test-whatsapp": "node scripts/lib/notify-whatsapp.js"
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
+    "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.3.2",
     "helmet": "^8.1.0",
-    "qrcode": "^1.5.4"
+    "nodemailer": "^6.10.1",
+    "qrcode": "^1.5.4",
+    "twilio": "^5.13.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1"

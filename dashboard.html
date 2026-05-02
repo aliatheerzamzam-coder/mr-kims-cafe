@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mr. Kim's Cafe — 본사 팀 대시보드</title>
+<style>
+  :root {
+    --bg: #0e1014;
+    --bg-2: #161922;
+    --surface: #1d2230;
+    --surface-2: #262c3d;
+    --border: #2e3548;
+    --text: #e7eaf2;
+    --text-dim: #9aa2b8;
+    --accent: #c8a46b;
+    --accent-2: #e9c98a;
+    --green: #6bd49a;
+    --red: #ef6b7d;
+    --yellow: #efc46b;
+    --blue: #7ea7ef;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent-2); text-decoration: none; }
+  header { padding: 28px 32px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  header .meta { color: var(--text-dim); font-size: 13px; }
+  header .controls { display: flex; gap: 8px; align-items: center; }
+  select, button { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+  button:hover, select:hover { border-color: var(--accent); }
+  main { padding: 24px 32px 64px; max-width: 1280px; margin: 0 auto; }
+  .login-box { max-width: 420px; margin: 80px auto; padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+  .login-box h2 { margin: 0 0 16px; font-weight: 600; }
+  .login-box input { width: 100%; padding: 12px; margin-bottom: 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; }
+  .login-box button { width: 100%; padding: 12px; background: var(--accent); color: #1a1a1a; border: none; font-weight: 600; }
+  .login-box .err { color: var(--red); font-size: 13px; min-height: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card .role { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .card .name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .card .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .card .badge.opus { color: #d8c0ff; border-color: #4a3d6a; background: #2a2440; }
+  .card .badge.sonnet { color: #b0d4ff; border-color: #2e4a6e; background: #1f2c40; }
+  .card .summary { color: var(--text); font-size: 14px; line-height: 1.5; min-height: 42px; }
+  .card .footer { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-dim); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot.ok { background: var(--green); }
+  .dot.fail { background: var(--red); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .stat .k { font-size: 12px; color: var(--text-dim); }
+  .stat .v { font-size: 18px; font-weight: 600; margin-top: 4px; }
+  .empty { text-align: center; color: var(--text-dim); padding: 48px; }
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: flex-start; justify-content: center; padding: 40px 20px; z-index: 100; overflow-y: auto; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px; max-width: 880px; width: 100%; padding: 28px 32px; }
+  .modal h2 { margin-top: 0; }
+  .modal .md { line-height: 1.65; font-size: 14.5px; color: var(--text); }
+  .modal .md h2 { font-size: 16px; margin: 20px 0 8px; color: var(--accent-2); }
+  .modal .md h3 { font-size: 15px; margin: 16px 0 6px; }
+  .modal .md ul, .modal .md ol { padding-left: 22px; }
+  .modal .md code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .modal .close { float: right; background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 10px; }
+  .alert { background: #2a1f24; border: 1px solid #6a3a44; color: #ffb8c0; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; }
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; border-radius: 0; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent-2); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .placeholder { padding: 60px 24px; text-align: center; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 12px; }
+  /* Card mini buttons */
+  .card .actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .card .actions button { font-size: 11px; padding: 4px 10px; border-radius: 6px; }
+  /* Meeting room */
+  .meeting-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; min-height: 60vh; }
+  .meeting-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; max-height: 70vh; overflow-y: auto; }
+  .meeting-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; }
+  .meeting-item:hover { background: var(--surface-2); }
+  .meeting-item.active { background: var(--surface-2); border: 1px solid var(--accent); }
+  .meeting-item .mi-topic { font-size: 13px; color: var(--text); line-height: 1.4; }
+  .meeting-item .mi-meta { font-size: 11px; color: var(--text-dim); margin-top: 4px; display: flex; gap: 8px; }
+  .meeting-thread { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; min-height: 60vh; }
+  .meeting-empty { color: var(--text-dim); text-align: center; padding: 40px 20px; }
+  .msgs { flex: 1; overflow-y: auto; padding: 4px 4px 12px; }
+  .msg { margin-bottom: 16px; }
+  .msg.user { text-align: right; }
+  .msg .bubble { display: inline-block; padding: 10px 14px; border-radius: 12px; max-width: 85%; text-align: left; line-height: 1.5; font-size: 13.5px; }
+  .msg.user .bubble { background: var(--accent); color: #1a1a1a; }
+  .msg.agent .bubble { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); }
+  .msg .bubble h2 { font-size: 14px; margin: 12px 0 6px; color: var(--accent-2); }
+  .msg .bubble h3 { font-size: 13px; margin: 10px 0 4px; }
+  .msg .bubble ul, .msg .bubble ol { padding-left: 20px; margin: 6px 0; }
+  .msg .who { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .msg.user .who { display: none; }
+  .msg-input { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .msg-input textarea { flex: 1; min-height: 44px; max-height: 160px; resize: vertical; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit; }
+  .msg-input button { padding: 10px 18px; }
+  .multi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 8px; }
+  .multi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .multi-card h4 { margin: 0 0 8px; font-size: 13px; color: var(--accent-2); }
+  .multi-card .body { font-size: 13px; line-height: 1.55; color: var(--text); }
+  .meeting-pending { color: var(--yellow); font-style: italic; }
+  /* Multi-select modal */
+  .picker { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+  .picker label { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .picker label:hover { border-color: var(--accent); }
+  .picker input[type=checkbox] { accent-color: var(--accent); }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .form-row textarea, .form-row input, .form-row select { width: 100%; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit; }
+  .form-row textarea { min-height: 80px; resize: vertical; }
+  .btn-primary { background: var(--accent); color: #1a1a1a; border: none; font-weight: 600; padding: 10px 18px; }
+  .btn-primary:hover { background: var(--accent-2); }
+  .status-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+  .status-pill.running { background: #2c2a18; color: var(--yellow); border: 1px solid #5e5523; }
+  .status-pill.done { background: #182c20; color: var(--green); border: 1px solid #265e3f; }
+  .status-pill.failed { background: #2c1820; color: var(--red); border: 1px solid #5e2640; }
+  @media (max-width: 800px) {
+    .meeting-layout { grid-template-columns: 1fr; }
+    .meeting-list { max-height: 200px; }
+  }
+  @media (max-width: 600px) {
+    header { padding: 20px; }
+    main { padding: 20px; }
+    .modal { padding: 20px; }
+    .picker { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="login" class="login-box" style="display:none">
+  <h2>사장 전용 — Admin 로그인</h2>
+  <input id="loginPass" type="password" placeholder="Admin 비밀번호" autocomplete="current-password" />
+  <button id="loginBtn">로그인</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <div>
+      <h1>Mr. Kim's Cafe — 본사 팀 대시보드</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="controls">
+      <button id="callMultiBtn" class="btn-primary">+ 다자 회의</button>
+      <select id="dateSelect"></select>
+      <button id="refreshBtn">새로고침</button>
+      <button id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+  <main>
+    <div class="tabs">
+      <button class="tab active" data-tab="reports">보고서</button>
+      <button class="tab" data-tab="meetings">회의실</button>
+      <button class="tab" data-tab="sales">매출</button>
+      <button class="tab" data-tab="todos">할일</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-reports">
+      <div id="alerts"></div>
+      <div class="stats" id="stats"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="tab-panel" id="panel-meetings">
+      <div class="meeting-layout">
+        <div class="meeting-list" id="meetingList"><div class="meeting-empty">로딩 중...</div></div>
+        <div class="meeting-thread" id="meetingThread"><div class="meeting-empty">왼쪽에서 회의를 선택하거나, 우측 상단 <b>+ 다자 회의</b> 또는 보고서 탭의 팀 카드 버튼으로 새 회의를 시작하세요.</div></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-sales">
+      <div class="placeholder">매출 차트는 다음 PR(PR2)에서 추가됩니다.</div>
+    </div>
+
+    <div class="tab-panel" id="panel-todos">
+      <div class="placeholder">할일 위젯은 다음 PR(PR3)에서 추가됩니다.</div>
+    </div>
+  </main>
+</div>
+
+<!-- Daily report modal (existing) -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="close" id="modalClose">닫기</button>
+    <h2 id="modalTitle"></h2>
+    <div class="md" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- 1:1 ask modal -->
+<div class="modal-bg" id="askModalBg">
+  <div class="modal">
+    <button class="close" id="askModalClose">닫기</button>
+    <h2 id="askModalTitle">팀에게 질문하기</h2>
+    <div class="form-row">
+      <label>질문</label>
+      <textarea id="askPrompt" placeholder="예: 5월 신메뉴 마케팅 아이디어 3개 알려줘"></textarea>
+    </div>
+    <div style="text-align:right">
+      <button class="btn-primary" id="askSubmit">질문 보내기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Multi-team meeting modal -->
+<div class="modal-bg" id="multiModalBg">
+  <div class="modal">
+    <button class="close" id="multiModalClose">닫기</button>
+    <h2>다자 회의 소집</h2>
+    <div class="form-row">
+      <label>참석 팀 (2명 이상 선택)</label>
+      <div class="picker" id="multiPicker"></div>
+    </div>
+    <div class="form-row">
+      <label>안건 / 주제</label>
+      <textarea id="multiTopic" placeholder="예: 신메뉴 가격을 8,000원 vs 9,500원 어느 쪽으로 갈지"></textarea>
+    </div>
+    <div style="text-align:right">
+      <button class="btn-primary" id="multiSubmit">회의 소집</button>
+    </div>
+  </div>
+</div>
+
+<!-- Topic report modal -->
+<div class="modal-bg" id="reportModalBg">
+  <div class="modal">
+    <button class="close" id="reportModalClose">닫기</button>
+    <h2 id="reportModalTitle">주제별 보고서 요청</h2>
+    <div class="form-row">
+      <label>주제</label>
+      <textarea id="reportTopic" placeholder="예: 바리스타 2명 추가 채용 ROI 분석"></textarea>
+    </div>
+    <div style="text-align:right">
+      <button class="btn-primary" id="reportSubmit">보고서 요청</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN_KEY = 'mrkim_admin_token';
+
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'x-auth-token': getToken() }, opts.headers || {});
+  const res = await fetch(path, Object.assign({}, opts, { headers }));
+  if (res.status === 401) {
+    clearToken();
+    show('login');
+    throw new Error('unauthorized');
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status}: ${t}`);
+  }
+  return res.json();
+}
+
+function show(which) {
+  document.getElementById('login').style.display = which === 'login' ? 'block' : 'none';
+  document.getElementById('app').style.display = which === 'app' ? 'block' : 'none';
+}
+
+document.getElementById('loginBtn').onclick = async () => {
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if (!password) { errEl.textContent = '비밀번호를 입력하세요.'; return; }
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) { errEl.textContent = '로그인 실패 — 비밀번호 확인'; return; }
+    const json = await res.json();
+    setToken(json.token);
+    bootstrap();
+  } catch (e) {
+    errEl.textContent = String(e.message || e);
+  }
+};
+
+document.getElementById('logoutBtn').onclick = () => {
+  fetch('/api/auth/logout', { method: 'POST', headers: { 'x-auth-token': getToken() } }).catch(() => {});
+  clearToken();
+  show('login');
+};
+
+document.getElementById('refreshBtn').onclick = () => loadDate(document.getElementById('dateSelect').value);
+document.getElementById('dateSelect').onchange = e => loadDate(e.target.value);
+
+document.getElementById('modalClose').onclick = () => document.getElementById('modalBg').classList.remove('open');
+document.getElementById('modalBg').onclick = e => { if (e.target.id === 'modalBg') document.getElementById('modalBg').classList.remove('open'); };
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderMarkdown(md) {
+  // 간단한 마크다운 렌더 (h2, h3, ul, ol, code, bold, italic)
+  let html = escapeHtml(md);
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?:^|\n)([-*] .+(?:\n[-*] .+)*)/g, (_, block) => {
+    const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^[-*] /, '') + '</li>').join('');
+    return '\n<ul>' + items + '</ul>';
+  });
+  html = html.replace(/(?:^|\n)((?:\d+\. .+(?:\n\d+\. .+)*))/g, (_, block) => {
+    const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+    return '\n<ol>' + items + '</ol>';
+  });
+  html = html.replace(/\n\n+/g, '<br><br>');
+  return html;
+}
+
+async function init() {
+  if (!getToken()) { show('login'); return; }
+  show('app');
+  try {
+    const dates = await api('/api/team-reports/dates');
+    const sel = document.getElementById('dateSelect');
+    sel.innerHTML = '';
+    if (!dates.dates || dates.dates.length === 0) {
+      document.getElementById('grid').innerHTML = '<div class="empty">아직 보고서가 없습니다.<br/>매일 09:00 KST에 자동 생성됩니다.<br/>지금 수동 실행: <code>npm run agent:daily-teams</code></div>';
+      document.getElementById('meta').textContent = '데이터 없음';
+      return;
+    }
+    dates.dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      sel.appendChild(opt);
+    });
+    sel.value = dates.dates[0];
+    await loadDate(dates.dates[0]);
+  } catch (e) {
+    if (e.message !== 'unauthorized') alert('초기 로딩 실패: ' + e.message);
+  }
+}
+
+async function loadDate(date) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="empty">로딩 중...</div>';
+  try {
+    const data = await api('/api/team-reports/' + encodeURIComponent(date));
+    document.getElementById('meta').textContent = `생성: ${new Date(data.generated_at).toLocaleString('ko-KR')} · 대상: ${data.target_url}`;
+    renderAlerts(data);
+    renderStats(data);
+    renderTeams(data);
+  } catch (e) {
+    if (e.message !== 'unauthorized') grid.innerHTML = '<div class="empty">불러오기 실패: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderAlerts(data) {
+  const el = document.getElementById('alerts');
+  const msgs = [];
+  if (data.data_errors && data.data_errors.length) {
+    msgs.push('데이터 수집 경고: ' + data.data_errors.join(' / '));
+  }
+  if (data.web_health) {
+    if (data.web_health.local && !data.web_health.local.ok) msgs.push('Local (' + data.web_health.local.url + ') 응답 이상: ' + (data.web_health.local.status || data.web_health.local.error));
+    if (data.web_health.prod && !data.web_health.prod.ok) msgs.push('Production (' + data.web_health.prod.url + ') 응답 이상: ' + (data.web_health.prod.status || data.web_health.prod.error));
+  }
+  if (data.instagram_configured === false) msgs.push('Instagram API 토큰 미설정 — 마케팅 팀 보고서에서 인스타 데이터는 수동 입력 필요. .env에 INSTAGRAM_ACCESS_TOKEN, INSTAGRAM_USER_ID 추가 필요.');
+  el.innerHTML = msgs.map(m => '<div class="alert">⚠️ ' + escapeHtml(m) + '</div>').join('');
+}
+
+function renderStats(data) {
+  const el = document.getElementById('stats');
+  const okCount = data.teams.filter(t => t.ok).length;
+  const failCount = data.teams.length - okCount;
+  const cards = [
+    { k: '오늘 보고 완료', v: okCount + ' / ' + data.teams.length },
+    { k: '실패한 보고', v: failCount, color: failCount > 0 ? 'red' : 'green' },
+    { k: 'Local Web', v: data.web_health && data.web_health.local && data.web_health.local.ok ? '정상' : '이상' },
+    { k: 'Production Web', v: data.web_health && data.web_health.prod && data.web_health.prod.ok ? '정상' : '이상' },
+  ];
+  el.innerHTML = cards.map(c => `<div class="stat"><div class="k">${escapeHtml(c.k)}</div><div class="v">${escapeHtml(String(c.v))}</div></div>`).join('');
+}
+
+function renderTeams(data) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = data.teams.map(t => `
+    <div class="card" data-team="${t.id}" data-date="${data.date}" data-label="${escapeHtml(t.label)}">
+      <div class="role">
+        <div class="name">${escapeHtml(t.label)}</div>
+        <div class="badge ${t.model}">${t.model}</div>
+      </div>
+      <div class="summary">${escapeHtml(t.summary)}</div>
+      <div class="footer">
+        <span><span class="dot ${t.ok ? 'ok' : 'fail'}"></span>${t.ok ? '정상' : '실패'}</span>
+        <span>전체 보기 →</span>
+      </div>
+      <div class="actions">
+        <button class="ask-btn" data-team="${t.id}" data-label="${escapeHtml(t.label)}">💬 질문</button>
+        <button class="report-btn" data-team="${t.id}" data-label="${escapeHtml(t.label)}">📋 보고서</button>
+      </div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.card').forEach(card => {
+    card.onclick = (e) => {
+      if (e.target.closest('.actions')) return;
+      openReport(card.dataset.date, card.dataset.team, card.dataset.label);
+    };
+  });
+  grid.querySelectorAll('.ask-btn').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); openAskModal(btn.dataset.team, btn.dataset.label); };
+  });
+  grid.querySelectorAll('.report-btn').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); openReportModal(btn.dataset.team, btn.dataset.label); };
+  });
+}
+
+async function openReport(date, team, label) {
+  const bg = document.getElementById('modalBg');
+  document.getElementById('modalTitle').textContent = label + ' — ' + date;
+  document.getElementById('modalBody').innerHTML = '로딩 중...';
+  bg.classList.add('open');
+  try {
+    const r = await api('/api/team-reports/' + encodeURIComponent(date) + '/' + encodeURIComponent(team));
+    document.getElementById('modalBody').innerHTML = renderMarkdown(r.markdown);
+  } catch (e) {
+    document.getElementById('modalBody').textContent = '불러오기 실패: ' + e.message;
+  }
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'meetings') loadMeetingList();
+  };
+});
+
+// ─── Meeting modals ───────────────────────────────────────────────────────────
+let availableTeams = [];
+let askContext = { teamId: null, label: null };
+let reportContext = { teamId: null, label: null };
+
+function closeModal(bgId) { document.getElementById(bgId).classList.remove('open'); }
+['askModalBg', 'multiModalBg', 'reportModalBg'].forEach(id => {
+  document.getElementById(id).onclick = e => { if (e.target.id === id) closeModal(id); };
+});
+document.getElementById('askModalClose').onclick = () => closeModal('askModalBg');
+document.getElementById('multiModalClose').onclick = () => closeModal('multiModalBg');
+document.getElementById('reportModalClose').onclick = () => closeModal('reportModalBg');
+
+async function loadTeams() {
+  try {
+    const r = await api('/api/meetings/teams/list');
+    availableTeams = r.teams || [];
+  } catch (e) { availableTeams = []; }
+}
+
+function openAskModal(teamId, label) {
+  askContext = { teamId, label };
+  document.getElementById('askModalTitle').textContent = label + ' — 1:1 질문';
+  document.getElementById('askPrompt').value = '';
+  document.getElementById('askModalBg').classList.add('open');
+  setTimeout(() => document.getElementById('askPrompt').focus(), 50);
+}
+
+function openReportModal(teamId, label) {
+  reportContext = { teamId, label };
+  document.getElementById('reportModalTitle').textContent = label + ' — 주제별 보고서 요청';
+  document.getElementById('reportTopic').value = '';
+  document.getElementById('reportModalBg').classList.add('open');
+  setTimeout(() => document.getElementById('reportTopic').focus(), 50);
+}
+
+document.getElementById('callMultiBtn').onclick = async () => {
+  if (availableTeams.length === 0) await loadTeams();
+  const picker = document.getElementById('multiPicker');
+  picker.innerHTML = availableTeams.map(t => `
+    <label><input type="checkbox" value="${t.id}"> ${escapeHtml(t.label)}</label>
+  `).join('');
+  document.getElementById('multiTopic').value = '';
+  document.getElementById('multiModalBg').classList.add('open');
+};
+
+document.getElementById('askSubmit').onclick = async () => {
+  const prompt = document.getElementById('askPrompt').value.trim();
+  if (!prompt) return alert('질문을 입력하세요.');
+  if (!askContext.teamId) return;
+  try {
+    const r = await api('/api/meetings/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_id: askContext.teamId, prompt }),
+    });
+    closeModal('askModalBg');
+    switchToMeetingsTab(r.meeting_id);
+  } catch (e) { alert('실패: ' + e.message); }
+};
+
+document.getElementById('multiSubmit').onclick = async () => {
+  const teamIds = Array.from(document.querySelectorAll('#multiPicker input:checked')).map(c => c.value);
+  const topic = document.getElementById('multiTopic').value.trim();
+  if (teamIds.length < 2) return alert('최소 2개 팀을 선택하세요.');
+  if (!topic) return alert('안건을 입력하세요.');
+  try {
+    const r = await api('/api/meetings/multi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_ids: teamIds, topic }),
+    });
+    closeModal('multiModalBg');
+    switchToMeetingsTab(r.meeting_id);
+  } catch (e) { alert('실패: ' + e.message); }
+};
+
+document.getElementById('reportSubmit').onclick = async () => {
+  const topic = document.getElementById('reportTopic').value.trim();
+  if (!topic) return alert('주제를 입력하세요.');
+  if (!reportContext.teamId) return;
+  try {
+    const r = await api('/api/meetings/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_id: reportContext.teamId, topic }),
+    });
+    closeModal('reportModalBg');
+    switchToMeetingsTab(r.meeting_id);
+  } catch (e) { alert('실패: ' + e.message); }
+};
+
+function switchToMeetingsTab(meetingId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab[data-tab="meetings"]').classList.add('active');
+  document.getElementById('panel-meetings').classList.add('active');
+  loadMeetingList(meetingId);
+  selectMeeting(meetingId);
+}
+
+// ─── Meeting list + thread ────────────────────────────────────────────────────
+let currentMeetingId = null;
+let currentPollTimer = null;
+
+async function loadMeetingList(highlightId) {
+  const listEl = document.getElementById('meetingList');
+  try {
+    const r = await api('/api/meetings?limit=30');
+    if (!r.meetings || r.meetings.length === 0) {
+      listEl.innerHTML = '<div class="meeting-empty">아직 회의가 없습니다.</div>';
+      return;
+    }
+    const teamLabel = id => {
+      const t = availableTeams.find(x => x.id === id);
+      return t ? t.label : id;
+    };
+    listEl.innerHTML = r.meetings.map(m => {
+      const teamsTxt = m.team_ids.map(teamLabel).join(', ');
+      const typeTxt = m.type === 'ask' ? '1:1' : (m.type === 'multi' ? '다자' : '보고서');
+      return `<div class="meeting-item ${m.id === (highlightId || currentMeetingId) ? 'active' : ''}" data-id="${m.id}">
+        <div class="mi-topic">${escapeHtml((m.topic || '').slice(0, 80) || '(주제 없음)')}</div>
+        <div class="mi-meta">
+          <span>${typeTxt}</span>
+          <span class="status-pill ${m.status}">${m.status}</span>
+          <span style="margin-left:auto">${escapeHtml(teamsTxt.slice(0, 40))}</span>
+        </div>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll('.meeting-item').forEach(el => {
+      el.onclick = () => selectMeeting(el.dataset.id);
+    });
+  } catch (e) {
+    listEl.innerHTML = '<div class="meeting-empty">목록 로딩 실패: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function selectMeeting(id) {
+  if (currentPollTimer) { clearTimeout(currentPollTimer); currentPollTimer = null; }
+  currentMeetingId = id;
+  document.querySelectorAll('.meeting-item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
+  renderMeetingThread(id);
+}
+
+async function renderMeetingThread(id) {
+  const threadEl = document.getElementById('meetingThread');
+  threadEl.innerHTML = '<div class="meeting-empty">불러오는 중...</div>';
+  try {
+    const m = await api('/api/meetings/' + encodeURIComponent(id));
+    drawMeeting(m);
+    if (m.status === 'running') {
+      currentPollTimer = setTimeout(() => { if (currentMeetingId === id) renderMeetingThread(id); }, 1500);
+    } else {
+      loadMeetingList();
+    }
+  } catch (e) {
+    threadEl.innerHTML = '<div class="meeting-empty">불러오기 실패: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function teamLabelById(id) {
+  const t = availableTeams.find(x => x.id === id);
+  return t ? t.label : (id || '');
+}
+
+function drawMeeting(m) {
+  const threadEl = document.getElementById('meetingThread');
+  const typeTxt = m.type === 'ask' ? '1:1 질문' : (m.type === 'multi' ? '다자 회의' : '주제별 보고서');
+  const teamsTxt = m.team_ids.map(teamLabelById).join(', ');
+  let html = `<div style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:12px;">
+    <div style="font-size:14px; font-weight:600;">${escapeHtml(typeTxt)} — ${escapeHtml(teamsTxt)}</div>
+    <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">
+      <span class="status-pill ${m.status}">${m.status}</span>
+      ${m.error ? ' · <span style="color:var(--red)">' + escapeHtml(m.error) + '</span>' : ''}
+    </div>
+  </div>`;
+
+  if (m.type === 'multi') {
+    const userMsg = m.messages.find(x => x.role === 'user');
+    html += '<div class="msg user"><div class="bubble">' + escapeHtml(userMsg ? userMsg.content : '') + '</div></div>';
+    const agents = m.messages.filter(x => x.role === 'agent');
+    html += '<div class="multi-grid">';
+    m.team_ids.forEach(tid => {
+      const reply = agents.find(a => a.team_id === tid);
+      html += `<div class="multi-card">
+        <h4>${escapeHtml(teamLabelById(tid))}</h4>
+        <div class="body">${reply ? renderMarkdown(reply.content) : '<span class="meeting-pending">답변 대기 중...</span>'}</div>
+      </div>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="msgs">';
+    m.messages.forEach(msg => {
+      if (msg.role === 'user') {
+        html += `<div class="msg user"><div class="bubble">${escapeHtml(msg.content)}</div></div>`;
+      } else {
+        html += `<div class="msg agent">
+          <div class="who">${escapeHtml(teamLabelById(msg.team_id))}</div>
+          <div class="bubble">${renderMarkdown(msg.content)}</div>
+        </div>`;
+      }
+    });
+    if (m.status === 'running') {
+      html += '<div class="msg agent"><div class="who">' + escapeHtml(teamLabelById(m.team_ids[0])) + '</div><div class="bubble meeting-pending">생각 중...</div></div>';
+    }
+    html += '</div>';
+    if (m.type === 'ask') {
+      html += `<div class="msg-input">
+        <textarea id="followupInput" placeholder="이어서 질문하기 (Shift+Enter 줄바꿈)" ${m.status === 'running' ? 'disabled' : ''}></textarea>
+        <button class="btn-primary" id="followupSend" ${m.status === 'running' ? 'disabled' : ''}>전송</button>
+      </div>`;
+    }
+  }
+
+  threadEl.innerHTML = html;
+
+  const followupInput = document.getElementById('followupInput');
+  const followupSend = document.getElementById('followupSend');
+  if (followupSend && followupInput) {
+    const send = async () => {
+      const v = followupInput.value.trim();
+      if (!v) return;
+      followupSend.disabled = true; followupInput.disabled = true;
+      try {
+        await api('/api/meetings/' + encodeURIComponent(m.id) + '/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: v }),
+        });
+        renderMeetingThread(m.id);
+      } catch (e) {
+        alert('전송 실패: ' + e.message);
+        followupSend.disabled = false; followupInput.disabled = false;
+      }
+    };
+    followupSend.onclick = send;
+    followupInput.onkeydown = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    };
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function bootstrap() {
+  await init();
+  await loadTeams();
+}
+bootstrap();
+</script>
+</body>
+</html>

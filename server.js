@@ -1,8 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const fs = require('fs');
 const https = require('https');
 const QRCode = require('qrcode');
 const helmet = require('helmet');
@@ -81,7 +83,6 @@ db.exec(`
     min_qty       REAL NOT NULL DEFAULT 1,
     cost_per_unit REAL NOT NULL DEFAULT 0,
     category      TEXT NOT NULL DEFAULT '기타',
-    box_qty       INTEGER NOT NULL DEFAULT 0,
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -253,6 +254,7 @@ try { db.exec('ALTER TABLE orders ADD COLUMN cashier_name TEXT'); } catch (_) { 
 try { db.exec('ALTER TABLE reservations ADD COLUMN table_num TEXT'); } catch (_) { }
 try { db.exec('ALTER TABLE ingredients ADD COLUMN expiry_date TEXT'); } catch (_) { }
 try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier TEXT'); } catch (_) { }
+try { db.exec("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'cashier'"); } catch (_) { }
 
 // Migration: size_recipes — menu_item UNIQUE → UNIQUE(menu_item, ingredient_id)
 try {
@@ -300,10 +302,133 @@ db.exec(`
   );
 `);
 
-// بيانات افتراضية
+// جدول الاستردادات (refunds) — server-authoritative refund history
+db.exec(`
+  CREATE TABLE IF NOT EXISTS refunds (
+    id           TEXT PRIMARY KEY,
+    order_id     TEXT NOT NULL,
+    amount       REAL NOT NULL,
+    lines        TEXT,
+    full_refund  INTEGER NOT NULL DEFAULT 0,
+    cashier_name TEXT,
+    created_at   INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_refunds_order_id ON refunds(order_id);
+`);
+
+// 멱등성 보장: 동일 order_id 에 대해 'earn' 적립은 단 한 번만 가능
+// (transitionedToDone 가드와 함께 이중 안전장치)
+try {
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS uniq_stamp_earn_order ON stamp_history(order_id) WHERE type='earn' AND order_id IS NOT NULL");
+} catch (e) {
+  console.error('stamp_history unique index 생성 실패:', e.message);
+}
+
+// جدول مواقع المخزون (ingredient locations) — per-shelf qty tracking
+// location_code format: ^[1-9][A-E][1-9]$  (e.g., '2A2'). 'UNSET' is a reserved
+// migration sentinel for legacy stock that has not yet been assigned a shelf.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ingredient_locations (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    ingredient_id INTEGER NOT NULL,
+    location_code TEXT NOT NULL,
+    qty           REAL NOT NULL DEFAULT 0,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ingredient_id, location_code),
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_ing_loc_ing  ON ingredient_locations(ingredient_id);
+  CREATE INDEX IF NOT EXISTS idx_ing_loc_code ON ingredient_locations(location_code);
+`);
+
+// One-shot migration: any ingredient with current_qty > 0 and no location rows
+// gets a single 'UNSET' row carrying the existing stock, so totals are preserved.
+try {
+  const orphans = db.prepare(`
+    SELECT i.id, i.current_qty
+      FROM ingredients i
+      LEFT JOIN ingredient_locations l ON l.ingredient_id = i.id
+     WHERE i.current_qty > 0
+     GROUP BY i.id
+    HAVING COUNT(l.id) = 0
+  `).all();
+  if (orphans.length > 0) {
+    const ins = db.prepare(`
+      INSERT INTO ingredient_locations (ingredient_id, location_code, qty)
+      VALUES (?, 'UNSET', ?)
+    `);
+    const tx = db.transaction((rows) => { for (const r of rows) ins.run(r.id, r.current_qty); });
+    tx(orphans);
+    console.log(`[Migration] ingredient_locations: seeded UNSET for ${orphans.length} ingredient(s)`);
+  }
+} catch (e) {
+  console.error('[Migration] ingredient_locations failed:', e.message);
+}
+
+// Recalculate ingredients.current_qty from the sum of its location rows.
+// Treat ingredient_locations.qty as the source of truth and keep current_qty as a cache.
+function recalcIngredientQty(ingredientId) {
+  const row = db.prepare(
+    'SELECT COALESCE(SUM(qty), 0) AS total FROM ingredient_locations WHERE ingredient_id = ?'
+  ).get(ingredientId);
+  db.prepare('UPDATE ingredients SET current_qty = ? WHERE id = ?').run(row.total, ingredientId);
+  return row.total;
+}
+
+// Apply a stock delta (positive in / negative out) to an ingredient by mutating
+// its UNSET location row, then recalc current_qty from location sums. This is
+// the single legitimate path for legacy code paths (orders, refunds, daily sales,
+// history rollback) that don't know about specific shelf locations.
+function applyStockDelta(ingredientId, delta) {
+  if (!Number.isFinite(delta) || delta === 0) return recalcIngredientQty(ingredientId);
+  let row = db.prepare(
+    "SELECT id, qty FROM ingredient_locations WHERE ingredient_id = ? AND location_code = 'UNSET'"
+  ).get(ingredientId);
+  if (!row) {
+    db.prepare(
+      "INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?, 'UNSET', 0)"
+    ).run(ingredientId);
+    row = db.prepare(
+      "SELECT id, qty FROM ingredient_locations WHERE ingredient_id = ? AND location_code = 'UNSET'"
+    ).get(ingredientId);
+  }
+  const next = Math.max(0, (row.qty || 0) + delta);
+  db.prepare('UPDATE ingredient_locations SET qty = ? WHERE id = ?').run(next, row.id);
+  return recalcIngredientQty(ingredientId);
+}
+
+const LOC_CODE_RE = /^[1-9][A-E][1-9]$/;
+
+// بيانات افتراضية — admin password seed (no insecure default)
 if (!db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get()) {
-  const hash = crypto.createHash('sha256').update('1234').digest('hex');
-  db.prepare("INSERT INTO settings (key, value) VALUES ('admin_pw', ?)").run(hash);
+  const envPw = (process.env.ADMIN_INITIAL_PW || '').trim();
+  const initial = envPw && envPw.length >= 8
+    ? envPw
+    : crypto.randomBytes(12).toString('base64').replace(/[^A-Za-z0-9]/g,'').slice(0,16);
+  db.prepare("INSERT INTO settings (key, value) VALUES ('admin_pw', ?)").run(hashPassword(initial));
+  if (!envPw) {
+    console.log('────────────────────────────────────────────────────');
+    console.log('  ADMIN INITIAL PASSWORD (one-time, change after login):');
+    console.log('  ' + initial);
+    console.log('  Set ADMIN_INITIAL_PW env var to override on next fresh boot.');
+    console.log('────────────────────────────────────────────────────');
+  } else {
+    console.log('Admin password seeded from ADMIN_INITIAL_PW env var.');
+  }
+}
+// Block legacy SHA-256 hash of "1234" if it survives an old DB
+{
+  const legacy = crypto.createHash('sha256').update('1234').digest('hex');
+  const cur = db.prepare("SELECT value FROM settings WHERE key='admin_pw'").get();
+  if (cur && cur.value === legacy) {
+    const forced = crypto.randomBytes(12).toString('base64').replace(/[^A-Za-z0-9]/g,'').slice(0,16);
+    db.prepare("UPDATE settings SET value=? WHERE key='admin_pw'").run(hashPassword(forced));
+    console.log('────────────────────────────────────────────────────');
+    console.log('  Default "1234" admin password detected and rotated.');
+    console.log('  NEW ADMIN PASSWORD: ' + forced);
+    console.log('  Change it immediately after logging in.');
+    console.log('────────────────────────────────────────────────────');
+  }
 }
 if (!db.prepare("SELECT id FROM order_counter WHERE id=1").get()) {
   db.prepare("INSERT INTO order_counter (id, value) VALUES (1, 1)").run();
@@ -345,8 +470,8 @@ function requireCashierOrAdmin(req, res, next) {
       return next();
     }
   }
-  // رمز الكاشير — يقبل الرأس أو معامل الاستعلام (EventSource لا يدعم الرؤوس المخصصة)
-  const cashierToken = req.headers['x-cashier-token'] || req.query.token;
+  // رمز الكاشير — الرأس فقط (SSE يستخدم تذاكر منفصلة عبر /api/orders/stream-ticket)
+  const cashierToken = req.headers['x-cashier-token'];
   if (!cashierToken) return res.status(401).json({ error: 'تسجيل الدخول مطلوب' });
   const row = db.prepare('SELECT cs.*, c.name FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
   if (!row) return res.status(401).json({ error: 'تسجيل الدخول مطلوب' });
@@ -415,8 +540,35 @@ const sseClients = new Set();
 
 function broadcastSSE(data) {
   const msg = `data: ${JSON.stringify(data)}\n\n`;
-  sseClients.forEach(res => { try { res.write(msg); } catch (_) { } });
+  const dead = [];
+  sseClients.forEach(res => {
+    try {
+      if (res.writableEnded || res.destroyed) {
+        dead.push(res);
+        return;
+      }
+      res.write(msg);
+    } catch (_) {
+      dead.push(res);
+    }
+  });
+  dead.forEach(res => {
+    sseClients.delete(res);
+    try { res.end(); } catch (_) { }
+  });
 }
+
+// ─── تذاكر بث SSE (لمنع تسرّب الرمز في URL) ───────────────────────────────
+// EventSource لا يدعم الرؤوس المخصصة، لذا نستخدم تذكرة قصيرة العمر مرّة واحدة
+const STREAM_TICKET_TTL = 30 * 1000; // 30 ثانية
+const streamTickets = new Map(); // ticket → { name, expires }
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of streamTickets) {
+    if (v.expires < now) streamTickets.delete(k);
+  }
+}, 60 * 1000);
 
 // ─── الوسيط ───────────────────────────────────────────────────────────────────
 app.use(helmet({
@@ -430,13 +582,28 @@ app.use(helmet({
       connectSrc: ["'self'"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
+      frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com"],
       frameAncestors: ["'none'"],
     },
   },
   crossOriginEmbedderPolicy: false,
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
+
+// ─── /admin 별도 경로 (사장 전용 대시보드) ────────────────────────────────────
+// dashboard.html을 직접 서빙하지만, 대시보드 내부의 모든 API 호출은
+// admin 토큰(x-auth-token)으로 인증함. /dashboard.html 직접 접근도 허용(레거시).
+app.get('/admin', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
 
 
 
@@ -445,6 +612,42 @@ const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+});
+
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many messages. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many registration attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+});
+
+const orderLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many orders. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+});
+
+const reservationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many reservation requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
@@ -608,7 +811,7 @@ app.get('/api/qr-image', requireCashierOrAdmin, async (req, res) => {
 // ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
 
 // تسجيل
-app.post('/api/customers/register', (req, res) => {
+app.post('/api/customers/register', registerLimiter, (req, res) => {
   const { name, email, phone, password, birthdate } = req.body;
   if (!name || !email || !phone || !password)
     return res.status(400).json({ error: 'Please fill in all fields / يرجى ملء جميع الحقول' });
@@ -634,7 +837,7 @@ app.post('/api/customers/register', (req, res) => {
 });
 
 // تسجيل الدخول
-app.post('/api/customers/login', (req, res) => {
+app.post('/api/customers/login', loginLimiter, (req, res) => {
   const { phone, password } = req.body;
   if (!phone || !password) return res.status(400).json({ error: 'Phone number and password are required / رقم الهاتف وكلمة المرور مطلوبان' });
   const customer = db.prepare('SELECT * FROM customers WHERE phone=?').get(phone.trim());
@@ -695,14 +898,64 @@ app.post('/api/customers/favorites', requireCustomer, (req, res) => {
 
 // ─── ORDERS ───────────────────────────────────────────────────────────────────
 
+// حماية ضد التلاعب بالأسعار من جانب العميل: يحسب الخادم الحد الأقصى للإجمالي
+// from menu_prices table. Items not in table fall back to client price capped at MAX_UNIT_PRICE.
+const MAX_UNIT_PRICE = 1_000_000; // IQD per unit hard cap (anti-overflow)
+const TAX_RATE = 0.10;
+function getServerExpectedTotal(items) {
+  if (!Array.isArray(items) || items.length === 0) return { expected: 0, ok: false };
+  const priceRows = db.prepare('SELECT menu_item, selling_price FROM menu_prices').all();
+  const priceMap = new Map();
+  for (const r of priceRows) priceMap.set(r.menu_item, Number(r.selling_price) || 0);
+  let subtotal = 0;
+  for (const it of items) {
+    const name = it && it.name;
+    const qty = Math.max(0, Math.floor(Number(it && (it.qty ?? it.q ?? it.quantity)) || 0));
+    if (!name || qty <= 0) continue;
+    const serverPrice = priceMap.has(name) ? priceMap.get(name) : null;
+    const clientPrice = Math.max(0, Math.min(MAX_UNIT_PRICE, Number(it && (it.price ?? it.p)) || 0));
+    const unitPrice = serverPrice != null ? serverPrice : clientPrice;
+    subtotal += unitPrice * qty;
+  }
+  const tax = Math.round(subtotal * TAX_RATE);
+  const expected = subtotal + tax;
+  return { expected, subtotal, tax, ok: true };
+}
+
 // إنشاء طلب (الموقع → الخادم)
-app.post('/api/orders', optionalCustomer, (req, res) => {
-  let { type, tableNum, customerName, customerPhone, arrivalTime, items, total } = req.body;
+app.post('/api/orders', orderLimiter, optionalCustomer, (req, res) => {
+  let { type, tableNum, customerName, customerPhone, arrivalTime, items, total, source } = req.body;
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: 'Invalid order data / بيانات الطلب غير صحيحة' });
+
+  // CRITICAL: server-side price validation. Reject if client total exceeds the
+  // maximum total computed from menu_prices. Allow legitimate discounts (total < expected).
+  const numericTotal = Number(total);
+  if (!Number.isFinite(numericTotal) || numericTotal < 0)
+    return res.status(400).json({ error: 'Invalid total / إجمالي غير صالح' });
+  const { expected: serverExpected } = getServerExpectedTotal(items);
+  if (numericTotal > serverExpected + 1) {
+    return res.status(400).json({ error: 'PRICE_MISMATCH', expected: serverExpected, received: numericTotal });
+  }
+  total = numericTotal;
+  source = (source === 'online') ? 'online' : 'cashier';
   if (type === 'pickup' && !arrivalTime)
     return res.status(400).json({ error: 'Pickup orders require an arrival time / طلبات الاستلام تتطلب وقت الوصول' });
-  if (type === 'dine') {
+  const isCashierOrAdmin = (() => {
+    const adminToken = req.headers['x-auth-token'];
+    if (adminToken) {
+      const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(adminToken);
+      if (row && Date.now() - row.created_at <= ADMIN_SESSION_TTL) return true;
+    }
+    const cashierToken = req.headers['x-cashier-token'];
+    if (cashierToken) {
+      const row = db.prepare('SELECT cs.created_at FROM cashier_sessions cs WHERE cs.token=?').get(cashierToken);
+      if (row && Date.now() - row.created_at <= CASHIER_SESSION_TTL) return true;
+    }
+    return false;
+  })();
+
+  if (type === 'dine' && !isCashierOrAdmin) {
     const { dineSessionToken } = req.body;
     if (!dineSessionToken) return res.status(403).json({ error: 'QR_REQUIRED' });
     const session = db.prepare('SELECT * FROM dine_sessions WHERE session_token=?').get(dineSessionToken);
@@ -724,13 +977,13 @@ app.post('/api/orders', optionalCustomer, (req, res) => {
       const counter = db.prepare("SELECT value FROM order_counter WHERE id=1").get();
       const num = counter.value;
       db.prepare("UPDATE order_counter SET value=value+1 WHERE id=1").run();
-      const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+      const id = Date.now().toString(36) + crypto.randomBytes(8).toString('hex');
       db.prepare(`
-        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, arrival_time, items, total, customer_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO orders (id, num, timestamp, status, type, table_num, customer_name, customer_phone, arrival_time, items, total, customer_id, source)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(id, num, Date.now(), 'new', type,
         tableNum || null, customerName || null, customerPhone || null,
-        arrivalTime || null, JSON.stringify(items), total, req.customerId || null);
+        arrivalTime || null, JSON.stringify(items), total, req.customerId || null, source);
       return db.prepare("SELECT * FROM orders WHERE id=?").get(id);
     });
 
@@ -781,20 +1034,36 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
   const cashierName = req.cashierName || null;
 
   try {
-    const prevOrder = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
-    if (!prevOrder) return res.status(404).json({ error: 'الطلب غير موجود' });
-
-    if (cashierName) {
-      db.prepare("UPDATE orders SET status=?, cashier_name=? WHERE id=?").run(status, cashierName, req.params.id);
-    } else {
-      db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
-    }
-    const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+    // 원자적 상태 변경: 동일 트랜잭션 내에서 prevStatus 캡처 + UPDATE
+    // → 동시 PUT done 호출 시 단 한 번만 transitionedToDone=true 가 된다
+    let prevOrderRow = null;
+    let transitionedToDone = false;
+    const txStatus = db.transaction(() => {
+      const prev = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+      if (!prev) return null;
+      prevOrderRow = prev;
+      if (status === 'done' && prev.status !== 'done') {
+        const upd = cashierName
+          ? db.prepare("UPDATE orders SET status='done', cashier_name=? WHERE id=? AND status!='done'").run(cashierName, req.params.id)
+          : db.prepare("UPDATE orders SET status='done' WHERE id=? AND status!='done'").run(req.params.id);
+        transitionedToDone = upd.changes === 1;
+      } else {
+        if (cashierName) {
+          db.prepare("UPDATE orders SET status=?, cashier_name=? WHERE id=?").run(status, cashierName, req.params.id);
+        } else {
+          db.prepare("UPDATE orders SET status=? WHERE id=?").run(status, req.params.id);
+        }
+      }
+      return db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+    });
+    const order = txStatus();
+    if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+    const prevOrder = prevOrderRow;
     const parsed = parseOrder(order);
     broadcastSSE({ type: 'order_updated', order: parsed });
 
-    // 주문 완료 시 레시피 기반 재고 자동 차감
-    if (status === 'done' && prevOrder.status !== 'done') {
+    // 주문 완료 시 레시피 기반 재고 자동 차감 (transitionedToDone 가드로 1회만 실행)
+    if (status === 'done' && transitionedToDone) {
       try {
         const orderItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
         for (const item of (orderItems || [])) {
@@ -812,8 +1081,7 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
               // capacity 미설정 시 재료 단위 그대로 차감
               deduct = row.quantity * orderQty;
             }
-            const newQty = Math.max(0, row.current_qty - deduct);
-            db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, row.ingredient_id);
+            applyStockDelta(row.ingredient_id, -deduct);
             db.prepare(
               'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
             ).run(row.ingredient_id, row.name_ko, 'out', deduct, `주문 #${order.num} - ${menuName} x${orderQty}`);
@@ -825,14 +1093,64 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
     }
 
     // عند الانتقال إلى "done": منح العميل المسجل طابعاً واحداً تلقائياً
-    // منع التكرار إذا كان الطلب "done" بالفعل
-    if (status === 'done' && prevOrder.status !== 'done' && order.customer_id) {
+    // 동시 호출에서도 transitionedToDone 가드로 1회만 실행됨
+    if (status === 'done' && transitionedToDone) {
       try {
-        db.prepare('INSERT OR IGNORE INTO customer_stamps (customer_id, total_earned, total_redeemed) VALUES (?,0,0)').run(order.customer_id);
-        db.prepare('UPDATE customer_stamps SET total_earned = total_earned + 1 WHERE customer_id=?').run(order.customer_id);
-        db.prepare('INSERT INTO stamp_history (customer_id, type, amount, order_id, created_at) VALUES (?,?,?,?,?)').run(order.customer_id, 'earn', 1, order.id, Date.now());
-        const stampRow = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(order.customer_id);
-        broadcastSSE({ type: 'stamp_earned', customer_id: order.customer_id, available: stampRow.total_earned - stampRow.total_redeemed });
+        let cid = order.customer_id;
+        // 온라인 주문은 로그인된 customer_id가 있을 때만 적립(요구사항 1).
+        // POS 주문은 customer_id 없이도 phone/name 매칭으로 회원 식별 가능(요구사항 2,3).
+        const isPosOrder = order.source !== 'online';
+        if (!cid && isPosOrder) {
+          const normPhone = order.customer_phone
+            ? String(order.customer_phone).replace(/\D/g, '')
+            : '';
+          const trimmedName = order.customer_name
+            ? String(order.customer_name).trim()
+            : '';
+
+          // 1순위: 정규화된 전화번호 정확 일치
+          if (normPhone) {
+            const phoneMatch = db.prepare(
+              "SELECT id FROM customers WHERE replace(replace(replace(replace(phone,' ',''),'-',''),'+',''),'(','') = ?"
+            ).get(normPhone);
+            if (phoneMatch) cid = phoneMatch.id;
+          }
+
+          // 2순위: 이름 정확 일치 + 동명이인 없음(단 1명)일 때만 매칭
+          // 동명이인이 있으면 신뢰할 수 없으므로 매칭하지 않음
+          if (!cid && trimmedName) {
+            const nameMatches = db.prepare(
+              'SELECT id FROM customers WHERE name = ? LIMIT 2'
+            ).all(trimmedName);
+            if (nameMatches.length === 1) cid = nameMatches[0].id;
+          }
+
+          if (cid) {
+            db.prepare('UPDATE orders SET customer_id=? WHERE id=?').run(cid, order.id);
+          }
+        }
+        if (cid) {
+          // 멱등 적립: stamp_history.uniq_stamp_earn_order 인덱스 + 트랜잭션으로 1회만 보장
+          // (transitionedToDone 가드는 1차, 인덱스는 2차 안전장치)
+          const stampTx = db.transaction(() => {
+            try {
+              const ins = db.prepare('INSERT INTO stamp_history (customer_id, type, amount, order_id, created_at) VALUES (?,?,?,?,?)').run(cid, 'earn', 1, order.id, Date.now());
+              if (ins.changes === 1) {
+                db.prepare('INSERT OR IGNORE INTO customer_stamps (customer_id, total_earned, total_redeemed) VALUES (?,0,0)').run(cid);
+                db.prepare('UPDATE customer_stamps SET total_earned = total_earned + 1 WHERE customer_id=?').run(cid);
+                return true;
+              }
+              return false;
+            } catch (err) {
+              if (err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') return false;
+              throw err;
+            }
+          });
+          if (stampTx()) {
+            const stampRow = db.prepare('SELECT * FROM customer_stamps WHERE customer_id=?').get(cid);
+            broadcastSSE({ type: 'stamp_earned', customer_id: cid, available: stampRow.total_earned - stampRow.total_redeemed });
+          }
+        }
       } catch (se) {
         console.error('خطأ في منح الطابع:', se);
       }
@@ -845,8 +1163,150 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
   }
 });
 
-// SSE — بث مباشر للكاشير
-app.get('/api/orders/stream', requireCashierOrAdmin, (req, res) => {
+// استرداد طلب (refund) — يستعيد المخزون وفقاً للوصفات ويسجّل الحدث
+app.post('/api/orders/:id/refund', requireCashierOrAdmin, (req, res) => {
+  const { lines, total, full } = req.body || {};
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return res.status(400).json({ error: 'بنود الاسترداد مطلوبة' });
+  }
+  const refundAmount = Number(total) || 0;
+  if (refundAmount <= 0) {
+    return res.status(400).json({ error: 'مبلغ الاسترداد غير صالح' });
+  }
+  // CRITICAL: server-side refund amount validation against menu_prices.
+  // Client may not refund more than the lines × server price + tax.
+  const { expected: serverExpectedRefund } = getServerExpectedTotal(lines);
+  if (refundAmount > serverExpectedRefund + 1) {
+    return res.status(400).json({ error: 'REFUND_PRICE_MISMATCH', expected: serverExpectedRefund, received: refundAmount });
+  }
+
+  const cashierName = req.cashierName || null;
+  const isFull = full === true || full === 1;
+
+  try {
+    const order = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+    if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+
+    const refundId = 'RF-' + Date.now().toString(36).toUpperCase() + '-' + crypto.randomBytes(2).toString('hex').toUpperCase();
+    const now = Date.now();
+
+    // طلب أصلي: مجموع الكمية لكل بند
+    const parsedOrder = parseOrder(order);
+    const orderItems = Array.isArray(parsedOrder.items) ? parsedOrder.items : [];
+    const originalQty = new Map();
+    for (const it of orderItems) {
+      const nm = it && it.name;
+      const q = Number(it && (it.qty ?? it.quantity)) || 0;
+      if (!nm || q <= 0) continue;
+      originalQty.set(nm, (originalQty.get(nm) || 0) + q);
+    }
+
+    let txError = null;
+    const tx = db.transaction(() => {
+      // الكميات المستردة سابقاً (داخل المعاملة لمنع السباق)
+      const priorRefunds = db.prepare('SELECT lines FROM refunds WHERE order_id=?').all(order.id);
+      const priorQty = new Map();
+      for (const r of priorRefunds) {
+        let parsedLines = [];
+        try { parsedLines = JSON.parse(r.lines || '[]'); } catch (_) { parsedLines = []; }
+        for (const ln of parsedLines) {
+          const nm = ln && ln.name;
+          const q = Number(ln && (ln.qty ?? ln.quantity)) || 0;
+          if (!nm || q <= 0) continue;
+          priorQty.set(nm, (priorQty.get(nm) || 0) + q);
+        }
+      }
+
+      // التحقق من عدم تجاوز الكمية الأصلية
+      for (const ln of lines) {
+        const menuName = ln && ln.name;
+        const qty = Number(ln && (ln.qty ?? ln.quantity)) || 0;
+        if (!menuName || qty <= 0) continue;
+        const original = originalQty.get(menuName) || 0;
+        const already = priorQty.get(menuName) || 0;
+        if (already + qty > original) {
+          txError = { status: 400, message: 'مبلغ الاسترداد يتجاوز الكمية الأصلية', item: menuName, original, already, requested: qty };
+          throw new Error('REFUND_OVERFLOW');
+        }
+      }
+
+      // إعادة المخزون عبر الوصفات
+      for (const ln of lines) {
+        const menuName = ln && ln.name;
+        const qty = Number(ln && (ln.qty ?? ln.quantity)) || 0;
+        if (!menuName || qty <= 0) continue;
+        const recipeRows = db.prepare(
+          'SELECT r.ingredient_id, r.quantity, i.current_qty, i.capacity_ml, i.name_ko, i.unit FROM recipes r JOIN ingredients i ON r.ingredient_id=i.id WHERE r.menu_item=?'
+        ).all(menuName);
+        for (const row of recipeRows) {
+          let restore;
+          if (row.capacity_ml > 0) restore = (row.quantity / row.capacity_ml) * qty;
+          else restore = row.quantity * qty;
+          applyStockDelta(row.ingredient_id, restore);
+          db.prepare(
+            'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+          ).run(row.ingredient_id, row.name_ko, 'in', restore, `استرداد ${refundId} - ${menuName} x${qty}`);
+        }
+      }
+
+      // سجل الاسترداد
+      db.prepare(
+        'INSERT INTO refunds (id, order_id, amount, lines, full_refund, cashier_name, created_at) VALUES (?,?,?,?,?,?,?)'
+      ).run(refundId, order.id, refundAmount, JSON.stringify(lines), isFull ? 1 : 0, cashierName, now);
+
+      // عند الاسترداد الكامل → إلغاء الطلب
+      if (isFull && order.status !== 'cancelled') {
+        if (cashierName) {
+          db.prepare("UPDATE orders SET status='cancelled', cashier_name=? WHERE id=?").run(cashierName, order.id);
+        } else {
+          db.prepare("UPDATE orders SET status='cancelled' WHERE id=?").run(order.id);
+        }
+      }
+    });
+
+    try {
+      tx();
+    } catch (err) {
+      if (txError) {
+        return res.status(txError.status).json({ error: txError.message, item: txError.item, original: txError.original, already_refunded: txError.already, requested: txError.requested });
+      }
+      throw err;
+    }
+
+    const updatedOrder = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+    const parsed = parseOrder(updatedOrder);
+    broadcastSSE({ type: 'order_refunded', refund_id: refundId, order_id: order.id, amount: refundAmount, full: isFull, order: parsed });
+    if (isFull) broadcastSSE({ type: 'order_updated', order: parsed });
+
+    res.json({ success: true, refund_id: refundId, amount: refundAmount, full: isFull, order: parsed });
+  } catch (e) {
+    console.error('خطأ في الاسترداد:', e);
+    res.status(500).json({ error: 'فشل في الاسترداد' });
+  }
+});
+
+// تذكرة بث SSE — يطلبها العميل عبر POST موثّق ثم يستخدمها مرّة واحدة في EventSource
+app.post('/api/orders/stream-ticket', requireCashierOrAdmin, (req, res) => {
+  const ticket = crypto.randomBytes(24).toString('hex');
+  streamTickets.set(ticket, {
+    name: req.cashierName || 'staff',
+    expires: Date.now() + STREAM_TICKET_TTL,
+  });
+  res.json({ ticket, ttl: STREAM_TICKET_TTL });
+});
+
+// SSE — بث مباشر للكاشير (مصادقة بالتذكرة، استخدام مرّة واحدة)
+app.get('/api/orders/stream', (req, res) => {
+  const ticket = req.query.ticket;
+  if (!ticket || typeof ticket !== 'string') {
+    return res.status(401).json({ error: 'تذكرة البث مطلوبة' });
+  }
+  const entry = streamTickets.get(ticket);
+  streamTickets.delete(ticket); // single-use
+  if (!entry || entry.expires < Date.now()) {
+    return res.status(401).json({ error: 'تذكرة البث غير صالحة أو منتهية' });
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -874,19 +1334,41 @@ app.get('/api/orders/:id', (req, res) => {
 
     const parsed = parseOrder(order);
 
-    // 인증된 캐셔/어드민 여부 확인
+    // 인증된 캐셔/어드민 여부 확인 (TTL까지 검증)
     const adminToken = req.headers['x-auth-token'];
     const cashierToken = req.headers['x-cashier-token'];
-    const isStaff = (adminToken && db.prepare('SELECT 1 FROM admin_sessions WHERE token=?').get(adminToken)) ||
-                    (cashierToken && db.prepare('SELECT 1 FROM cashier_sessions WHERE token=?').get(cashierToken));
+    let isStaff = false;
+    if (adminToken) {
+      const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(adminToken);
+      if (row && Date.now() - row.created_at <= ADMIN_SESSION_TTL) isStaff = true;
+    }
+    if (!isStaff && cashierToken) {
+      const row = db.prepare('SELECT created_at FROM cashier_sessions WHERE token=?').get(cashierToken);
+      if (row && Date.now() - row.created_at <= CASHIER_SESSION_TTL) isStaff = true;
+    }
 
     if (isStaff) {
       return res.json(parsed);
     }
 
-    // 미인증 요청: PII(이름, 전화번호) 제거 후 반환
-    const { customer_name, customer_phone, ...safeOrder } = parsed;
-    res.json(safeOrder);
+    // 본인 customer_id 일치 시 전체 데이터 (로그인된 회원이 자기 주문 추적)
+    const customerToken = req.headers['x-customer-token'];
+    if (customerToken && parsed.customer_id) {
+      const row = db.prepare('SELECT customer_id, created_at FROM customer_sessions WHERE token=?').get(customerToken);
+      if (row && row.customer_id === parsed.customer_id && Date.now() - row.created_at <= CUSTOMER_SESSION_TTL) {
+        return res.json(parsed);
+      }
+    }
+
+    // 미인증 요청: 상태 추적에 필요한 최소 필드만 반환 (PII 및 items/total 제거)
+    res.json({
+      id: parsed.id,
+      num: parsed.num,
+      status: parsed.status,
+      type: parsed.type,
+      arrival_time: parsed.arrival_time,
+      timestamp: parsed.timestamp,
+    });
   } catch (e) {
     res.status(500).json({ error: 'فشل في جلب الطلب' });
   }
@@ -903,7 +1385,6 @@ function parseOrder(row) {
 
 // 컬럼 없으면 추가 (기존 DB 마이그레이션)
 try { db.prepare("ALTER TABLE ingredients ADD COLUMN category TEXT NOT NULL DEFAULT '기타'").run(); } catch { }
-try { db.prepare("ALTER TABLE ingredients ADD COLUMN box_qty INTEGER NOT NULL DEFAULT 0").run(); } catch { }
 try { db.prepare("ALTER TABLE ingredients ADD COLUMN capacity_ml INTEGER NOT NULL DEFAULT 0").run(); } catch { }
 try { db.prepare("ALTER TABLE recipes ADD COLUMN menu_category TEXT NOT NULL DEFAULT '기타'").run(); } catch { }
 try { db.prepare("ALTER TABLE recipes ADD COLUMN unit TEXT NOT NULL DEFAULT 'ml'").run(); } catch { }
@@ -940,40 +1421,145 @@ const CATEGORY_ORDER = ['시럽', '소스', '스무디', '파우더', '과육', 
 
 app.get('/api/ingredients', requireAuth, (req, res) => {
   const rows = db.prepare('SELECT * FROM ingredients ORDER BY category, name_ko').all();
-  res.json(rows);
+  const locs = db.prepare(
+    'SELECT id, ingredient_id, location_code, qty FROM ingredient_locations ORDER BY location_code'
+  ).all();
+  const byIng = new Map();
+  for (const l of locs) {
+    if (!byIng.has(l.ingredient_id)) byIng.set(l.ingredient_id, []);
+    byIng.get(l.ingredient_id).push({ id: l.id, location_code: l.location_code, qty: l.qty });
+  }
+  res.json(rows.map(r => ({ ...r, locations: byIng.get(r.id) || [] })));
+});
+
+// ─── INGREDIENT LOCATIONS ─────────────────────────────────────────────────────
+app.post('/api/ingredients/:id/locations', requireAuth, (req, res) => {
+  const ingId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(ingId) || ingId <= 0) return res.status(400).json({ error: 'معرّف غير صالح' });
+  const ing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(ingId);
+  if (!ing) return res.status(404).json({ error: 'المادة غير موجودة' });
+
+  const code = String(req.body.location_code || '').trim().toUpperCase();
+  const qty  = Number(req.body.qty);
+  if (!LOC_CODE_RE.test(code)) return res.status(400).json({ error: 'رمز موقع غير صالح (مثال: 2A2)' });
+  if (!Number.isFinite(qty) || qty < 0) return res.status(400).json({ error: 'الكمية غير صالحة' });
+
+  try {
+    db.prepare(
+      `INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?,?,?)
+       ON CONFLICT(ingredient_id, location_code) DO UPDATE SET qty=excluded.qty`
+    ).run(ingId, code, qty);
+  } catch (e) {
+    return res.status(500).json({ error: 'فشل حفظ الموقع' });
+  }
+  const total = recalcIngredientQty(ingId);
+  const row = db.prepare(
+    'SELECT id, location_code, qty FROM ingredient_locations WHERE ingredient_id=? AND location_code=?'
+  ).get(ingId, code);
+  res.json({ success: true, location: row, current_qty: total });
+});
+
+app.patch('/api/ingredient-locations/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'معرّف غير صالح' });
+  const existing = db.prepare(
+    'SELECT id, ingredient_id, location_code, qty FROM ingredient_locations WHERE id=?'
+  ).get(id);
+  if (!existing) return res.status(404).json({ error: 'الموقع غير موجود' });
+
+  let nextCode = existing.location_code;
+  if (req.body.location_code !== undefined) {
+    nextCode = String(req.body.location_code || '').trim().toUpperCase();
+    if (!LOC_CODE_RE.test(nextCode)) return res.status(400).json({ error: 'رمز موقع غير صالح (مثال: 2A2)' });
+  }
+  let nextQty = existing.qty;
+  if (req.body.qty !== undefined) {
+    nextQty = Number(req.body.qty);
+    if (!Number.isFinite(nextQty) || nextQty < 0) return res.status(400).json({ error: 'الكمية غير صالحة' });
+  }
+
+  try {
+    db.prepare('UPDATE ingredient_locations SET location_code=?, qty=? WHERE id=?').run(nextCode, nextQty, id);
+  } catch (e) {
+    return res.status(409).json({ error: 'هذا الموقع موجود مسبقاً لنفس المادة' });
+  }
+  const total = recalcIngredientQty(existing.ingredient_id);
+  res.json({ success: true, current_qty: total });
+});
+
+app.delete('/api/ingredient-locations/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'معرّف غير صالح' });
+  const row = db.prepare('SELECT ingredient_id FROM ingredient_locations WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: 'الموقع غير موجود' });
+  db.prepare('DELETE FROM ingredient_locations WHERE id=?').run(id);
+  const total = recalcIngredientQty(row.ingredient_id);
+  res.json({ success: true, current_qty: total });
 });
 
 app.post('/api/ingredients', requireAuth, (req, res) => {
-  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, box_qty, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
+  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
   if (!name_ko || !unit) return res.status(400).json({ error: 'أدخل الاسم والوحدة' });
   const category = (bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko);
-  const r = db.prepare(
-    'INSERT INTO ingredients (name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category, box_qty, capacity_ml, expiry_date, supplier) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
-  ).run(name_ko, name_ar || '', unit, current_qty ?? 0, min_qty ?? 1, cost_per_unit ?? 0, category, box_qty ?? 0, capacity_ml ?? 0, expiry_date || null, supplier || null);
-  res.json({ success: true, id: r.lastInsertRowid });
+  const initialQty = Number(current_qty ?? 0) || 0;
+  const tx = db.transaction(() => {
+    const r = db.prepare(
+      'INSERT INTO ingredients (name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category, capacity_ml, expiry_date, supplier) VALUES (?,?,?,?,?,?,?,?,?,?)'
+    ).run(name_ko, name_ar || '', unit, 0, min_qty ?? 1, cost_per_unit ?? 0, category, capacity_ml ?? 0, expiry_date || null, supplier || null);
+    if (initialQty > 0) {
+      db.prepare(
+        "INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?, 'UNSET', ?)"
+      ).run(r.lastInsertRowid, initialQty);
+      recalcIngredientQty(r.lastInsertRowid);
+    }
+    return r.lastInsertRowid;
+  });
+  res.json({ success: true, id: tx() });
 });
 
 app.put('/api/ingredients/:id', requireAuth, (req, res) => {
-  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, box_qty, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
-  const existing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(req.params.id);
+  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
+  const existing = db.prepare('SELECT id, current_qty FROM ingredients WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
   const category = (bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko);
-  db.prepare(
-    'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, current_qty=?, min_qty=?, cost_per_unit=?, category=?, box_qty=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
-  ).run(name_ko, name_ar || '', unit, current_qty ?? existing.current_qty ?? 0, min_qty, cost_per_unit, category, box_qty ?? 0, capacity_ml ?? 0, expiry_date || null, supplier || null, req.params.id);
+  const targetQty = current_qty != null ? Number(current_qty) : Number(existing.current_qty || 0);
+  const tx = db.transaction(() => {
+    db.prepare(
+      'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
+    ).run(name_ko, name_ar || '', unit, min_qty, cost_per_unit, category, capacity_ml ?? 0, expiry_date || null, supplier || null, req.params.id);
+    if (current_qty != null && Number.isFinite(targetQty)) {
+      const namedRow = db.prepare(
+        "SELECT COALESCE(SUM(qty), 0) AS total FROM ingredient_locations WHERE ingredient_id=? AND location_code != 'UNSET'"
+      ).get(req.params.id);
+      const namedTotal = namedRow.total || 0;
+      const unsetTarget = Math.max(0, targetQty - namedTotal);
+      const unset = db.prepare(
+        "SELECT id FROM ingredient_locations WHERE ingredient_id=? AND location_code='UNSET'"
+      ).get(req.params.id);
+      if (unset) {
+        db.prepare('UPDATE ingredient_locations SET qty=? WHERE id=?').run(unsetTarget, unset.id);
+      } else if (unsetTarget > 0) {
+        db.prepare(
+          "INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?, 'UNSET', ?)"
+        ).run(req.params.id, unsetTarget);
+      }
+      recalcIngredientQty(req.params.id);
+    }
+  });
+  tx();
   res.json({ success: true });
 });
 
 app.patch('/api/ingredients/:id', requireAuth, (req, res) => {
   const existing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
-  const { name_ko, name_ar, unit, min_qty, cost_per_unit, box_qty, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
+  const { name_ko, name_ar, unit, min_qty, cost_per_unit, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
   const name_ko_f = name_ko ?? existing.name_ko;
   const category = (bodyCategory !== undefined)
     ? ((bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko_f))
     : existing.category;
   db.prepare(
-    'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?, box_qty=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
+    'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
   ).run(
     name_ko_f,
     name_ar ?? existing.name_ar,
@@ -981,7 +1567,6 @@ app.patch('/api/ingredients/:id', requireAuth, (req, res) => {
     min_qty ?? existing.min_qty,
     cost_per_unit ?? existing.cost_per_unit,
     category,
-    box_qty ?? existing.box_qty,
     capacity_ml ?? existing.capacity_ml,
     expiry_date !== undefined ? (expiry_date || null) : existing.expiry_date,
     supplier !== undefined ? (supplier || null) : existing.supplier,
@@ -998,23 +1583,63 @@ app.delete('/api/ingredients/:id', requireAuth, (req, res) => {
 });
 
 // ─── INVENTORY ADJUST ─────────────────────────────────────────────────────────
-app.post('/api/inventory/adjust', requireAuth, (req, res) => {
+// Optional `location_code` targets a specific shelf row. Missing → falls back to
+// 'UNSET' so existing callers keep working unchanged.
+app.post('/api/inventory/adjust', requireCashierOrAdmin, (req, res) => {
   const { ingredient_id, change_type, quantity, reason } = req.body;
+  const qty = Number(quantity);
+  if (!['in', 'out'].includes(change_type) || !Number.isFinite(qty) || qty <= 0)
+    return res.status(400).json({ error: 'بيانات غير صالحة' });
   const ing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(ingredient_id);
   if (!ing) return res.status(404).json({ error: 'المادة غير موجودة' });
 
-  const newQty = change_type === 'in'
-    ? ing.current_qty + quantity
-    : ing.current_qty - quantity;
+  let locCode = req.body.location_code;
+  if (locCode !== undefined && locCode !== null && String(locCode).trim() !== '') {
+    locCode = String(locCode).trim().toUpperCase();
+    if (locCode !== 'UNSET' && !LOC_CODE_RE.test(locCode)) {
+      return res.status(400).json({ error: 'رمز موقع غير صالح (مثال: 2A2)' });
+    }
+  } else {
+    locCode = 'UNSET';
+  }
 
-  if (newQty < 0) return res.status(400).json({ error: `مخزون غير كافٍ (الحالي: ${ing.current_qty}${ing.unit})` });
+  const tx = db.transaction(() => {
+    let row = db.prepare(
+      'SELECT id, qty FROM ingredient_locations WHERE ingredient_id=? AND location_code=?'
+    ).get(ingredient_id, locCode);
 
-  db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, ingredient_id);
-  db.prepare(
-    'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
-  ).run(ingredient_id, ing.name_ko, change_type, quantity, reason || '');
+    if (change_type === 'in') {
+      if (row) {
+        db.prepare('UPDATE ingredient_locations SET qty = qty + ? WHERE id=?').run(qty, row.id);
+      } else {
+        db.prepare(
+          'INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?,?,?)'
+        ).run(ingredient_id, locCode, qty);
+      }
+    } else {
+      if (!row || row.qty < qty) {
+        const have = row ? row.qty : 0;
+        const err = new Error(`مخزون غير كافٍ في الموقع ${locCode} (الحالي: ${have}${ing.unit})`);
+        err.status = 400;
+        throw err;
+      }
+      db.prepare('UPDATE ingredient_locations SET qty = qty - ? WHERE id=?').run(qty, row.id);
+    }
 
-  res.json({ success: true, new_qty: newQty });
+    const total = recalcIngredientQty(ingredient_id);
+    const reasonStamped = locCode === 'UNSET' ? (reason || '') : `@${locCode} ${reason || ''}`.trim();
+    db.prepare(
+      'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+    ).run(ingredient_id, ing.name_ko, change_type, qty, reasonStamped);
+    return total;
+  });
+
+  try {
+    const newQty = tx();
+    res.json({ success: true, new_qty: newQty, location_code: locCode });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message || 'فشل التعديل' });
+  }
 });
 
 app.get('/api/inventory/history', requireAuth, (req, res) => {
@@ -1023,36 +1648,33 @@ app.get('/api/inventory/history', requireAuth, (req, res) => {
 });
 
 app.delete('/api/inventory/history/:id', requireAuth, (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0)
+    return res.status(400).json({ error: 'معرّف غير صالح' });
   const row = db.prepare('SELECT * FROM inventory_history WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: 'السجل غير موجود' });
   if (row.ingredient_id) {
-    const ing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(row.ingredient_id);
-    if (ing) {
-      const delta = row.change_type === 'in' ? -row.quantity : row.quantity;
-      const newQty = Math.max(0, ing.current_qty + delta);
-      db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, row.ingredient_id);
-    }
+    const delta = row.change_type === 'in' ? -row.quantity : row.quantity;
+    applyStockDelta(row.ingredient_id, delta);
   }
   db.prepare('DELETE FROM inventory_history WHERE id=?').run(id);
   res.json({ success: true });
 });
 
 app.put('/api/inventory/history/:id', requireAuth, (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0)
+    return res.status(400).json({ error: 'معرّف غير صالح' });
   const { change_type, quantity, reason } = req.body;
-  if (!['in', 'out'].includes(change_type) || !(quantity > 0))
+  const qty = Number(quantity);
+  if (!['in', 'out'].includes(change_type) || !Number.isFinite(qty) || qty <= 0)
     return res.status(400).json({ error: 'بيانات غير صالحة' });
   const row = db.prepare('SELECT * FROM inventory_history WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: 'السجل غير موجود' });
   if (row.ingredient_id) {
-    const ing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(row.ingredient_id);
-    if (ing) {
-      const revert = row.change_type === 'in' ? -row.quantity : row.quantity;
-      const apply = change_type === 'in' ? quantity : -quantity;
-      const newQty = Math.max(0, ing.current_qty + revert + apply);
-      db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, row.ingredient_id);
-    }
+    const revert = row.change_type === 'in' ? -row.quantity : row.quantity;
+    const apply = change_type === 'in' ? qty : -qty;
+    applyStockDelta(row.ingredient_id, revert + apply);
   }
   db.prepare('UPDATE inventory_history SET change_type=?, quantity=?, reason=? WHERE id=?')
     .run(change_type, parseFloat(quantity), reason || '', id);
@@ -1090,7 +1712,7 @@ app.delete('/api/recipes/menu/:menuItem', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/cost/:menuItem', (req, res) => {
+app.get('/api/cost/:menuItem', requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT r.quantity, i.cost_per_unit, i.unit, i.name_ko, i.capacity_ml
     FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
@@ -1128,8 +1750,7 @@ app.post('/api/daily-sales', requireAuth, (req, res) => {
             const deduct = item.capacity_ml > 0
               ? (item.recipe_qty / item.capacity_ml) * sale.quantity
               : item.recipe_qty * sale.quantity;
-            const newQty = Math.max(0, item.current_qty - deduct);
-            db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, item.ingredient_id);
+            applyStockDelta(item.ingredient_id, -deduct);
             db.prepare(
               'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
             ).run(item.ingredient_id, item.name_ko, 'out', deduct, `${sale_date} | ${sale.menu_item} x${sale.quantity}`);
@@ -1225,8 +1846,7 @@ app.post('/api/size-sales', requireAuth, (req, res) => {
 
         for (const recipe of recipeRows) {
           const deduct = s * recipe.s_qty + m * recipe.m_qty + l * recipe.l_qty;
-          const newQty = Math.max(0, recipe.current_qty - deduct);
-          db.prepare('UPDATE ingredients SET current_qty=? WHERE id=?').run(newQty, recipe.ingredient_id);
+          applyStockDelta(recipe.ingredient_id, -deduct);
           db.prepare(
             'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
           ).run(recipe.ingredient_id, recipe.name_ko, 'out', deduct,
@@ -1335,12 +1955,17 @@ app.get('/api/stamps/lookup', requireCashierOrAdmin, (req, res) => {
 // ─── RESERVATIONS ─────────────────────────────────────────────────────────────
 
 // إنشاء حجز (العميل — تسجيل الدخول اختياري)
-app.post('/api/reservations', optionalCustomer, (req, res) => {
+app.post('/api/reservations', reservationLimiter, optionalCustomer, (req, res) => {
   const { name, phone, date, time, party_size, notes, table_num } = req.body;
   if (!name || !phone || !date || !time)
     return res.status(400).json({ error: 'Name, phone, date and time are required / الاسم والهاتف والتاريخ والوقت مطلوبة' });
   if (party_size && (party_size < 1 || party_size > 20))
     return res.status(400).json({ error: 'Party size must be 1–20' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: 'Invalid date format' });
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (date < todayStr)
+    return res.status(400).json({ error: 'Cannot book a date in the past / لا يمكن حجز تاريخ في الماضي' });
 
   // منع التكرار في نفس التاريخ/الوقت (حد أقصى 4 مجموعات)
   const existing = db.prepare("SELECT COUNT(*) as cnt FROM reservations WHERE date=? AND time=? AND status != 'cancelled'").get(date, time);
@@ -1399,6 +2024,11 @@ app.get('/api/reservations/availability', (req, res) => {
 app.post('/api/meeting-reservations', (req, res) => {
   const { name, phone, date, slot, notes } = req.body;
   if (!name || !phone || !date || !slot) return res.status(400).json({ error: 'حقول مطلوبة مفقودة' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: 'Invalid date format' });
+  const todayStr2 = new Date().toISOString().split('T')[0];
+  if (date < todayStr2)
+    return res.status(400).json({ error: 'Cannot book a date in the past / لا يمكن حجز تاريخ في الماضي' });
   const existing = db.prepare("SELECT COUNT(*) as cnt FROM meeting_reservations WHERE date=? AND slot=? AND status != 'cancelled'").get(date, slot);
   if (existing.cnt > 0) return res.status(409).json({ error: 'هذا الوقت محجوز بالفعل' });
   const r = db.prepare('INSERT INTO meeting_reservations (name, phone, date, slot, notes, status, created_at) VALUES (?,?,?,?,?,?,?)').run(
@@ -1476,9 +2106,12 @@ app.get('/api/menu-prices', requireCashierOrAdmin, (_req, res) => {
 app.post('/api/menu-prices', requireAuth, (req, res) => {
   const { menu_item, selling_price } = req.body;
   if (!menu_item) return res.status(400).json({ error: 'menu_item required' });
+  const price = Number(selling_price);
+  if (!Number.isFinite(price) || price < 0)
+    return res.status(400).json({ error: 'selling_price must be a non-negative number' });
   db.prepare(
     'INSERT INTO menu_prices (menu_item, selling_price) VALUES (?,?) ON CONFLICT(menu_item) DO UPDATE SET selling_price=excluded.selling_price'
-  ).run(menu_item, selling_price ?? 0);
+  ).run(menu_item, Math.round(price));
   res.json({ success: true });
 });
 
@@ -1512,15 +2145,54 @@ app.get('/api/sales/summary', requireCashierOrAdmin, (req, res) => {
     ORDER BY day ASC
   `).all(startStr, todayStr);
 
-  // 베스트셀러 TOP5 (daily_sales 테이블 기준)
-  const top5 = db.prepare(`
-    SELECT menu_item, SUM(quantity) as total_qty
-    FROM daily_sales
-    WHERE sale_date BETWEEN ? AND ?
-    GROUP BY menu_item
-    ORDER BY total_qty DESC
-    LIMIT 5
+  // 베스트셀러 TOP5 — orders 테이블에서 직접 집계 (daily_sales는 즉석 처리 전용)
+  const ordersInRange = db.prepare(`
+    SELECT items
+    FROM orders
+    WHERE status != 'cancelled'
+      AND date(datetime(timestamp/1000, 'unixepoch', '+3 hours')) BETWEEN ? AND ?
   `).all(startStr, todayStr);
+
+  // 환불된 수량 차감 — 취소된 주문은 ordersInRange에서 이미 제외되므로 환불도 제외
+  const refundsInRange = db.prepare(`
+    SELECT r.lines
+    FROM refunds r
+    JOIN orders o ON r.order_id = o.id
+    WHERE o.status != 'cancelled'
+      AND date(datetime(o.timestamp/1000, 'unixepoch', '+3 hours')) BETWEEN ? AND ?
+  `).all(startStr, todayStr);
+
+  const qtyMap = new Map();
+  for (const row of ordersInRange) {
+    let items = [];
+    try { items = JSON.parse(row.items || '[]'); } catch (_) { items = []; }
+    if (!Array.isArray(items)) continue;
+    for (const it of items) {
+      const nm = it && it.name;
+      const q = Number(it && (it.qty ?? it.quantity)) || 0;
+      if (!nm || q <= 0) continue;
+      qtyMap.set(nm, (qtyMap.get(nm) || 0) + q);
+    }
+  }
+  for (const row of refundsInRange) {
+    let lines = [];
+    try { lines = JSON.parse(row.lines || '[]'); } catch (_) { lines = []; }
+    if (!Array.isArray(lines)) continue;
+    for (const ln of lines) {
+      const nm = ln && ln.name;
+      const q = Number(ln && (ln.qty ?? ln.quantity)) || 0;
+      if (!nm || q <= 0) continue;
+      const cur = qtyMap.get(nm) || 0;
+      const next = cur - q;
+      if (next > 0) qtyMap.set(nm, next);
+      else qtyMap.delete(nm);
+    }
+  }
+
+  const top5 = Array.from(qtyMap.entries())
+    .map(([menu_item, total_qty]) => ({ menu_item, total_qty }))
+    .sort((a, b) => b.total_qty - a.total_qty)
+    .slice(0, 5);
 
   // 기간 합계
   const totals = db.prepare(`
@@ -1560,13 +2232,291 @@ db.prepare(`CREATE TABLE IF NOT EXISTS contact_messages (
   created_at INTEGER DEFAULT (strftime('%s','now'))
 )`).run();
 
-app.post('/api/contact', (req, res) => {
+app.post('/api/contact', contactLimiter, (req, res) => {
   const { name, email, message, lang } = req.body;
   if (!name || !email || !message)
     return res.status(400).json({ error: 'Missing required fields' });
+  const cleanName = String(name).trim().slice(0, 120);
+  const cleanEmail = String(email).trim().toLowerCase().slice(0, 200);
+  const cleanMessage = String(message).trim().slice(0, 4000);
+  if (!cleanName || !cleanEmail || !cleanMessage)
+    return res.status(400).json({ error: 'Invalid input' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail))
+    return res.status(400).json({ error: 'Invalid email' });
   db.prepare('INSERT INTO contact_messages (name, email, message, lang) VALUES (?,?,?,?)')
-    .run(name.trim(), email.trim().toLowerCase(), message.trim(), lang || 'en');
+    .run(cleanName, cleanEmail, cleanMessage, lang || 'en');
   res.json({ success: true });
+});
+
+// ─── TEAM REPORTS (본사 8팀 일일 보고서 + 대시보드) ────────────────────────────
+const TEAM_REPORTS_ROOT = path.join(__dirname, '.claude', 'reports', 'team-reports');
+const TEAM_IDS = new Set(['ceo', 'cfo', 'coo', 'marketing', 'developer', 'tax', 'legal', 'hr']);
+
+function safeDate(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
+app.get('/api/team-reports/today', requireAuth, (_req, res) => {
+  try {
+    const latest = path.join(TEAM_REPORTS_ROOT, 'latest.json');
+    if (!fs.existsSync(latest)) return res.status(404).json({ error: 'no reports yet' });
+    res.json(JSON.parse(fs.readFileSync(latest, 'utf8')));
+  } catch (err) {
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+app.get('/api/team-reports/dates', requireAuth, (_req, res) => {
+  try {
+    if (!fs.existsSync(TEAM_REPORTS_ROOT)) return res.json({ dates: [] });
+    const dates = fs
+      .readdirSync(TEAM_REPORTS_ROOT, { withFileTypes: true })
+      .filter(d => d.isDirectory() && safeDate(d.name))
+      .map(d => d.name)
+      .sort()
+      .reverse();
+    res.json({ dates });
+  } catch (err) {
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+app.get('/api/team-reports/:date', requireAuth, (req, res) => {
+  const date = safeDate(req.params.date);
+  if (!date) return res.status(400).json({ error: 'invalid date' });
+  const indexPath = path.join(TEAM_REPORTS_ROOT, date, 'index.json');
+  if (!fs.existsSync(indexPath)) return res.status(404).json({ error: 'not found' });
+  try {
+    res.json(JSON.parse(fs.readFileSync(indexPath, 'utf8')));
+  } catch (err) {
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+app.get('/api/team-reports/:date/:team', requireAuth, (req, res) => {
+  const date = safeDate(req.params.date);
+  const team = String(req.params.team || '').toLowerCase();
+  if (!date) return res.status(400).json({ error: 'invalid date' });
+  if (!TEAM_IDS.has(team)) return res.status(400).json({ error: 'invalid team' });
+  const reportPath = path.join(TEAM_REPORTS_ROOT, date, `${team}.md`);
+  if (!fs.existsSync(reportPath)) return res.status(404).json({ error: 'not found' });
+  try {
+    res.json({ date, team, markdown: fs.readFileSync(reportPath, 'utf8') });
+  } catch (err) {
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// ─── AGENT MEETINGS (대시보드 → 본사 8팀 즉석 회의) ───────────────────────────
+db.prepare(`CREATE TABLE IF NOT EXISTS agent_meetings (
+  id          TEXT PRIMARY KEY,
+  type        TEXT NOT NULL,
+  team_ids    TEXT NOT NULL,
+  topic       TEXT,
+  status      TEXT NOT NULL DEFAULT 'running',
+  error       TEXT,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+)`).run();
+db.prepare(`CREATE TABLE IF NOT EXISTS agent_meeting_messages (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  meeting_id  TEXT NOT NULL,
+  role        TEXT NOT NULL,
+  team_id     TEXT,
+  content     TEXT NOT NULL,
+  created_at  INTEGER NOT NULL
+)`).run();
+db.prepare(`CREATE INDEX IF NOT EXISTS idx_agent_msgs_meeting ON agent_meeting_messages(meeting_id, created_at)`).run();
+db.prepare(`CREATE TABLE IF NOT EXISTS dashboard_todos (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  text        TEXT NOT NULL,
+  done        INTEGER NOT NULL DEFAULT 0,
+  meeting_id  TEXT,
+  created_at  INTEGER NOT NULL,
+  done_at     INTEGER
+)`).run();
+
+const {
+  TEAMS: AGENT_TEAMS,
+  getTeamById: getAgentTeam,
+  buildAskPrompt,
+  buildMeetingPrompt,
+  buildReportPrompt,
+} = require('./scripts/lib/team-prompts');
+const { callClaude: callAgentClaude } = require('./scripts/lib/anthropic-sdk');
+
+const MEETING_TYPES = new Set(['ask', 'multi', 'report']);
+const MAX_CONCURRENT_MEETINGS = 3;
+let runningMeetings = 0;
+
+function newMeetingId() {
+  return 'm_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function insertMeeting(type, teamIds, topic) {
+  const id = newMeetingId();
+  const now = Date.now();
+  db.prepare(`INSERT INTO agent_meetings (id, type, team_ids, topic, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?)`)
+    .run(id, type, JSON.stringify(teamIds), topic || null, 'running', now, now);
+  return id;
+}
+
+function insertMessage(meetingId, role, teamId, content) {
+  db.prepare(`INSERT INTO agent_meeting_messages (meeting_id, role, team_id, content, created_at) VALUES (?,?,?,?,?)`)
+    .run(meetingId, role, teamId || null, content, Date.now());
+}
+
+function setMeetingStatus(meetingId, status, error) {
+  db.prepare(`UPDATE agent_meetings SET status=?, error=?, updated_at=? WHERE id=?`)
+    .run(status, error || null, Date.now(), meetingId);
+}
+
+function getMeetingMessages(meetingId) {
+  return db.prepare(`SELECT role, team_id, content, created_at FROM agent_meeting_messages WHERE meeting_id=? ORDER BY created_at ASC, id ASC`)
+    .all(meetingId);
+}
+
+function getMeeting(meetingId) {
+  const row = db.prepare(`SELECT * FROM agent_meetings WHERE id=?`).get(meetingId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    type: row.type,
+    team_ids: JSON.parse(row.team_ids),
+    topic: row.topic,
+    status: row.status,
+    error: row.error,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    messages: getMeetingMessages(meetingId),
+  };
+}
+
+async function runOneTurn(meetingId, team, persona, userTask) {
+  try {
+    const out = await callAgentClaude({ model: team.model, persona, userTask });
+    insertMessage(meetingId, 'agent', team.id, out || '(빈 응답)');
+    return { ok: true };
+  } catch (err) {
+    const msg = String(err.message || err).slice(0, 500);
+    insertMessage(meetingId, 'agent', team.id, `❌ 호출 실패: ${msg}`);
+    return { ok: false, error: msg };
+  }
+}
+
+async function processMeetingAsync(meetingId, type, teams, prompts) {
+  if (runningMeetings >= MAX_CONCURRENT_MEETINGS) {
+    setMeetingStatus(meetingId, 'failed', '동시 실행 한도 초과 (3건). 잠시 후 다시 시도하세요.');
+    return;
+  }
+  runningMeetings += 1;
+  try {
+    if (type === 'multi') {
+      const results = await Promise.all(teams.map((t, i) => runOneTurn(meetingId, t, prompts[i].persona, prompts[i].userTask)));
+      const allFailed = results.every(r => !r.ok);
+      setMeetingStatus(meetingId, allFailed ? 'failed' : 'done', allFailed ? results[0].error : null);
+    } else {
+      const r = await runOneTurn(meetingId, teams[0], prompts[0].persona, prompts[0].userTask);
+      setMeetingStatus(meetingId, r.ok ? 'done' : 'failed', r.ok ? null : r.error);
+    }
+  } finally {
+    runningMeetings = Math.max(0, runningMeetings - 1);
+  }
+}
+
+function asString(v, max) {
+  if (v == null) return '';
+  const s = String(v).trim();
+  return max ? s.slice(0, max) : s;
+}
+
+app.post('/api/meetings/ask', requireAuth, (req, res) => {
+  const teamId = asString(req.body && req.body.team_id, 32);
+  const prompt = asString(req.body && req.body.prompt, 4000);
+  const team = getAgentTeam(teamId);
+  if (!team) return res.status(400).json({ error: 'invalid team_id' });
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  const meetingId = insertMeeting('ask', [teamId], prompt.slice(0, 80));
+  insertMessage(meetingId, 'user', null, prompt);
+  const history = [{ role: 'user', content: prompt }];
+  const built = buildAskPrompt(team, history);
+  setImmediate(() => processMeetingAsync(meetingId, 'ask', [team], [built]));
+  res.json({ meeting_id: meetingId });
+});
+
+app.post('/api/meetings/multi', requireAuth, (req, res) => {
+  const teamIds = Array.isArray(req.body && req.body.team_ids) ? req.body.team_ids.map(s => asString(s, 32)).filter(Boolean) : [];
+  const topic = asString(req.body && req.body.topic, 2000);
+  if (teamIds.length < 2) return res.status(400).json({ error: 'at least 2 team_ids required' });
+  if (teamIds.length > 8) return res.status(400).json({ error: 'max 8 teams' });
+  if (!topic) return res.status(400).json({ error: 'topic required' });
+  const teams = teamIds.map(getAgentTeam);
+  if (teams.some(t => !t)) return res.status(400).json({ error: 'invalid team_id in list' });
+  const meetingId = insertMeeting('multi', teamIds, topic);
+  insertMessage(meetingId, 'user', null, topic);
+  const built = teams.map(t => buildMeetingPrompt(t, topic, teams));
+  setImmediate(() => processMeetingAsync(meetingId, 'multi', teams, built));
+  res.json({ meeting_id: meetingId });
+});
+
+app.post('/api/meetings/report', requireAuth, (req, res) => {
+  const teamId = asString(req.body && req.body.team_id, 32);
+  const topic = asString(req.body && req.body.topic, 2000);
+  const team = getAgentTeam(teamId);
+  if (!team) return res.status(400).json({ error: 'invalid team_id' });
+  if (!topic) return res.status(400).json({ error: 'topic required' });
+  const meetingId = insertMeeting('report', [teamId], topic);
+  insertMessage(meetingId, 'user', null, topic);
+  const built = buildReportPrompt(team, topic);
+  setImmediate(() => processMeetingAsync(meetingId, 'report', [team], [built]));
+  res.json({ meeting_id: meetingId });
+});
+
+app.post('/api/meetings/:id/message', requireAuth, (req, res) => {
+  const id = asString(req.params.id, 64);
+  const prompt = asString(req.body && req.body.prompt, 4000);
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  const meeting = getMeeting(id);
+  if (!meeting) return res.status(404).json({ error: 'meeting not found' });
+  if (meeting.type !== 'ask') return res.status(400).json({ error: 'only 1:1 ask meetings support follow-up' });
+  if (meeting.status === 'running') return res.status(409).json({ error: 'previous turn still running' });
+  const team = getAgentTeam(meeting.team_ids[0]);
+  if (!team) return res.status(400).json({ error: 'team no longer valid' });
+  insertMessage(id, 'user', null, prompt);
+  setMeetingStatus(id, 'running', null);
+  const history = getMeetingMessages(id).map(m => ({ role: m.role, content: m.content }));
+  const built = buildAskPrompt(team, history);
+  setImmediate(() => processMeetingAsync(id, 'ask', [team], [built]));
+  res.json({ meeting_id: id });
+});
+
+app.get('/api/meetings/:id', requireAuth, (req, res) => {
+  const id = asString(req.params.id, 64);
+  const meeting = getMeeting(id);
+  if (!meeting) return res.status(404).json({ error: 'not found' });
+  res.json(meeting);
+});
+
+app.get('/api/meetings', requireAuth, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 30, 100);
+  const rows = db.prepare(`SELECT id, type, team_ids, topic, status, created_at, updated_at FROM agent_meetings ORDER BY created_at DESC LIMIT ?`).all(limit);
+  res.json({
+    meetings: rows.map(r => ({
+      id: r.id,
+      type: r.type,
+      team_ids: JSON.parse(r.team_ids),
+      topic: r.topic,
+      status: r.status,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    })),
+  });
+});
+
+app.get('/api/meetings/teams/list', requireAuth, (_req, res) => {
+  res.json({
+    teams: AGENT_TEAMS.map(t => ({ id: t.id, label: t.label, model: t.model, focus: t.focus })),
+  });
 });
 
 // ─── START ────────────────────────────────────────────────────────────────────
