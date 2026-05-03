@@ -10,9 +10,9 @@ const HOME_AGENTS_DIR = path.join(os.homedir(), '.claude', 'agents');
 const AGENTS_DIR = fs.existsSync(PROJECT_AGENTS_DIR) ? PROJECT_AGENTS_DIR : HOME_AGENTS_DIR;
 
 const TEAMS = [
-  { id: 'ceo',        agent: 'mrkim-ceo.md',        label: "Mr. Kim's CEO",         model: 'opus',   focus: '법인 전략, 사업 확장, 투자, 비전. 단일 매장 운영 디테일은 카페 CEO 영역이니 건드리지 말 것.' },
-  { id: 'cfo',        agent: 'mrkim-cfo.md',        label: "Mr. Kim's CFO",         model: 'opus',   focus: '현금흐름, 매출/마진, 단가, ROI, IQD/USD 환리스크, PG 미연동 영향. 숫자에 집중.' },
-  { id: 'coo',        agent: 'mrkim-coo.md',        label: "Mr. Kim's COO",         model: 'opus',   focus: 'KPI, SOP, 부서간 우선순위, bottleneck. 매장-본사 연결.' },
+  { id: 'ceo',        agent: 'mrkim-ceo.md',        label: "Mr. Kim's CEO",         model: 'sonnet', focus: '법인 전략, 사업 확장, 투자, 비전. 단일 매장 운영 디테일은 카페 CEO 영역이니 건드리지 말 것.' },
+  { id: 'cfo',        agent: 'mrkim-cfo.md',        label: "Mr. Kim's CFO",         model: 'sonnet', focus: '현금흐름, 매출/마진, 단가, ROI, IQD/USD 환리스크, PG 미연동 영향. 숫자에 집중.' },
+  { id: 'coo',        agent: 'mrkim-coo.md',        label: "Mr. Kim's COO",         model: 'sonnet', focus: 'KPI, SOP, 부서간 우선순위, bottleneck. 매장-본사 연결.' },
   { id: 'marketing',  agent: 'mrkim-marketing.md',  label: "Mr. Kim's 마케팅 팀",   model: 'sonnet', focus: '브랜드 일관성, 인스타 @mr.kims_cafe 성과, 타깃 고객, 캠페인 가설. 인스타 데이터 없으면 솔직히 표시.' },
   { id: 'developer',  agent: 'mrkim-developer.md',  label: "Mr. Kim's 풀스택 개발자", model: 'sonnet', focus: '웹사이트/POS health, 응답속도, 에러, 자동수정 절대 금지(보고만), PG 연동 미완료 인지.' },
   { id: 'tax',        agent: 'mrkim-tax.md',        label: "Mr. Kim's 세무팀",      model: 'sonnet', focus: '이라크 부가세/법인세 일정, 매출/매입 증빙 누락 위험. 실제 신고는 현지 회계사 협업 필수임을 명시.' },
