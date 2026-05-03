@@ -1,0 +1,159 @@
+/* =============================================================
+   Primitives — base classes for cards/buttons/chips/avatars/etc.
+   These are styling-only; React components will compose them.
+   ============================================================= */
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  position: relative;
+}
+.card.elev { background: var(--ink-3); }
+
+/* ---------- Button ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--line-strong);
+  background: var(--ink-3);
+  color: var(--fg);
+  transition: all var(--speed) var(--ease);
+}
+.btn:hover  { background: var(--ink-4); transform: translateY(-1px); }
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--mk-green);
+  color: #07120a;
+  border-color: var(--mk-green-light);
+  box-shadow: 0 6px 16px rgba(54, 125, 77, 0.32);
+}
+.btn-primary:hover { background: var(--mk-green-light); }
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+}
+
+.btn.icon-only {
+  padding: 10px;
+  width: 38px;
+  justify-content: center;
+}
+
+/* ---------- Chip ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--ink-3);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--fg-mid);
+  letter-spacing: 0.03em;
+}
+.chip.green {
+  background: rgba(54, 125, 77, 0.14);
+  border-color: var(--line-green);
+  color: var(--mk-green-glow);
+}
+
+/* ---------- Status dot ---------- */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+.status-dot.online   { background: var(--st-online);   box-shadow: 0 0 0 3px rgba(93, 211, 136, 0.18); }
+.status-dot.busy     { background: var(--st-busy);     box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18); }
+.status-dot.thinking { background: var(--st-thinking); animation: pulseDot 1.4s ease-in-out infinite; }
+.status-dot.offline  { background: var(--st-offline); }
+
+/* ---------- Avatar ---------- */
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-0);
+  flex: none;
+  position: relative;
+  overflow: hidden;
+}
+.avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    rgba(0, 0, 0, 0.06) 6px 7px
+  );
+  pointer-events: none;
+}
+.avatar.sm { width: 28px; height: 28px; font-size: 10px; border-radius: 8px; }
+.avatar.lg { width: 56px; height: 56px; font-size: 16px; border-radius: var(--r-md); }
+.avatar.xl { width: 88px; height: 88px; font-size: 24px; border-radius: var(--r-lg); }
+
+/* ---------- Section heading ---------- */
+.sec-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sec-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sec-title .ko {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.005em;
+}
+.sec-title .en {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-soft);
+}
+
+/* ---------- Keyboard key ---------- */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--ink-4);
+  border: 1px solid var(--line-strong);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--fg-mid);
+}

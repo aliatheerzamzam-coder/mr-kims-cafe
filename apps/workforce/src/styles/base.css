@@ -1,0 +1,49 @@
+/* =============================================================
+   Base — html/body, reset, scrollbar, terminal warmth glow
+   ============================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+html, body {
+  background: var(--ink-1);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Body — two soft radial green glows in far corners (terminal warmth) */
+body {
+  background:
+    radial-gradient(1200px 700px at 80% -10%, rgba(54, 125, 77, 0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 100%, rgba(54, 125, 77, 0.06), transparent 60%),
+    var(--ink-1);
+  min-height: 100vh;
+}
+
+button { font: inherit; cursor: pointer; }
+input, textarea, select { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: var(--r-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-5); }
+
+/* Focus ring — green (a11y baseline; component overrides allowed) */
+:focus-visible {
+  outline: 2px solid var(--mk-green-glow);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

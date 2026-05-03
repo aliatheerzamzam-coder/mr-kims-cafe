@@ -172,6 +172,11 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS workforce_sessions (
+    token      TEXT PRIMARY KEY,
+    created_at INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS table_tokens (
     table_num  TEXT PRIMARY KEY,
     token      TEXT NOT NULL UNIQUE,
@@ -434,6 +439,21 @@ if (!db.prepare("SELECT id FROM order_counter WHERE id=1").get()) {
   db.prepare("INSERT INTO order_counter (id, value) VALUES (1, 1)").run();
 }
 
+// ─── Workforce password seed (separate from admin) ───────────────────────────
+if (!db.prepare("SELECT value FROM settings WHERE key='workforce_pw'").get()) {
+  const envPw = (process.env.WORKFORCE_INITIAL_PASSWORD || '').trim();
+  if (envPw && envPw.length >= 8) {
+    db.prepare("INSERT INTO settings (key, value) VALUES ('workforce_pw', ?)").run(hashPassword(envPw));
+    console.log('Workforce password seeded from WORKFORCE_INITIAL_PASSWORD env var.');
+  } else {
+    console.log('────────────────────────────────────────────────────');
+    console.log('  WORKFORCE password not configured.');
+    console.log('  Set WORKFORCE_INITIAL_PASSWORD env var (>= 8 chars) and restart');
+    console.log('  to enable /workforce dashboard login.');
+    console.log('────────────────────────────────────────────────────');
+  }
+}
+
 // ─── جلسة المدير (SQLite، TTL 12 ساعة) ───────────────────────────────────────
 const ADMIN_SESSION_TTL = 12 * 60 * 60 * 1000; // 12 ساعة
 
@@ -454,6 +474,27 @@ function requireAuth(req, res, next) {
 // تنظيف جلسات المدير المنتهية (كل ساعة)
 setInterval(() => {
   db.prepare('DELETE FROM admin_sessions WHERE created_at < ?').run(Date.now() - ADMIN_SESSION_TTL);
+}, 60 * 60 * 1000);
+
+// ─── Workforce session (separate from admin, header: x-workforce-token) ──────
+const WORKFORCE_SESSION_TTL = 12 * 60 * 60 * 1000;
+
+function requireWorkforce(req, res, next) {
+  const token = req.headers['x-workforce-token'];
+  if (!token) return res.status(401).json({ error: 'Workforce login required' });
+  const row = db.prepare('SELECT created_at FROM workforce_sessions WHERE token=?').get(token);
+  if (!row) return res.status(401).json({ error: 'Workforce login required' });
+  if (Date.now() - row.created_at > WORKFORCE_SESSION_TTL) {
+    db.prepare('DELETE FROM workforce_sessions WHERE token=?').run(token);
+    return res.status(401).json({ error: 'Session expired. Please log in again.' });
+  }
+  // Sliding TTL
+  db.prepare('UPDATE workforce_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
+  next();
+}
+
+setInterval(() => {
+  db.prepare('DELETE FROM workforce_sessions WHERE created_at < ?').run(Date.now() - WORKFORCE_SESSION_TTL);
 }, 60 * 60 * 1000);
 
 // ─── جلسة الكاشير (TTL 12 ساعة) ──────────────────────────────────────────────
@@ -597,6 +638,22 @@ app.use(express.static(path.join(__dirname), {
   }
 }));
 
+// ─── /workforce — AI Workforce Office SPA (apps/workforce/dist) ──────────────
+// Static assets first, then SPA catch-all so deep links (/workforce/approvals etc.)
+// resolve to index.html. Page itself is public; client fetches `/api/workforce/auth/me`
+// and shows a login screen when no token is present.
+app.use('/workforce', express.static(path.join(__dirname, 'apps/workforce/dist'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
+app.get(/^\/workforce(\/.*)?$/, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'apps/workforce/dist/index.html'));
+});
+
 // ─── /admin 별도 경로 (사장 전용 대시보드) ────────────────────────────────────
 // dashboard.html을 직접 서빙하지만, 대시보드 내부의 모든 API 호출은
 // admin 토큰(x-auth-token)으로 인증함. /dashboard.html 직접 접근도 허용(레거시).
@@ -680,6 +737,349 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'يجب أن تكون كلمة المرور 4 أحرف على الأقل' });
   db.prepare("UPDATE settings SET value=? WHERE key='admin_pw'").run(hashPassword(newPassword));
   res.json({ success: true });
+});
+
+// ─── WORKFORCE AUTH (AI Workforce Office) ────────────────────────────────────
+app.post('/api/workforce/auth/login', loginLimiter, (req, res) => {
+  const stored = db.prepare("SELECT value FROM settings WHERE key='workforce_pw'").get();
+  if (!stored) {
+    return res.status(503).json({
+      success: false,
+      error: 'Workforce password not configured. Set WORKFORCE_INITIAL_PASSWORD env var and restart.'
+    });
+  }
+  if (!verifyPassword(req.body.password || '', stored.value)) {
+    return res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO workforce_sessions (token, created_at) VALUES (?,?)').run(token, Date.now());
+  res.json({ success: true, token });
+});
+
+app.post('/api/workforce/auth/logout', (req, res) => {
+  const token = req.headers['x-workforce-token'];
+  if (token) db.prepare('DELETE FROM workforce_sessions WHERE token=?').run(token);
+  res.json({ success: true });
+});
+
+app.post('/api/workforce/auth/change-password', requireWorkforce, (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  db.prepare("UPDATE settings SET value=? WHERE key='workforce_pw'").run(hashPassword(newPassword));
+  res.json({ success: true });
+});
+
+app.get('/api/workforce/auth/me', requireWorkforce, (_req, res) => {
+  res.json({ success: true });
+});
+
+// ─── WORKFORCE DATA TABLES (approvals, tasks) ─────────────────────────────────
+db.prepare(`CREATE TABLE IF NOT EXISTS workforce_approvals (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  title        TEXT NOT NULL,
+  detail       TEXT,
+  category     TEXT,
+  amount_iqd   INTEGER,
+  requested_by TEXT,
+  assignee_id  TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  decision_note TEXT,
+  created_at   INTEGER NOT NULL,
+  decided_at   INTEGER
+)`).run();
+db.prepare(`CREATE INDEX IF NOT EXISTS idx_wf_approvals_status ON workforce_approvals(status, created_at)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS workforce_tasks (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  title         TEXT NOT NULL,
+  detail        TEXT,
+  assignee_id   TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'todo',
+  meeting_id    TEXT,
+  created_at    INTEGER NOT NULL,
+  updated_at    INTEGER NOT NULL,
+  completed_at  INTEGER
+)`).run();
+db.prepare(`CREATE INDEX IF NOT EXISTS idx_wf_tasks_status ON workforce_tasks(status, updated_at)`).run();
+
+// ─── WORKFORCE AGENT REGISTRY (24 agents → 8 backend teams) ───────────────────
+// Source of truth shared with apps/workforce/src/lib/data/agents.ts.
+// Each agent has its own micro-persona injected into prompts; team_id selects
+// which persona file (CEO/CFO/COO/Marketing/Developer/Tax/Legal/HR) drives the
+// underlying Anthropic call.
+const WORKFORCE_AGENTS = [
+  { id: 'ceo',   team_id: 'ceo',       team_label: '경영',     role_ko: 'CEO',                role_en: 'CEO' },
+  { id: 'cfo',   team_id: 'cfo',       team_label: '재무',     role_ko: 'CFO',                role_en: 'CFO' },
+  { id: 'cpo',   team_id: 'coo',       team_label: '경영',     role_ko: '총괄책임자',         role_en: 'COO / Chief of Staff' },
+  { id: 'pm-1',  team_id: 'coo',       team_label: '프로덕트', role_ko: '프로덕트 리드',      role_en: 'Head of Product' },
+  { id: 'pm-2',  team_id: 'coo',       team_label: '프로덕트', role_ko: '리서처',             role_en: 'Researcher' },
+  { id: 'cto',   team_id: 'developer', team_label: '엔지니어링', role_ko: 'CTO',              role_en: 'CTO' },
+  { id: 'eng-1', team_id: 'developer', team_label: '엔지니어링', role_ko: '백엔드 엔지니어',  role_en: 'Backend Engineer' },
+  { id: 'eng-2', team_id: 'developer', team_label: '엔지니어링', role_ko: '프론트엔드 엔지니어', role_en: 'Frontend Engineer' },
+  { id: 'eng-3', team_id: 'developer', team_label: '엔지니어링', role_ko: 'DevOps',           role_en: 'DevOps' },
+  { id: 'eng-4', team_id: 'developer', team_label: '엔지니어링', role_ko: 'QA',               role_en: 'QA' },
+  { id: 'des-1', team_id: 'marketing', team_label: '디자인',   role_ko: '디자인 리드',        role_en: 'Head of Design' },
+  { id: 'des-2', team_id: 'marketing', team_label: '디자인',   role_ko: '프로덕트 디자이너',  role_en: 'Product Designer' },
+  { id: 'cmo',   team_id: 'marketing', team_label: '마케팅',   role_ko: 'CMO',                role_en: 'CMO' },
+  { id: 'mkt-1', team_id: 'marketing', team_label: '마케팅',   role_ko: '콘텐츠 작가',        role_en: 'Content Writer' },
+  { id: 'mkt-2', team_id: 'marketing', team_label: '마케팅',   role_ko: '퍼포먼스 마케터',    role_en: 'Performance Marketer' },
+  { id: 'mkt-3', team_id: 'marketing', team_label: '마케팅',   role_ko: 'SEO 분석가',         role_en: 'SEO Analyst' },
+  { id: 'cro',   team_id: 'coo',       team_label: '세일즈',   role_ko: 'CRO',                role_en: 'CRO' },
+  { id: 'sls-1', team_id: 'coo',       team_label: '세일즈',   role_ko: 'SDR',                role_en: 'SDR' },
+  { id: 'sls-2', team_id: 'coo',       team_label: '세일즈',   role_ko: 'AE',                 role_en: 'Account Executive' },
+  { id: 'fin-1', team_id: 'cfo',       team_label: '재무',     role_ko: '재무 분석가',        role_en: 'Financial Analyst' },
+  { id: 'fin-2', team_id: 'cfo',       team_label: '재무',     role_ko: '회계',               role_en: 'Accountant' },
+  { id: 'clo',   team_id: 'legal',     team_label: '법무',     role_ko: '법무 책임자',        role_en: 'General Counsel' },
+  { id: 'lgl-1', team_id: 'legal',     team_label: '법무',     role_ko: '컴플라이언스',       role_en: 'Compliance' },
+];
+const workforceAgentById = Object.fromEntries(WORKFORCE_AGENTS.map(a => [a.id, a]));
+
+function buildWorkforceAskPrompt(agent, history) {
+  const team = getAgentTeam(agent.team_id);
+  if (!team) return null;
+  const turns = history.map(m => {
+    if (m.role === 'user') return `[사장 질문]\n${m.content}`;
+    return `[${agent.role_ko} 답변]\n${m.content}`;
+  });
+  const built = buildAskPrompt(team, []);
+  const userTask = [
+    `# 1:1 즉석 회의 — ${agent.role_ko} (${agent.role_en})`,
+    '',
+    '## 너의 역할',
+    `너는 ${team.label} 페르소나 안에서 **${agent.role_ko} (${agent.role_en})** 직책으로 답한다.`,
+    `소속 팀: ${agent.team_label}. 너의 직무 범위에서만 답하고, 다른 직책 영역이면 "이건 ○○이 봐야 할 부분" 한 줄로만 표시.`,
+    '',
+    '## 집중 영역',
+    team.focus,
+    '',
+    '## 대화 기록 (시간순)',
+    turns.join('\n\n') || '(첫 질문)',
+    '',
+    '## 응답 규칙',
+    `- 한국어, 150~350 단어`,
+    `- ${agent.role_ko}의 시각으로 답할 것 (회사 일반론 X, 카페 사업 컨텍스트 안에서)`,
+    `- 카페는 이라크 1호점, 메인 https://mrkimscafe.com, POS 운영 중`,
+    `- 데이터 없으면 추측 금지, "데이터 없음/수동 확인 필요" 명시`,
+    `- 자동 수정/자동 실행 금지, 사용자 승인 필요한 액션만`,
+    `- PG(카드/Zain/Switch) 미연동은 결제/매출 관련 시 항상 짚을 것`,
+    `- 답변 끝에 "— ${agent.role_ko}" 한 줄`,
+  ].join('\n');
+  return { persona: built.persona, userTask };
+}
+
+// 1:1 chat with a specific workforce agent (creates a new ask meeting)
+app.post('/api/workforce/chat/start', requireWorkforce, (req, res) => {
+  const agentId = asString(req.body && req.body.agent_id, 32);
+  const prompt = asString(req.body && req.body.prompt, 4000);
+  const agent = workforceAgentById[agentId];
+  if (!agent) return res.status(400).json({ error: 'invalid agent_id' });
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  const team = getAgentTeam(agent.team_id);
+  if (!team) return res.status(400).json({ error: 'team mapping broken' });
+  const meetingId = insertMeeting('ask', [agent.team_id], `[${agentId}] ${prompt.slice(0, 60)}`);
+  insertMessage(meetingId, 'user', null, prompt);
+  const built = buildWorkforceAskPrompt(agent, [{ role: 'user', content: prompt }]);
+  setImmediate(() => processMeetingAsync(meetingId, 'ask', [team], [built]));
+  res.json({ meeting_id: meetingId, agent_id: agentId });
+});
+
+// Follow-up message in an existing ask meeting
+app.post('/api/workforce/chat/:id/message', requireWorkforce, (req, res) => {
+  const id = asString(req.params.id, 64);
+  const agentId = asString(req.body && req.body.agent_id, 32);
+  const prompt = asString(req.body && req.body.prompt, 4000);
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  const agent = workforceAgentById[agentId];
+  if (!agent) return res.status(400).json({ error: 'invalid agent_id' });
+  const meeting = getMeeting(id);
+  if (!meeting) return res.status(404).json({ error: 'meeting not found' });
+  if (meeting.type !== 'ask') return res.status(400).json({ error: 'only ask meetings support follow-up' });
+  if (meeting.status === 'running') return res.status(409).json({ error: 'previous turn still running' });
+  const team = getAgentTeam(agent.team_id);
+  if (!team) return res.status(400).json({ error: 'team mapping broken' });
+  insertMessage(id, 'user', null, prompt);
+  setMeetingStatus(id, 'running', null);
+  const history = getMeetingMessages(id).map(m => ({ role: m.role, content: m.content }));
+  const built = buildWorkforceAskPrompt(agent, history);
+  setImmediate(() => processMeetingAsync(id, 'ask', [team], [built]));
+  res.json({ meeting_id: id });
+});
+
+// Poll meeting state (status + messages)
+app.get('/api/workforce/chat/:id', requireWorkforce, (req, res) => {
+  const id = asString(req.params.id, 64);
+  const meeting = getMeeting(id);
+  if (!meeting) return res.status(404).json({ error: 'not found' });
+  res.json(meeting);
+});
+
+// Multi-agent meeting (round-table)
+app.post('/api/workforce/meeting/start', requireWorkforce, (req, res) => {
+  const agentIds = Array.isArray(req.body && req.body.agent_ids) ? req.body.agent_ids.map(s => asString(s, 32)).filter(Boolean) : [];
+  const topic = asString(req.body && req.body.topic, 2000);
+  if (agentIds.length < 2) return res.status(400).json({ error: 'at least 2 agent_ids' });
+  if (agentIds.length > 8) return res.status(400).json({ error: 'max 8 agents' });
+  if (!topic) return res.status(400).json({ error: 'topic required' });
+  const agents = agentIds.map(id => workforceAgentById[id]).filter(Boolean);
+  if (agents.length !== agentIds.length) return res.status(400).json({ error: 'invalid agent_id in list' });
+  // Dedupe by team_id but keep agent labels for the prompt
+  const teamIds = [...new Set(agents.map(a => a.team_id))];
+  const teams = teamIds.map(getAgentTeam);
+  if (teams.some(t => !t)) return res.status(400).json({ error: 'team mapping broken' });
+  const meetingId = insertMeeting('multi', teamIds, topic);
+  insertMessage(meetingId, 'user', null, topic);
+  const built = teams.map(t => buildMeetingPrompt(t, topic, teams));
+  setImmediate(() => processMeetingAsync(meetingId, 'multi', teams, built));
+  res.json({ meeting_id: meetingId });
+});
+
+// List recent meetings (across both ask + multi)
+app.get('/api/workforce/meetings', requireWorkforce, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+  const rows = db.prepare(`SELECT id, type, team_ids, topic, status, created_at, updated_at FROM agent_meetings ORDER BY created_at DESC LIMIT ?`).all(limit);
+  res.json({
+    meetings: rows.map(r => ({
+      id: r.id,
+      type: r.type,
+      team_ids: JSON.parse(r.team_ids),
+      topic: r.topic,
+      status: r.status,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    })),
+  });
+});
+
+// KPIs for the home dashboard
+app.get('/api/workforce/kpis', requireWorkforce, (_req, res) => {
+  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+  const cutoff = dayStart.getTime();
+  const meetings24h = db.prepare(`SELECT COUNT(*) AS n FROM agent_meetings WHERE created_at >= ?`).get(cutoff).n;
+  const messages24h = db.prepare(`SELECT COUNT(*) AS n FROM agent_meeting_messages WHERE created_at >= ? AND role='agent'`).get(cutoff).n;
+  const liveMeetings = db.prepare(`SELECT COUNT(*) AS n FROM agent_meetings WHERE status='running'`).get().n;
+  const tasksOpen = db.prepare(`SELECT COUNT(*) AS n FROM workforce_tasks WHERE status IN ('todo','in_progress')`).get().n;
+  const tasksDone24h = db.prepare(`SELECT COUNT(*) AS n FROM workforce_tasks WHERE completed_at IS NOT NULL AND completed_at >= ?`).get(cutoff).n;
+  const approvalsPending = db.prepare(`SELECT COUNT(*) AS n FROM workforce_approvals WHERE status='pending'`).get().n;
+  res.json({
+    total_agents: WORKFORCE_AGENTS.length,
+    meetings_24h: meetings24h,
+    agent_replies_24h: messages24h,
+    live_meetings: liveMeetings,
+    tasks_open: tasksOpen,
+    tasks_done_24h: tasksDone24h,
+    approvals_pending: approvalsPending,
+  });
+});
+
+// Activity feed (union of recent meetings, tasks, approvals)
+app.get('/api/workforce/activity', requireWorkforce, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 30, 100);
+  const meetings = db.prepare(`SELECT id, type, team_ids, topic, status, created_at FROM agent_meetings ORDER BY created_at DESC LIMIT ?`).all(limit);
+  const tasks = db.prepare(`SELECT id, title, assignee_id, status, updated_at FROM workforce_tasks ORDER BY updated_at DESC LIMIT ?`).all(limit);
+  const approvals = db.prepare(`SELECT id, title, assignee_id, status, decided_at, created_at FROM workforce_approvals ORDER BY COALESCE(decided_at, created_at) DESC LIMIT ?`).all(limit);
+  const items = [
+    ...meetings.map(m => ({ kind: 'meeting', t: m.created_at, ref: m.id, type: m.type, topic: m.topic, status: m.status, team_ids: JSON.parse(m.team_ids) })),
+    ...tasks.map(t => ({ kind: 'task', t: t.updated_at, ref: String(t.id), title: t.title, assignee_id: t.assignee_id, status: t.status })),
+    ...approvals.map(a => ({ kind: 'approval', t: a.decided_at || a.created_at, ref: String(a.id), title: a.title, assignee_id: a.assignee_id, status: a.status })),
+  ].sort((a, b) => b.t - a.t).slice(0, limit);
+  res.json({ items });
+});
+
+// ── Workforce: approvals queue ──────────────────────────────────────────────
+app.get('/api/workforce/approvals', requireWorkforce, (req, res) => {
+  const status = asString(req.query.status, 16);
+  const where = status ? 'WHERE status=?' : '';
+  const args = status ? [status] : [];
+  const rows = db.prepare(`SELECT * FROM workforce_approvals ${where} ORDER BY status='pending' DESC, created_at DESC LIMIT 100`).all(...args);
+  res.json({ approvals: rows });
+});
+
+app.post('/api/workforce/approvals', requireWorkforce, (req, res) => {
+  const title = asString(req.body && req.body.title, 200);
+  const detail = asString(req.body && req.body.detail, 4000);
+  const category = asString(req.body && req.body.category, 32);
+  const amount = parseInt(req.body && req.body.amount_iqd, 10);
+  const requestedBy = asString(req.body && req.body.requested_by, 64);
+  const assigneeId = asString(req.body && req.body.assignee_id, 32);
+  if (!title) return res.status(400).json({ error: 'title required' });
+  if (!assigneeId || !workforceAgentById[assigneeId]) return res.status(400).json({ error: 'invalid assignee_id' });
+  const info = db.prepare(`INSERT INTO workforce_approvals (title, detail, category, amount_iqd, requested_by, assignee_id, status, created_at) VALUES (?,?,?,?,?,?, 'pending', ?)`)
+    .run(title, detail || null, category || null, Number.isFinite(amount) ? amount : null, requestedBy || null, assigneeId, Date.now());
+  res.json({ id: info.lastInsertRowid });
+});
+
+app.post('/api/workforce/approvals/:id/decide', requireWorkforce, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const decision = asString(req.body && req.body.decision, 16);
+  const note = asString(req.body && req.body.note, 1000);
+  if (!['approved', 'rejected'].includes(decision)) return res.status(400).json({ error: 'decision must be approved or rejected' });
+  const row = db.prepare(`SELECT * FROM workforce_approvals WHERE id=?`).get(id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  if (row.status !== 'pending') return res.status(409).json({ error: 'already decided' });
+  db.prepare(`UPDATE workforce_approvals SET status=?, decision_note=?, decided_at=? WHERE id=?`)
+    .run(decision, note || null, Date.now(), id);
+  res.json({ success: true });
+});
+
+// ── Workforce: tasks board ──────────────────────────────────────────────────
+app.get('/api/workforce/tasks', requireWorkforce, (req, res) => {
+  const status = asString(req.query.status, 16);
+  const where = status ? 'WHERE status=?' : '';
+  const args = status ? [status] : [];
+  const rows = db.prepare(`SELECT * FROM workforce_tasks ${where} ORDER BY updated_at DESC LIMIT 200`).all(...args);
+  res.json({ tasks: rows });
+});
+
+app.post('/api/workforce/tasks', requireWorkforce, (req, res) => {
+  const title = asString(req.body && req.body.title, 200);
+  const detail = asString(req.body && req.body.detail, 4000);
+  const assigneeId = asString(req.body && req.body.assignee_id, 32);
+  const delegate = !!(req.body && req.body.delegate);  // if true, automatically start an ask meeting
+  if (!title) return res.status(400).json({ error: 'title required' });
+  const agent = workforceAgentById[assigneeId];
+  if (!agent) return res.status(400).json({ error: 'invalid assignee_id' });
+  const now = Date.now();
+  let meetingId = null;
+  if (delegate) {
+    const team = getAgentTeam(agent.team_id);
+    if (team) {
+      meetingId = insertMeeting('ask', [agent.team_id], `[작업위임] ${title}`);
+      const delegationPrompt = `# 작업 위임\n\n## 제목\n${title}\n\n${detail ? '## 세부\n' + detail + '\n\n' : ''}## 너에게 부탁하는 것\n위 작업의 실행 계획(단계, 데이터 필요, 리스크, 예상 소요)을 ${agent.role_ko} 시각으로 200~300단어로 작성. 자동 실행 금지, 다음 액션 1~2개만 명확히 제안.`;
+      insertMessage(meetingId, 'user', null, delegationPrompt);
+      const built = buildWorkforceAskPrompt(agent, [{ role: 'user', content: delegationPrompt }]);
+      setImmediate(() => processMeetingAsync(meetingId, 'ask', [team], [built]));
+    }
+  }
+  const info = db.prepare(`INSERT INTO workforce_tasks (title, detail, assignee_id, status, meeting_id, created_at, updated_at) VALUES (?,?,?, 'todo', ?, ?, ?)`)
+    .run(title, detail || null, assigneeId, meetingId, now, now);
+  res.json({ id: info.lastInsertRowid, meeting_id: meetingId });
+});
+
+app.post('/api/workforce/tasks/:id/status', requireWorkforce, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const status = asString(req.body && req.body.status, 16);
+  if (!['todo', 'in_progress', 'done', 'cancelled'].includes(status)) return res.status(400).json({ error: 'invalid status' });
+  const row = db.prepare(`SELECT * FROM workforce_tasks WHERE id=?`).get(id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  const now = Date.now();
+  const completedAt = status === 'done' ? now : null;
+  db.prepare(`UPDATE workforce_tasks SET status=?, updated_at=?, completed_at=? WHERE id=?`)
+    .run(status, now, completedAt, id);
+  res.json({ success: true });
+});
+
+app.delete('/api/workforce/tasks/:id', requireWorkforce, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const row = db.prepare(`SELECT id FROM workforce_tasks WHERE id=?`).get(id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  db.prepare(`DELETE FROM workforce_tasks WHERE id=?`).run(id);
+  res.json({ success: true });
+});
+
+// Public list of workforce agents (no auth — also used by admin landing if needed)
+app.get('/api/workforce/agents', requireWorkforce, (_req, res) => {
+  res.json({ agents: WORKFORCE_AGENTS });
 });
 
 // ─── CASHIER AUTH ─────────────────────────────────────────────────────────────

@@ -1,0 +1,59 @@
+/* =============================================================
+   Design tokens — ported from design_handoff_ai_workforce/theme.css
+   Single source of truth for colors, type, radii, motion.
+   Do NOT add component styles here.
+   ============================================================= */
+
+:root {
+  /* ---------- Brand greens (from Mr. Kim's) ---------- */
+  --mk-green:        #367d4d;   /* primary accent */
+  --mk-green-dark:   #285f3b;   /* hover / pressed */
+  --mk-green-light:  #4a9962;   /* gradient stop */
+  --mk-green-glow:   #5dd388;   /* status, eyebrows, live */
+  --mk-green-pale:   #e8f5ee;   /* (rare) tint */
+
+  /* ---------- Dark canvas — 6 levels of black-green ---------- */
+  --ink-0: #07090a;             /* deepest (sidebar, behind) */
+  --ink-1: #0c0f10;             /* page background */
+  --ink-2: #11161a;             /* default surface (cards) */
+  --ink-3: #161c20;             /* elevated surface */
+  --ink-4: #1d2429;             /* hover surface, kbd keys */
+  --ink-5: #2a343a;             /* secondary hairline */
+
+  /* ---------- Hairlines ---------- */
+  --line:        rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.10);
+  --line-green:  rgba(93, 211, 136, 0.20);
+
+  /* ---------- Foreground ---------- */
+  --fg:       #e8efe9;
+  --fg-mid:   #9aa8a0;
+  --fg-soft:  #6c7872;
+  --fg-faint: #4a544f;
+
+  /* ---------- Status ---------- */
+  --st-online:   #5dd388;
+  --st-busy:     #f5a623;
+  --st-thinking: #60a5fa;
+  --st-offline:  #4a544f;
+  --st-danger:   #f47171;
+
+  /* ---------- Type ---------- */
+  --font-sans: 'Nunito', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ---------- Radii ---------- */
+  --r-xs:   6px;
+  --r-sm:   10px;
+  --r-md:   14px;
+  --r-lg:   20px;
+  --r-pill: 9999px;
+
+  /* ---------- Motion ---------- */
+  --ease:  cubic-bezier(0.16, 1, 0.3, 1);
+  --speed: 0.28s;
+
+  /* ---------- Layout shell (used by Sidebar/TopBar in Step 3) ---------- */
+  --sidebar-w: 240px;
+  --topbar-h:  56px;
+}

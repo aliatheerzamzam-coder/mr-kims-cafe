@@ -1,0 +1,12 @@
+export { default as HomeView } from './HomeView';
+export { default as DirectoryView } from './DirectoryView';
+export { default as MeetingsView } from './MeetingsView';
+export { default as OrgView } from './OrgView';
+export { default as TasksView } from './TasksView';
+export { default as ApprovalsView } from './ApprovalsView';
+export { default as KnowledgeView } from './KnowledgeView';
+export { default as IntegrationsView } from './IntegrationsView';
+export { default as HrView } from './HrView';
+export { default as BudgetView } from './BudgetView';
+export { default as AuditView } from './AuditView';
+export { default as LogsView } from './LogsView';

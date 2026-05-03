@@ -3,6 +3,9 @@ node_modules/
 *.db-wal
 *.db-shm
 .env
+.env.local
 package-lock.json
 server.log
 *.code-workspace
+.claude/reports/
+test-results/

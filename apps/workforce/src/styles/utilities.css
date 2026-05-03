@@ -1,0 +1,119 @@
+/* =============================================================
+   Utilities — small, composable classes
+   ============================================================= */
+
+/* Mono with tabular figures (numbers, IDs, timestamps) */
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+}
+
+/* Eyebrow — uppercase mono caption above section headings */
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mk-green-glow);
+  font-family: var(--font-mono);
+}
+.eyebrow-mid { color: var(--fg-mid); }
+
+/* Slash pair — bilingual KO / EN label */
+.slash {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.slash > .en {
+  color: var(--fg-mid);
+  font-weight: 600;
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+.slash > .sep {
+  color: var(--fg-faint);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+/* Faint divider */
+.hr {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: 14px 0;
+}
+
+/* Hover lift (apply to .card.lift etc.) */
+.lift {
+  transition:
+    transform var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    background var(--speed) var(--ease);
+}
+.lift:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
+}
+
+/* Scan-line effect — subtle terminal warmth overlay */
+.scan { position: relative; }
+.scan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 50%,
+    rgba(255, 255, 255, 0.015) 50%,
+    rgba(255, 255, 255, 0.015) 100%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Entry animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slideUp 0.4s var(--ease) both; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in { animation: fadeIn 0.35s var(--ease) both; }
+
+/* Terminal caret blink */
+@keyframes caretBlink {
+  0%, 50%      { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+.caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  vertical-align: -0.15em;
+  background: var(--mk-green-glow);
+  animation: caretBlink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+/* Status dot pulse — used by .status-dot.thinking in primitives.css */
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.04); transform: scale(0.85); }
+}
+
+/* Right-edge slide-in (chat panel, slide-overs) */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.slide-in-right { animation: slideInRight 0.3s var(--ease) both; }

@@ -1,0 +1,6 @@
+/* Order matters: tokens → base → utilities → primitives.
+   Components/views import this single file once via main.tsx. */
+@import './tokens.css';
+@import './base.css';
+@import './utilities.css';
+@import './primitives.css';
