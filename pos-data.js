@@ -123,37 +123,62 @@ window.MK_DATA = (function(){
   // ---------- FLOORS ----------
   const SEED_FLOORS = [
     {id:'F1', name_en:'1st Floor',   name_ar:'الطابق الأول'},
-    {id:'SR', name_en:'Study Room',  name_ar:'غرفة الدراسة'},
     {id:'F2', name_en:'2nd Floor',   name_ar:'الطابق الثاني'}
   ];
 
   // ---------- TABLES (floor map) ----------
+  // Layout based on architectural blueprint: 1st floor = multi-zone, 2nd floor = open seating
   const SEED_TABLES = [
-    // 1st Floor
-    {id:'T01', seats:2, x:60,  y:60,  shape:'round',  floor:'F1'},
-    {id:'T02', seats:2, x:60,  y:180, shape:'round',  floor:'F1'},
-    {id:'T03', seats:4, x:220, y:60,  shape:'square', floor:'F1'},
-    {id:'T04', seats:4, x:220, y:210, shape:'square', floor:'F1'},
-    {id:'T05', seats:6, x:420, y:60,  shape:'rect',   floor:'F1'},
-    {id:'T06', seats:6, x:420, y:220, shape:'rect',   floor:'F1'},
-    {id:'T07', seats:2, x:680, y:60,  shape:'round',  floor:'F1'},
-    {id:'T08', seats:2, x:680, y:170, shape:'round',  floor:'F1'},
-    {id:'T09', seats:4, x:680, y:280, shape:'square', floor:'F1'},
-    {id:'B01', seats:1, x:60,  y:320, shape:'bar',   label:'Bar',   floor:'F1'},
-    {id:'B02', seats:1, x:120, y:320, shape:'bar',   label:'Bar',   floor:'F1'},
-    {id:'B03', seats:1, x:180, y:320, shape:'bar',   label:'Bar',   floor:'F1'},
-    {id:'P01', seats:4, x:820, y:60,  shape:'square',label:'Patio', floor:'F1'},
-    {id:'P02', seats:4, x:820, y:220, shape:'square',label:'Patio', floor:'F1'},
-    // Study Room
-    {id:'SA01', seats:1, x:80,  y:80,  shape:'square', floor:'SR'},
-    {id:'SA02', seats:1, x:200, y:80,  shape:'square', floor:'SR'},
-    {id:'KA01', seats:4, x:400, y:80,  shape:'square', label:'Kids', floor:'SR'},
-    {id:'VIP1', seats:6, x:600, y:80,  shape:'rect',   label:'VIP',  floor:'SR'},
-    // 2nd Floor
-    {id:'F201', seats:2,  x:80,  y:80,  shape:'round',  floor:'F2'},
-    {id:'F202', seats:2,  x:200, y:80,  shape:'round',  floor:'F2'},
-    {id:'F203', seats:4,  x:380, y:80,  shape:'square', floor:'F2'},
-    {id:'F204', seats:10, x:600, y:80,  shape:'rect',   label:'Board', floor:'F2'}
+    // === 1st Floor ===
+    // Top bar counter (long horizontal bar with stools)
+    {id:'B01', seats:1, x:60,  y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B02', seats:1, x:130, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B03', seats:1, x:200, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B04', seats:1, x:270, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B05', seats:1, x:340, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B06', seats:1, x:410, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B07', seats:1, x:480, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    {id:'B08', seats:1, x:550, y:20,  shape:'bar', label:'Bar', floor:'F1'},
+    // Community round table (upper center)
+    {id:'T01', seats:8, x:640, y:80,  shape:'round', label:'Community', floor:'F1'},
+    // Right wall bar tables
+    {id:'T02', seats:4, x:950, y:30,  shape:'rect', label:'Window', floor:'F1'},
+    {id:'T03', seats:4, x:950, y:160, shape:'rect', label:'Window', floor:'F1'},
+    {id:'T04', seats:4, x:950, y:290, shape:'rect', label:'Window', floor:'F1'},
+    // Entrance lounge (middle area)
+    {id:'T05', seats:4, x:740, y:240, shape:'square', label:'Lounge', floor:'F1'},
+    {id:'T06', seats:4, x:840, y:240, shape:'square', label:'Lounge', floor:'F1'},
+    // Library (left center)
+    {id:'L01', seats:4, x:170, y:180, shape:'round', label:'Library', floor:'F1'},
+    // Kids area (right middle)
+    {id:'K01', seats:4, x:620, y:380, shape:'square', label:'Kids', floor:'F1'},
+    {id:'K02', seats:4, x:720, y:380, shape:'square', label:'Kids', floor:'F1'},
+    {id:'K03', seats:4, x:820, y:380, shape:'square', label:'Kids', floor:'F1'},
+    // Study areas (left side)
+    {id:'SA01', seats:8, x:30, y:320, shape:'rect', label:'Study A', floor:'F1'},
+    {id:'SA02', seats:8, x:30, y:470, shape:'rect', label:'Study B', floor:'F1'},
+    // Office team (bottom)
+    {id:'OT01', seats:8, x:280, y:540, shape:'rect', label:'Office', floor:'F1'},
+
+    // === 2nd Floor ===
+    // Top long conference table
+    {id:'F201', seats:8, x:200, y:30,  shape:'rect', label:'Conference', floor:'F2'},
+    // Right side 3 square tables
+    {id:'F202', seats:4, x:920, y:60,  shape:'square', floor:'F2'},
+    {id:'F203', seats:4, x:920, y:180, shape:'square', floor:'F2'},
+    {id:'F204', seats:4, x:920, y:300, shape:'square', floor:'F2'},
+    // Center round table
+    {id:'F205', seats:6, x:420, y:200, shape:'round', label:'Round', floor:'F2'},
+    // Left wall window seats
+    {id:'F206', seats:1, x:30, y:80,  shape:'bar', label:'Window', floor:'F2'},
+    {id:'F207', seats:1, x:30, y:140, shape:'bar', label:'Window', floor:'F2'},
+    {id:'F208', seats:1, x:30, y:200, shape:'bar', label:'Window', floor:'F2'},
+    {id:'F209', seats:1, x:30, y:260, shape:'bar', label:'Window', floor:'F2'},
+    {id:'F210', seats:1, x:30, y:320, shape:'bar', label:'Window', floor:'F2'},
+    {id:'F211', seats:1, x:30, y:380, shape:'bar', label:'Window', floor:'F2'},
+    // Bottom small tables
+    {id:'F212', seats:3, x:300, y:440, shape:'square', floor:'F2'},
+    {id:'F213', seats:3, x:460, y:440, shape:'square', floor:'F2'}
   ];
 
   function _loadArr(key,seed){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):seed.map(x=>({...x})); }catch(e){ return seed.map(x=>({...x})); } }
@@ -163,6 +188,56 @@ window.MK_DATA = (function(){
   const FLOORS = _loadArr('mk_floors', SEED_FLOORS);
   function saveTables(){ _saveArr('mk_tables', TABLES); }
   function saveFloors(){ _saveArr('mk_floors', FLOORS); }
+  function resetTablesToSeed(){
+    TABLES.length = 0;
+    SEED_TABLES.forEach(t => TABLES.push({...t}));
+    saveTables();
+  }
+  function resetFloorsToSeed(){
+    FLOORS.length = 0;
+    SEED_FLOORS.forEach(f => FLOORS.push({...f}));
+    saveFloors();
+  }
+
+  // One-time auto-seed: Study room floor → S4+ chair tables
+  (function _autoSeedStudyChairs(){
+    try{
+      const studyFloor = FLOORS.find(f =>
+        (f.name_en && /study/i.test(f.name_en)) ||
+        (f.name_ar && /دراسة/.test(f.name_ar))
+      );
+      if(!studyFloor) return;
+      const fid = studyFloor.id;
+      if(TABLES.some(t => t.floor === fid && t.id === 'S4')) return;
+      const positions = [
+        {x:705, y:70},   // top-right near wall
+        {x:870, y:80},   // right cluster
+        {x:845, y:165},
+        {x:885, y:190},
+        {x:810, y:205},
+        {x:875, y:230},
+        {x:185, y:210},  // mid-left below wall opening
+        {x:340, y:315},  // center
+        {x:465, y:275},
+        {x:465, y:320},
+        {x:90, y:295},   // left vertical column
+        {x:90, y:350},
+        {x:90, y:430},
+        {x:80, y:485},
+        {x:80, y:540},
+        {x:255, y:415},  // center-bottom column
+        {x:255, y:470},
+        {x:260, y:520},
+        {x:260, y:575}
+      ];
+      let n = 4;
+      positions.forEach(p => {
+        TABLES.push({id:'S'+n, seats:1, x:p.x, y:p.y, shape:'square', floor:fid});
+        n++;
+      });
+      saveTables();
+    }catch(e){}
+  })();
 
   // ---------- CUSTOMERS (loyalty) ----------
   const CUSTOMERS = [
@@ -194,50 +269,103 @@ window.MK_DATA = (function(){
     {id:'P-9102', name:'Omar J.', phone:'+9647700003002', at: dstr(today,14,25), items:[{sku:'I001',q:2}], status:'pending', total:7000}
   ];
 
-  // ---------- TRANSACTIONS (historical — for reports) ----------
-  // Simulate a day of data
-  const seedTxns = () => {
-    const out=[];
-    let idN=0;
-    const daysBack = 7;
-    const randInt = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
-    for(let d=daysBack; d>=0; d--){
-      const date = new Date();
-      date.setDate(date.getDate()-d);
-      const ordersPerDay = d===0 ? randInt(18,35) : randInt(55,95);
-      for(let i=0;i<ordersPerDay;i++){
-        date.setHours(randInt(7,22), randInt(0,59), randInt(0,59));
-        const linesN = randInt(1,4);
-        const lines=[];
-        let sub=0;
-        for(let j=0;j<linesN;j++){
-          const it = MENU[randInt(0, MENU.length-1)];
-          if(it.out) continue;
-          const q = randInt(1,3);
-          const price = it.p + randInt(0,2)*500;
-          lines.push({sku:it.sku, name:it.en, q, price, total:price*q});
-          sub += price*q;
-        }
-        if(!lines.length) continue;
-        const tax = Math.round(sub*0.1);
-        const pm = ['cash','card','zain','switch','stamp'][randInt(0,4)];
-        idN++;
-        out.push({
-          id:'TX-'+String(24000+idN).padStart(5,'0'),
-          at: new Date(date).toISOString(),
-          type: ['dine','take','deli','pickup'][randInt(0,3)],
-          table: randInt(0,1) ? 'T0'+randInt(1,9) : null,
-          cashier: ['Ahmed','Fatima','Omar'][randInt(0,2)],
-          lines, sub, tax, total:sub+tax,
-          payment:pm,
-          customerId: randInt(0,3)===0 ? 'L-100'+randInt(1,8) : null
-        });
-      }
+  // ---------- TRANSACTIONS (historical — loaded from server) ----------
+  // No fake seeding. TXNS is filled by loadTxns() from /api/orders.
+  const TXNS = [];
+
+  // Map server order row → POS TXN shape used by pos-views renderReports().
+  function mapServerOrderToTxn(o){
+    if(!o) return null;
+    const lines = (o.items || []).map(it => ({
+      sku: it.key || it.sku || '',
+      name: it.name || '',
+      q: it.qty || it.q || 1,
+      price: it.price || 0,
+      total: (it.price || 0) * (it.qty || it.q || 1),
+      opts: it.opts || null
+    }));
+    const sub = lines.reduce((s,l)=>s+l.total, 0);
+    return {
+      id: o.id || ('SRV-'+(o.timestamp||Date.now())),
+      at: o.timestamp ? new Date(o.timestamp).toISOString() : new Date().toISOString(),
+      type: o.type || 'dine',
+      table: o.tableNum || o.table || null,
+      cashier: o.cashier_name || o.cashierName || '',
+      lines,
+      sub,
+      tax: o.tax || 0,
+      total: o.total || sub,
+      payment: (o.payment || 'cash').toLowerCase(),
+      customerId: o.customer_id || o.customerId || null,
+      status: o.status || 'done',
+      refunded: !!(o.refunded || o.status === 'cancelled')
+    };
+  }
+
+  // Map server ingredient row to client INV shape used by reports view.
+  // Server is authoritative; client never mutates qty/min directly — edits go through PATCH.
+  function mapServerIngredient(row){
+    if (!row || row.id == null) return null;
+    return {
+      id:   row.id,
+      k:    'i' + row.id,
+      ar:   row.name_ar || row.name_ko || '',
+      en:   row.name_ko || row.name_ar || '',
+      unit: row.unit || '',
+      qty:  Number(row.current_qty) || 0,
+      min:  Number(row.min_qty) || 0,
+      cost: Number(row.cost_per_unit) || 0,
+      origin:       row.origin || null,
+      marketName:   row.market_name || null,
+      qtyPerBox:    row.qty_per_box != null ? Number(row.qty_per_box) : null,
+      numBoxes:     row.num_boxes != null ? Number(row.num_boxes) : null,
+      marketPrice:  row.market_price != null ? Number(row.market_price) : null,
+      receivedDate: row.received_date || null,
+      imagePath:    row.image_path || null,
+      supplierId:   row.supplier_id != null ? Number(row.supplier_id) : null,
+      supplierName: row.supplier_name || null,
+      supplierPhone: row.supplier_phone || null
+    };
+  }
+
+  // Pull current inventory from server. Replaces INV in place so existing
+  // bindings (renderInv, exports) keep pointing at the same array.
+  async function loadInventory(headers = {}){
+    try {
+      const r = await fetch('/api/ingredients', { headers });
+      if (!r.ok) return INV;
+      const rows = await r.json();
+      const mapped = Array.isArray(rows) ? rows.map(mapServerIngredient).filter(Boolean) : [];
+      INV.length = 0;
+      mapped.forEach(x => INV.push(x));
+    } catch (_) { /* keep prior INV on failure */ }
+    return INV;
+  }
+
+  // Fetch the last N days of completed orders from the server.
+  // Cashier auth header is injected by the caller (cashier.html ships cashierHeaders).
+  async function loadTxns(daysBack = 7, headers = {}){
+    const out = [];
+    const today = new Date();
+    for (let d = 0; d <= daysBack; d++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() - d);
+      const yyyy = day.getFullYear();
+      const mm = String(day.getMonth()+1).padStart(2,'0');
+      const dd = String(day.getDate()).padStart(2,'0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      try {
+        const r = await fetch(`/api/orders?date=${dateStr}`, { headers });
+        if (!r.ok) continue;
+        const rows = await r.json();
+        rows.forEach(o => { const t = mapServerOrderToTxn(o); if (t) out.push(t); });
+      } catch (_) { /* swallow per-day fetch errors; partial reports better than none */ }
     }
-    return out;
-  };
+    out.sort((a,b)=> (b.at||'').localeCompare(a.at||''));
+    TXNS.length = 0;
+    out.forEach(t => TXNS.push(t));
+    return TXNS;
+  }
 
-  const TXNS = seedTxns();
-
-  return { CATS, OPTIONS, MENU, INV, TABLES, FLOORS, CUSTOMERS, RESERVATIONS, PICKUPS, TXNS, applicableOptions, saveTables, saveFloors };
+  return { CATS, OPTIONS, MENU, INV, TABLES, FLOORS, CUSTOMERS, RESERVATIONS, PICKUPS, TXNS, loadTxns, loadInventory, applicableOptions, saveTables, saveFloors, resetTablesToSeed, resetFloorsToSeed };
 })();

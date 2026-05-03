@@ -9,6 +9,7 @@ const https = require('https');
 const QRCode = require('qrcode');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
 
 // ─── أداة تشفير كلمة المرور (bcrypt، دعم SHA-256 القديم) ─────────────────────
 const BCRYPT_ROUNDS = 10;
@@ -62,6 +63,13 @@ const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH
   ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'cafe-warehouse.db')
   : path.join(__dirname, 'cafe-warehouse.db');
+
+// ─── دليل تحميل الصور (Railway Volume أو محلي) ───────────────────────────────
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  || (process.env.RAILWAY_VOLUME_MOUNT_PATH
+    ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'uploads')
+    : path.join(__dirname, 'uploads'));
+try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (_) { }
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -261,6 +269,49 @@ try { db.exec('ALTER TABLE ingredients ADD COLUMN expiry_date TEXT'); } catch (_
 try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier TEXT'); } catch (_) { }
 try { db.exec("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'cashier'"); } catch (_) { }
 
+// ─── جدول الموردين (suppliers) ────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS suppliers (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL UNIQUE,
+    contact_person  TEXT,
+    phone           TEXT,
+    whatsapp        TEXT,
+    address         TEXT,
+    note            TEXT,
+    created_at      INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000)
+  );
+`);
+
+// ─── أعمدة جديدة لجدول المواد (ingredients) ──────────────────────────────────
+try { db.exec('ALTER TABLE ingredients ADD COLUMN origin TEXT'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN market_name TEXT'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN qty_per_box REAL'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN num_boxes REAL'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN market_price REAL'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN received_date TEXT'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN image_path TEXT'); } catch (_) { }
+try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL'); } catch (_) { }
+
+// ─── ترحيل: الموردون النصيون القدماء → جدول suppliers ─────────────────────────
+try {
+  const legacy = db.prepare(
+    "SELECT DISTINCT TRIM(supplier) AS name FROM ingredients WHERE supplier IS NOT NULL AND TRIM(supplier) != ''"
+  ).all();
+  const ins = db.prepare('INSERT OR IGNORE INTO suppliers (name) VALUES (?)');
+  const upd = db.prepare(
+    'UPDATE ingredients SET supplier_id=(SELECT id FROM suppliers WHERE name=?) WHERE supplier_id IS NULL AND TRIM(supplier)=?'
+  );
+  const tx = db.transaction((rows) => {
+    for (const r of rows) {
+      if (!r.name) continue;
+      ins.run(r.name);
+      upd.run(r.name, r.name);
+    }
+  });
+  tx(legacy);
+} catch (e) { console.error('[Migration] supplier text→table failed:', e.message); }
+
 // Migration: size_recipes — menu_item UNIQUE → UNIQUE(menu_item, ingredient_id)
 try {
   const tbl = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='size_recipes'").get();
@@ -369,6 +420,111 @@ try {
 } catch (e) {
   console.error('[Migration] ingredient_locations failed:', e.message);
 }
+
+// ─── Purchase Orders / Receipts / Stock Counts / Profit history ──────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS purchase_orders (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    po_number     TEXT NOT NULL UNIQUE,
+    supplier_id   INTEGER REFERENCES suppliers(id) ON DELETE SET NULL,
+    status        TEXT NOT NULL DEFAULT 'draft',
+    notes         TEXT,
+    expected_date TEXT,
+    total_amount  REAL NOT NULL DEFAULT 0,
+    created_by    TEXT,
+    submitted_at  INTEGER,
+    approved_by   TEXT,
+    approved_at   INTEGER,
+    cancelled_at  INTEGER,
+    created_at    INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+    updated_at    INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_po_status   ON purchase_orders(status);
+  CREATE INDEX IF NOT EXISTS idx_po_supplier ON purchase_orders(supplier_id);
+
+  CREATE TABLE IF NOT EXISTS purchase_order_items (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    po_id         INTEGER NOT NULL,
+    ingredient_id INTEGER NOT NULL,
+    ordered_qty   REAL NOT NULL,
+    received_qty  REAL NOT NULL DEFAULT 0,
+    unit_cost     REAL NOT NULL DEFAULT 0,
+    line_total    REAL NOT NULL DEFAULT 0,
+    FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE RESTRICT
+  );
+  CREATE INDEX IF NOT EXISTS idx_po_items_po  ON purchase_order_items(po_id);
+  CREATE INDEX IF NOT EXISTS idx_po_items_ing ON purchase_order_items(ingredient_id);
+
+  CREATE TABLE IF NOT EXISTS goods_receipts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    po_id       INTEGER NOT NULL,
+    received_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+    received_by TEXT,
+    notes       TEXT,
+    FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_gr_po ON goods_receipts(po_id);
+
+  CREATE TABLE IF NOT EXISTS goods_receipt_items (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    receipt_id    INTEGER NOT NULL,
+    po_item_id    INTEGER NOT NULL,
+    ingredient_id INTEGER NOT NULL,
+    qty           REAL NOT NULL,
+    location_code TEXT NOT NULL DEFAULT 'UNSET',
+    FOREIGN KEY (receipt_id) REFERENCES goods_receipts(id) ON DELETE CASCADE,
+    FOREIGN KEY (po_item_id) REFERENCES purchase_order_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE RESTRICT
+  );
+  CREATE INDEX IF NOT EXISTS idx_gri_receipt ON goods_receipt_items(receipt_id);
+
+  CREATE TABLE IF NOT EXISTS stock_counts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    count_name    TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'open',
+    notes         TEXT,
+    started_by    TEXT,
+    submitted_at  INTEGER,
+    reconciled_by TEXT,
+    reconciled_at INTEGER,
+    total_variance_value REAL NOT NULL DEFAULT 0,
+    created_at    INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_sc_status ON stock_counts(status);
+
+  CREATE TABLE IF NOT EXISTS stock_count_items (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    count_id        INTEGER NOT NULL,
+    ingredient_id   INTEGER NOT NULL,
+    expected_qty    REAL NOT NULL DEFAULT 0,
+    counted_qty     REAL,
+    variance_qty    REAL,
+    variance_value  REAL,
+    notes           TEXT,
+    UNIQUE(count_id, ingredient_id),
+    FOREIGN KEY (count_id) REFERENCES stock_counts(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_sci_count ON stock_count_items(count_id);
+
+  CREATE TABLE IF NOT EXISTS menu_price_history (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    menu_item     TEXT NOT NULL,
+    selling_price REAL NOT NULL,
+    recorded_at   INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_mph_menu ON menu_price_history(menu_item);
+
+  CREATE TABLE IF NOT EXISTS ingredient_cost_history (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    ingredient_id INTEGER NOT NULL,
+    cost_per_unit REAL NOT NULL,
+    recorded_at   INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_ich_ing ON ingredient_cost_history(ingredient_id);
+`);
 
 // Recalculate ingredients.current_qty from the sum of its location rows.
 // Treat ingredient_locations.qty as the source of truth and keep current_qty as a cache.
@@ -490,6 +646,7 @@ function requireWorkforce(req, res, next) {
   }
   // Sliding TTL
   db.prepare('UPDATE workforce_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
+  req.workforceToken = token;
   next();
 }
 
@@ -616,11 +773,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://cloudflareinsights.com"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com"],
@@ -637,6 +794,33 @@ app.use(express.static(path.join(__dirname), {
     }
   }
 }));
+
+// ─── خدمة الصور المرفوعة ─────────────────────────────────────────────────────
+app.use('/uploads', express.static(UPLOAD_DIR, {
+  fallthrough: false,
+  maxAge: '7d',
+}));
+
+// ─── multer لرفع صور المنتجات ────────────────────────────────────────────────
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MIME_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const ingredientImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = MIME_EXT[file.mimetype] || 'bin';
+      const ingId = parseInt(req.params.id, 10) || 'new';
+      const stamp = Date.now();
+      const rand = crypto.randomBytes(4).toString('hex');
+      cb(null, `ingredient-${ingId}-${stamp}-${rand}.${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_IMAGE_MIME.has(file.mimetype)) cb(null, true);
+    else cb(new Error('UNSUPPORTED_MIME'));
+  },
+});
 
 // ─── /workforce — AI Workforce Office SPA (apps/workforce/dist) ──────────────
 // Static assets first, then SPA catch-all so deep links (/workforce/approvals etc.)
@@ -668,6 +852,15 @@ app.get('/admin', (req, res) => {
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+});
+
+const workforceLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -740,7 +933,7 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
 });
 
 // ─── WORKFORCE AUTH (AI Workforce Office) ────────────────────────────────────
-app.post('/api/workforce/auth/login', loginLimiter, (req, res) => {
+app.post('/api/workforce/auth/login', workforceLoginLimiter, (req, res) => {
   const stored = db.prepare("SELECT value FROM settings WHERE key='workforce_pw'").get();
   if (!stored) {
     return res.status(503).json({
@@ -789,6 +982,20 @@ db.prepare(`CREATE TABLE IF NOT EXISTS workforce_approvals (
   decided_at   INTEGER
 )`).run();
 db.prepare(`CREATE INDEX IF NOT EXISTS idx_wf_approvals_status ON workforce_approvals(status, created_at)`).run();
+// Add created_by_token column if it doesn't exist (for permission isolation)
+db.prepare(`PRAGMA table_info(workforce_approvals)`).all().forEach(col => {
+  if (col.name === 'created_by_token') return;
+});
+const appColInfo = db.prepare(`PRAGMA table_info(workforce_approvals)`).all();
+if (!appColInfo.find(c => c.name === 'created_by_token')) {
+  db.prepare(`ALTER TABLE workforce_approvals ADD COLUMN created_by_token TEXT`).run();
+}
+
+// Add created_by_token column to agent_meetings if it doesn't exist
+const mtgColInfo = db.prepare(`PRAGMA table_info(agent_meetings)`).all();
+if (mtgColInfo.length > 0 && !mtgColInfo.find(c => c.name === 'created_by_token')) {
+  db.prepare(`ALTER TABLE agent_meetings ADD COLUMN created_by_token TEXT`).run();
+}
 
 db.prepare(`CREATE TABLE IF NOT EXISTS workforce_tasks (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -919,7 +1126,7 @@ app.post('/api/workforce/meeting/start', requireWorkforce, (req, res) => {
   const agentIds = Array.isArray(req.body && req.body.agent_ids) ? req.body.agent_ids.map(s => asString(s, 32)).filter(Boolean) : [];
   const topic = asString(req.body && req.body.topic, 2000);
   if (agentIds.length < 2) return res.status(400).json({ error: 'at least 2 agent_ids' });
-  if (agentIds.length > 8) return res.status(400).json({ error: 'max 8 agents' });
+  if (agentIds.length > 6) return res.status(400).json({ error: 'max 6 agents' });
   if (!topic) return res.status(400).json({ error: 'topic required' });
   const agents = agentIds.map(id => workforceAgentById[id]).filter(Boolean);
   if (agents.length !== agentIds.length) return res.status(400).json({ error: 'invalid agent_id in list' });
@@ -927,7 +1134,7 @@ app.post('/api/workforce/meeting/start', requireWorkforce, (req, res) => {
   const teamIds = [...new Set(agents.map(a => a.team_id))];
   const teams = teamIds.map(getAgentTeam);
   if (teams.some(t => !t)) return res.status(400).json({ error: 'team mapping broken' });
-  const meetingId = insertMeeting('multi', teamIds, topic);
+  const meetingId = insertMeeting('multi', teamIds, topic, req.workforceToken);
   insertMessage(meetingId, 'user', null, topic);
   const built = teams.map(t => buildMeetingPrompt(t, topic, teams));
   setImmediate(() => processMeetingAsync(meetingId, 'multi', teams, built));
@@ -937,7 +1144,7 @@ app.post('/api/workforce/meeting/start', requireWorkforce, (req, res) => {
 // List recent meetings (across both ask + multi)
 app.get('/api/workforce/meetings', requireWorkforce, (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
-  const rows = db.prepare(`SELECT id, type, team_ids, topic, status, created_at, updated_at FROM agent_meetings ORDER BY created_at DESC LIMIT ?`).all(limit);
+  const rows = db.prepare(`SELECT id, type, team_ids, topic, status, created_at, updated_at, created_by_token FROM agent_meetings WHERE created_by_token = ? ORDER BY created_at DESC LIMIT ?`).all(req.workforceToken, limit);
   res.json({
     meetings: rows.map(r => ({
       id: r.id,
@@ -947,6 +1154,7 @@ app.get('/api/workforce/meetings', requireWorkforce, (req, res) => {
       status: r.status,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      created_by_token: r.created_by_token,
     })),
   });
 });
@@ -989,8 +1197,8 @@ app.get('/api/workforce/activity', requireWorkforce, (req, res) => {
 // ── Workforce: approvals queue ──────────────────────────────────────────────
 app.get('/api/workforce/approvals', requireWorkforce, (req, res) => {
   const status = asString(req.query.status, 16);
-  const where = status ? 'WHERE status=?' : '';
-  const args = status ? [status] : [];
+  const where = status ? 'WHERE created_by_token=? AND status=?' : 'WHERE created_by_token=?';
+  const args = status ? [req.workforceToken, status] : [req.workforceToken];
   const rows = db.prepare(`SELECT * FROM workforce_approvals ${where} ORDER BY status='pending' DESC, created_at DESC LIMIT 100`).all(...args);
   res.json({ approvals: rows });
 });
@@ -1004,8 +1212,8 @@ app.post('/api/workforce/approvals', requireWorkforce, (req, res) => {
   const assigneeId = asString(req.body && req.body.assignee_id, 32);
   if (!title) return res.status(400).json({ error: 'title required' });
   if (!assigneeId || !workforceAgentById[assigneeId]) return res.status(400).json({ error: 'invalid assignee_id' });
-  const info = db.prepare(`INSERT INTO workforce_approvals (title, detail, category, amount_iqd, requested_by, assignee_id, status, created_at) VALUES (?,?,?,?,?,?, 'pending', ?)`)
-    .run(title, detail || null, category || null, Number.isFinite(amount) ? amount : null, requestedBy || null, assigneeId, Date.now());
+  const info = db.prepare(`INSERT INTO workforce_approvals (title, detail, category, amount_iqd, requested_by, assignee_id, status, created_at, created_by_token) VALUES (?,?,?,?,?,?, 'pending', ?, ?)`)
+    .run(title, detail || null, category || null, Number.isFinite(amount) ? amount : null, requestedBy || null, assigneeId, Date.now(), req.workforceToken);
   res.json({ id: info.lastInsertRowid });
 });
 
@@ -1820,7 +2028,13 @@ function inferCategory(name) {
 const CATEGORY_ORDER = ['시럽', '소스', '스무디', '파우더', '과육', '기타'];
 
 app.get('/api/ingredients', requireAuth, (req, res) => {
-  const rows = db.prepare('SELECT * FROM ingredients ORDER BY category, name_ko').all();
+  const rows = db.prepare(
+    `SELECT i.*, s.name AS supplier_name, s.phone AS supplier_phone,
+            s.whatsapp AS supplier_whatsapp, s.contact_person AS supplier_contact_person
+     FROM ingredients i
+     LEFT JOIN suppliers s ON s.id = i.supplier_id
+     ORDER BY i.category, i.name_ko`
+  ).all();
   const locs = db.prepare(
     'SELECT id, ingredient_id, location_code, qty FROM ingredient_locations ORDER BY location_code'
   ).all();
@@ -1830,6 +2044,70 @@ app.get('/api/ingredients', requireAuth, (req, res) => {
     byIng.get(l.ingredient_id).push({ id: l.id, location_code: l.location_code, qty: l.qty });
   }
   res.json(rows.map(r => ({ ...r, locations: byIng.get(r.id) || [] })));
+});
+
+// ─── SUPPLIERS API ────────────────────────────────────────────────────────────
+app.get('/api/suppliers', requireAuth, (_req, res) => {
+  const rows = db.prepare('SELECT * FROM suppliers ORDER BY name COLLATE NOCASE').all();
+  res.json(rows);
+});
+
+app.post('/api/suppliers', requireAuth, (req, res) => {
+  const name = String(req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'أدخل اسم المورد' });
+  const contact_person = (req.body.contact_person || '').trim() || null;
+  const phone = (req.body.phone || '').trim() || null;
+  const whatsapp = (req.body.whatsapp || '').trim() || null;
+  const address = (req.body.address || '').trim() || null;
+  const note = (req.body.note || '').trim() || null;
+  try {
+    const r = db.prepare(
+      'INSERT INTO suppliers (name, contact_person, phone, whatsapp, address, note) VALUES (?,?,?,?,?,?)'
+    ).run(name, contact_person, phone, whatsapp, address, note);
+    res.json({ success: true, id: r.lastInsertRowid });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) {
+      return res.status(409).json({ error: 'اسم المورد موجود مسبقاً' });
+    }
+    return res.status(500).json({ error: 'فشل حفظ المورد' });
+  }
+});
+
+app.put('/api/suppliers/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'معرّف غير صالح' });
+  const existing = db.prepare('SELECT id FROM suppliers WHERE id=?').get(id);
+  if (!existing) return res.status(404).json({ error: 'المورد غير موجود' });
+  const name = String(req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'أدخل اسم المورد' });
+  try {
+    db.prepare(
+      'UPDATE suppliers SET name=?, contact_person=?, phone=?, whatsapp=?, address=?, note=? WHERE id=?'
+    ).run(
+      name,
+      (req.body.contact_person || '').trim() || null,
+      (req.body.phone || '').trim() || null,
+      (req.body.whatsapp || '').trim() || null,
+      (req.body.address || '').trim() || null,
+      (req.body.note || '').trim() || null,
+      id
+    );
+    res.json({ success: true });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) {
+      return res.status(409).json({ error: 'اسم المورد موجود مسبقاً' });
+    }
+    return res.status(500).json({ error: 'فشل تحديث المورد' });
+  }
+});
+
+app.delete('/api/suppliers/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'معرّف غير صالح' });
+  const existing = db.prepare('SELECT id FROM suppliers WHERE id=?').get(id);
+  if (!existing) return res.status(404).json({ error: 'المورد غير موجود' });
+  db.prepare('DELETE FROM suppliers WHERE id=?').run(id);
+  res.json({ success: true });
 });
 
 // ─── INGREDIENT LOCATIONS ─────────────────────────────────────────────────────
@@ -1897,15 +2175,60 @@ app.delete('/api/ingredient-locations/:id', requireAuth, (req, res) => {
   res.json({ success: true, current_qty: total });
 });
 
+// مساعد: حساب الكمية الإجمالية. لو qty_per_box و num_boxes كلاهما موجود → ضرب،
+// وإلا نستخدم current_qty المُدخَل يدوياً.
+function computeTotalQty({ qty_per_box, num_boxes, current_qty }) {
+  const qpb = Number(qty_per_box);
+  const nb = Number(num_boxes);
+  if (Number.isFinite(qpb) && qpb > 0 && Number.isFinite(nb) && nb > 0) {
+    return qpb * nb;
+  }
+  const cq = Number(current_qty);
+  return Number.isFinite(cq) && cq >= 0 ? cq : 0;
+}
+
+function nullableNum(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function nullableInt(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = parseInt(v, 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 app.post('/api/ingredients', requireAuth, (req, res) => {
-  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
+  const {
+    name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit,
+    category: bodyCategory, capacity_ml, expiry_date, supplier,
+    origin, market_name, qty_per_box, num_boxes, market_price,
+    received_date, image_path, supplier_id,
+  } = req.body;
   if (!name_ko || !unit) return res.status(400).json({ error: 'أدخل الاسم والوحدة' });
   const category = (bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko);
-  const initialQty = Number(current_qty ?? 0) || 0;
+  const initialQty = computeTotalQty({ qty_per_box, num_boxes, current_qty });
+  const sid = nullableInt(supplier_id);
   const tx = db.transaction(() => {
     const r = db.prepare(
-      'INSERT INTO ingredients (name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category, capacity_ml, expiry_date, supplier) VALUES (?,?,?,?,?,?,?,?,?,?)'
-    ).run(name_ko, name_ar || '', unit, 0, min_qty ?? 1, cost_per_unit ?? 0, category, capacity_ml ?? 0, expiry_date || null, supplier || null);
+      `INSERT INTO ingredients (
+        name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category,
+        capacity_ml, expiry_date, supplier,
+        origin, market_name, qty_per_box, num_boxes, market_price,
+        received_date, image_path, supplier_id
+      ) VALUES (?,?,?,?,?,?,?, ?,?,?, ?,?,?,?,?, ?,?,?)`
+    ).run(
+      name_ko, name_ar || '', unit, 0, min_qty ?? 1, cost_per_unit ?? 0, category,
+      capacity_ml ?? 0, expiry_date || null, supplier || null,
+      (origin || '').trim() || null,
+      (market_name || '').trim() || null,
+      nullableNum(qty_per_box),
+      nullableNum(num_boxes),
+      nullableNum(market_price),
+      received_date || null,
+      image_path || null,
+      sid
+    );
     if (initialQty > 0) {
       db.prepare(
         "INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?, 'UNSET', ?)"
@@ -1918,16 +2241,45 @@ app.post('/api/ingredients', requireAuth, (req, res) => {
 });
 
 app.put('/api/ingredients/:id', requireAuth, (req, res) => {
-  const { name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
-  const existing = db.prepare('SELECT id, current_qty FROM ingredients WHERE id=?').get(req.params.id);
+  const {
+    name_ko, name_ar, unit, current_qty, min_qty, cost_per_unit,
+    category: bodyCategory, capacity_ml, expiry_date, supplier,
+    origin, market_name, qty_per_box, num_boxes, market_price,
+    received_date, image_path, supplier_id,
+  } = req.body;
+  const existing = db.prepare('SELECT id, current_qty, image_path, cost_per_unit FROM ingredients WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
   const category = (bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko);
-  const targetQty = current_qty != null ? Number(current_qty) : Number(existing.current_qty || 0);
+  const qpb = nullableNum(qty_per_box);
+  const nb = nullableNum(num_boxes);
+  const computed = (qpb && nb) ? qpb * nb : (current_qty != null ? Number(current_qty) : null);
+  const targetQty = (computed != null && Number.isFinite(computed)) ? computed : Number(existing.current_qty || 0);
+  const sid = nullableInt(supplier_id);
+  // image_path: لو لم يُرسل في الجسم → نُبقي القديم. لو أُرسل '' → نمسح. غير ذلك → نستبدل.
+  const nextImage = image_path === undefined ? existing.image_path : (image_path || null);
   const tx = db.transaction(() => {
     db.prepare(
-      'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
-    ).run(name_ko, name_ar || '', unit, min_qty, cost_per_unit, category, capacity_ml ?? 0, expiry_date || null, supplier || null, req.params.id);
-    if (current_qty != null && Number.isFinite(targetQty)) {
+      `UPDATE ingredients SET
+        name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?,
+        capacity_ml=?, expiry_date=?, supplier=?,
+        origin=?, market_name=?, qty_per_box=?, num_boxes=?, market_price=?,
+        received_date=?, image_path=?, supplier_id=?
+       WHERE id=?`
+    ).run(
+      name_ko, name_ar || '', unit, min_qty, cost_per_unit, category,
+      capacity_ml ?? 0, expiry_date || null, supplier || null,
+      (origin || '').trim() || null,
+      (market_name || '').trim() || null,
+      qpb,
+      nb,
+      nullableNum(market_price),
+      received_date || null,
+      nextImage,
+      sid,
+      req.params.id
+    );
+    const shouldUpdateQty = (computed != null && Number.isFinite(computed));
+    if (shouldUpdateQty) {
       const namedRow = db.prepare(
         "SELECT COALESCE(SUM(qty), 0) AS total FROM ingredient_locations WHERE ingredient_id=? AND location_code != 'UNSET'"
       ).get(req.params.id);
@@ -1945,6 +2297,12 @@ app.put('/api/ingredients/:id', requireAuth, (req, res) => {
       }
       recalcIngredientQty(req.params.id);
     }
+    // 원가 변동 이력
+    const newCost = Number(cost_per_unit);
+    if (Number.isFinite(newCost) && Math.abs(newCost - (existing.cost_per_unit || 0)) > 1e-9) {
+      db.prepare('INSERT INTO ingredient_cost_history (ingredient_id, cost_per_unit) VALUES (?,?)')
+        .run(req.params.id, newCost);
+    }
   });
   tx();
   res.json({ success: true });
@@ -1953,13 +2311,23 @@ app.put('/api/ingredients/:id', requireAuth, (req, res) => {
 app.patch('/api/ingredients/:id', requireAuth, (req, res) => {
   const existing = db.prepare('SELECT * FROM ingredients WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
-  const { name_ko, name_ar, unit, min_qty, cost_per_unit, category: bodyCategory, capacity_ml, expiry_date, supplier } = req.body;
+  const {
+    name_ko, name_ar, unit, min_qty, cost_per_unit, category: bodyCategory,
+    capacity_ml, expiry_date, supplier,
+    origin, market_name, qty_per_box, num_boxes, market_price,
+    received_date, image_path, supplier_id,
+  } = req.body;
   const name_ko_f = name_ko ?? existing.name_ko;
   const category = (bodyCategory !== undefined)
     ? ((bodyCategory && bodyCategory.trim()) ? bodyCategory.trim() : inferCategory(name_ko_f))
     : existing.category;
   db.prepare(
-    'UPDATE ingredients SET name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?, capacity_ml=?, expiry_date=?, supplier=? WHERE id=?'
+    `UPDATE ingredients SET
+      name_ko=?, name_ar=?, unit=?, min_qty=?, cost_per_unit=?, category=?,
+      capacity_ml=?, expiry_date=?, supplier=?,
+      origin=?, market_name=?, qty_per_box=?, num_boxes=?, market_price=?,
+      received_date=?, image_path=?, supplier_id=?
+     WHERE id=?`
   ).run(
     name_ko_f,
     name_ar ?? existing.name_ar,
@@ -1970,16 +2338,76 @@ app.patch('/api/ingredients/:id', requireAuth, (req, res) => {
     capacity_ml ?? existing.capacity_ml,
     expiry_date !== undefined ? (expiry_date || null) : existing.expiry_date,
     supplier !== undefined ? (supplier || null) : existing.supplier,
+    origin !== undefined ? ((origin || '').trim() || null) : existing.origin,
+    market_name !== undefined ? ((market_name || '').trim() || null) : existing.market_name,
+    qty_per_box !== undefined ? nullableNum(qty_per_box) : existing.qty_per_box,
+    num_boxes !== undefined ? nullableNum(num_boxes) : existing.num_boxes,
+    market_price !== undefined ? nullableNum(market_price) : existing.market_price,
+    received_date !== undefined ? (received_date || null) : existing.received_date,
+    image_path !== undefined ? (image_path || null) : existing.image_path,
+    supplier_id !== undefined ? nullableInt(supplier_id) : existing.supplier_id,
     req.params.id
   );
+  if (cost_per_unit !== undefined) {
+    const newCost = Number(cost_per_unit);
+    if (Number.isFinite(newCost) && Math.abs(newCost - (existing.cost_per_unit || 0)) > 1e-9) {
+      db.prepare('INSERT INTO ingredient_cost_history (ingredient_id, cost_per_unit) VALUES (?,?)')
+        .run(req.params.id, newCost);
+    }
+  }
   res.json({ success: true });
 });
 
 app.delete('/api/ingredients/:id', requireAuth, (req, res) => {
-  const existing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(req.params.id);
+  const existing = db.prepare('SELECT id, image_path FROM ingredients WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
   db.prepare('DELETE FROM ingredients WHERE id=?').run(req.params.id);
+  // حذف الصورة المرفوعة إن وُجدت داخل UPLOAD_DIR فقط (لمنع path traversal)
+  if (existing.image_path && existing.image_path.startsWith('/uploads/')) {
+    try {
+      const filename = path.basename(existing.image_path);
+      const full = path.resolve(UPLOAD_DIR, filename);
+      if (full.startsWith(path.resolve(UPLOAD_DIR) + path.sep) && fs.existsSync(full)) {
+        fs.unlinkSync(full);
+      }
+    } catch (_) { }
+  }
   res.json({ success: true });
+});
+
+// ─── رفع صورة منتج ────────────────────────────────────────────────────────────
+app.post('/api/ingredients/:id/image', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'معرّف غير صالح' });
+  const existing = db.prepare('SELECT id, image_path FROM ingredients WHERE id=?').get(id);
+  if (!existing) return res.status(404).json({ error: 'المادة غير موجودة' });
+
+  ingredientImageUpload.single('image')(req, res, (err) => {
+    if (err) {
+      if (err.message === 'UNSUPPORTED_MIME') {
+        return res.status(415).json({ error: 'نوع الصورة غير مدعوم (jpg / png / webp فقط)' });
+      }
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'حجم الصورة يتجاوز 5 ميغابايت' });
+      }
+      return res.status(400).json({ error: 'فشل رفع الصورة' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'لم يتم إرفاق صورة' });
+
+    const newPath = '/uploads/' + req.file.filename;
+    // حذف الصورة القديمة (لو كانت داخل /uploads/)
+    if (existing.image_path && existing.image_path.startsWith('/uploads/') && existing.image_path !== newPath) {
+      try {
+        const oldName = path.basename(existing.image_path);
+        const oldFull = path.resolve(UPLOAD_DIR, oldName);
+        if (oldFull.startsWith(path.resolve(UPLOAD_DIR) + path.sep) && fs.existsSync(oldFull)) {
+          fs.unlinkSync(oldFull);
+        }
+      } catch (_) { }
+    }
+    db.prepare('UPDATE ingredients SET image_path=? WHERE id=?').run(newPath, id);
+    res.json({ success: true, image_path: newPath });
+  });
 });
 
 // ─── INVENTORY ADJUST ─────────────────────────────────────────────────────────
@@ -2509,9 +2937,15 @@ app.post('/api/menu-prices', requireAuth, (req, res) => {
   const price = Number(selling_price);
   if (!Number.isFinite(price) || price < 0)
     return res.status(400).json({ error: 'selling_price must be a non-negative number' });
+  const rounded = Math.round(price);
+  const prev = db.prepare('SELECT selling_price FROM menu_prices WHERE menu_item=?').get(menu_item);
   db.prepare(
     'INSERT INTO menu_prices (menu_item, selling_price) VALUES (?,?) ON CONFLICT(menu_item) DO UPDATE SET selling_price=excluded.selling_price'
-  ).run(menu_item, Math.round(price));
+  ).run(menu_item, rounded);
+  // history: 새 항목이거나 가격이 변경되었을 때만 기록
+  if (!prev || prev.selling_price !== rounded) {
+    db.prepare('INSERT INTO menu_price_history (menu_item, selling_price) VALUES (?,?)').run(menu_item, rounded);
+  }
   res.json({ success: true });
 });
 
@@ -2715,6 +3149,7 @@ db.prepare(`CREATE TABLE IF NOT EXISTS agent_meetings (
   topic       TEXT,
   status      TEXT NOT NULL DEFAULT 'running',
   error       TEXT,
+  created_by_token TEXT,
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL
 )`).run();
@@ -2753,11 +3188,11 @@ function newMeetingId() {
   return 'm_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
-function insertMeeting(type, teamIds, topic) {
+function insertMeeting(type, teamIds, topic, createdByToken = null) {
   const id = newMeetingId();
   const now = Date.now();
-  db.prepare(`INSERT INTO agent_meetings (id, type, team_ids, topic, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?)`)
-    .run(id, type, JSON.stringify(teamIds), topic || null, 'running', now, now);
+  db.prepare(`INSERT INTO agent_meetings (id, type, team_ids, topic, status, created_by_token, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)`)
+    .run(id, type, JSON.stringify(teamIds), topic || null, 'running', createdByToken || null, now, now);
   return id;
 }
 
@@ -2917,6 +3352,809 @@ app.get('/api/meetings/teams/list', requireAuth, (_req, res) => {
   res.json({
     teams: AGENT_TEAMS.map(t => ({ id: t.id, label: t.label, model: t.model, focus: t.focus })),
   });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// ─── PURCHASE ORDERS (PO WORKFLOW) ──────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+function nextPoNumber() {
+  const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const prefix = `PO-${ymd}-`;
+  const last = db.prepare(
+    "SELECT po_number FROM purchase_orders WHERE po_number LIKE ? ORDER BY id DESC LIMIT 1"
+  ).get(prefix + '%');
+  let seq = 1;
+  if (last && last.po_number) {
+    const m = last.po_number.match(/-(\d+)$/);
+    if (m) seq = parseInt(m[1], 10) + 1;
+  }
+  return prefix + String(seq).padStart(4, '0');
+}
+
+function recomputePoTotal(poId) {
+  const sum = db.prepare(
+    'SELECT COALESCE(SUM(line_total),0) AS t FROM purchase_order_items WHERE po_id=?'
+  ).get(poId);
+  db.prepare('UPDATE purchase_orders SET total_amount=?, updated_at=? WHERE id=?')
+    .run(sum.t || 0, Date.now(), poId);
+  return sum.t || 0;
+}
+
+function poItemsFor(poId) {
+  return db.prepare(`
+    SELECT poi.*, i.name_ko, i.name_ar, i.unit, i.cost_per_unit
+      FROM purchase_order_items poi
+      JOIN ingredients i ON i.id = poi.ingredient_id
+     WHERE poi.po_id = ?
+     ORDER BY poi.id
+  `).all(poId);
+}
+
+function poReceiptsFor(poId) {
+  const receipts = db.prepare(`
+    SELECT * FROM goods_receipts WHERE po_id=? ORDER BY received_at DESC
+  `).all(poId);
+  for (const r of receipts) {
+    r.items = db.prepare(`
+      SELECT gri.*, i.name_ko, i.unit
+        FROM goods_receipt_items gri
+        JOIN ingredients i ON i.id = gri.ingredient_id
+       WHERE gri.receipt_id = ?
+       ORDER BY gri.id
+    `).all(r.id);
+  }
+  return receipts;
+}
+
+app.get('/api/po', requireAuth, (req, res) => {
+  const { status, supplier_id } = req.query;
+  let sql = `SELECT po.*, s.name AS supplier_name
+               FROM purchase_orders po
+               LEFT JOIN suppliers s ON s.id = po.supplier_id`;
+  const where = [];
+  const params = [];
+  if (status) { where.push('po.status = ?'); params.push(status); }
+  if (supplier_id) { where.push('po.supplier_id = ?'); params.push(parseInt(supplier_id, 10)); }
+  if (where.length) sql += ' WHERE ' + where.join(' AND ');
+  sql += ' ORDER BY po.created_at DESC LIMIT 500';
+  res.json(db.prepare(sql).all(...params));
+});
+
+app.get('/api/po/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'invalid id' });
+  const po = db.prepare(`
+    SELECT po.*, s.name AS supplier_name, s.phone AS supplier_phone, s.whatsapp AS supplier_whatsapp
+      FROM purchase_orders po
+      LEFT JOIN suppliers s ON s.id = po.supplier_id
+     WHERE po.id = ?`).get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  po.items = poItemsFor(id);
+  po.receipts = poReceiptsFor(id);
+  res.json(po);
+});
+
+app.post('/api/po', requireAuth, (req, res) => {
+  const { supplier_id, notes, expected_date, items, created_by } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0)
+    return res.status(400).json({ error: 'items required' });
+  for (const it of items) {
+    const q = Number(it.ordered_qty);
+    const c = Number(it.unit_cost);
+    if (!Number.isInteger(it.ingredient_id) || it.ingredient_id <= 0)
+      return res.status(400).json({ error: 'ingredient_id invalid' });
+    if (!Number.isFinite(q) || q <= 0) return res.status(400).json({ error: 'ordered_qty must be > 0' });
+    if (!Number.isFinite(c) || c < 0) return res.status(400).json({ error: 'unit_cost must be >= 0' });
+  }
+  try {
+    const out = db.transaction(() => {
+      const poNumber = nextPoNumber();
+      const info = db.prepare(`
+        INSERT INTO purchase_orders (po_number, supplier_id, status, notes, expected_date, created_by, total_amount)
+        VALUES (?,?,?,?,?,?,0)
+      `).run(
+        poNumber,
+        supplier_id ? parseInt(supplier_id, 10) : null,
+        'draft',
+        notes || null,
+        expected_date || null,
+        created_by || null
+      );
+      const poId = info.lastInsertRowid;
+      const ins = db.prepare(`
+        INSERT INTO purchase_order_items (po_id, ingredient_id, ordered_qty, received_qty, unit_cost, line_total)
+        VALUES (?,?,?,0,?,?)
+      `);
+      for (const it of items) {
+        const lt = Number(it.ordered_qty) * Number(it.unit_cost);
+        ins.run(poId, it.ingredient_id, Number(it.ordered_qty), Number(it.unit_cost), lt);
+      }
+      recomputePoTotal(poId);
+      return poId;
+    })();
+    const created = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(out);
+    created.items = poItemsFor(out);
+    res.json({ success: true, po: created });
+  } catch (e) {
+    console.error('PO create error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/po/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const po = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  if (po.status !== 'draft') return res.status(400).json({ error: 'only draft PO can be edited' });
+  const { supplier_id, notes, expected_date, items } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0)
+    return res.status(400).json({ error: 'items required' });
+  try {
+    db.transaction(() => {
+      db.prepare(`UPDATE purchase_orders SET supplier_id=?, notes=?, expected_date=?, updated_at=? WHERE id=?`)
+        .run(supplier_id ? parseInt(supplier_id, 10) : null, notes || null, expected_date || null, Date.now(), id);
+      db.prepare('DELETE FROM purchase_order_items WHERE po_id=?').run(id);
+      const ins = db.prepare(`
+        INSERT INTO purchase_order_items (po_id, ingredient_id, ordered_qty, received_qty, unit_cost, line_total)
+        VALUES (?,?,?,0,?,?)
+      `);
+      for (const it of items) {
+        const q = Number(it.ordered_qty); const c = Number(it.unit_cost);
+        if (!Number.isFinite(q) || q <= 0 || !Number.isFinite(c) || c < 0)
+          throw new Error('invalid item');
+        ins.run(id, it.ingredient_id, q, c, q * c);
+      }
+      recomputePoTotal(id);
+    })();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.post('/api/po/:id/submit', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const po = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  if (po.status !== 'draft') return res.status(400).json({ error: 'only draft PO can be submitted' });
+  db.prepare(`UPDATE purchase_orders SET status='pending_approval', submitted_at=?, updated_at=? WHERE id=?`)
+    .run(Date.now(), Date.now(), id);
+  res.json({ success: true });
+});
+
+app.post('/api/po/:id/approve', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const po = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  if (po.status !== 'pending_approval')
+    return res.status(400).json({ error: 'PO not in pending_approval' });
+  const approvedBy = (req.body && req.body.approved_by) || 'admin';
+  db.prepare(`UPDATE purchase_orders SET status='approved', approved_by=?, approved_at=?, updated_at=? WHERE id=?`)
+    .run(approvedBy, Date.now(), Date.now(), id);
+  res.json({ success: true });
+});
+
+app.post('/api/po/:id/cancel', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const po = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  if (po.status === 'received' || po.status === 'cancelled')
+    return res.status(400).json({ error: 'cannot cancel PO in current state' });
+  db.prepare(`UPDATE purchase_orders SET status='cancelled', cancelled_at=?, updated_at=? WHERE id=?`)
+    .run(Date.now(), Date.now(), id);
+  res.json({ success: true });
+});
+
+app.delete('/api/po/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const po = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  if (po.status !== 'draft' && po.status !== 'cancelled')
+    return res.status(400).json({ error: 'only draft or cancelled PO can be deleted' });
+  db.prepare('DELETE FROM purchase_orders WHERE id=?').run(id);
+  res.json({ success: true });
+});
+
+// 부분/전체 입고 — items: [{ po_item_id, qty, location_code }]
+app.post('/api/po/:id/receive', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const po = db.prepare('SELECT * FROM purchase_orders WHERE id=?').get(id);
+  if (!po) return res.status(404).json({ error: 'PO not found' });
+  if (!['approved', 'partially_received'].includes(po.status))
+    return res.status(400).json({ error: 'PO must be approved or partially_received' });
+  const { items, notes, received_by } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0)
+    return res.status(400).json({ error: 'items required' });
+
+  try {
+    const result = db.transaction(() => {
+      const recInfo = db.prepare(`
+        INSERT INTO goods_receipts (po_id, received_by, notes) VALUES (?,?,?)
+      `).run(id, received_by || null, notes || null);
+      const receiptId = recInfo.lastInsertRowid;
+      const insGri = db.prepare(`
+        INSERT INTO goods_receipt_items (receipt_id, po_item_id, ingredient_id, qty, location_code)
+        VALUES (?,?,?,?,?)
+      `);
+      const updPoi = db.prepare(`
+        UPDATE purchase_order_items SET received_qty = received_qty + ? WHERE id=?
+      `);
+
+      for (const it of items) {
+        const poiId = parseInt(it.po_item_id, 10);
+        const qty = Number(it.qty);
+        if (!Number.isInteger(poiId) || poiId <= 0) throw new Error('po_item_id invalid');
+        if (!Number.isFinite(qty) || qty <= 0) throw new Error('qty must be > 0');
+        const poi = db.prepare('SELECT * FROM purchase_order_items WHERE id=? AND po_id=?').get(poiId, id);
+        if (!poi) throw new Error('po_item not in this PO');
+        const remaining = poi.ordered_qty - poi.received_qty;
+        if (qty > remaining + 1e-9)
+          throw new Error(`qty ${qty} exceeds remaining ${remaining} for item ${poiId}`);
+        let locCode = it.location_code ? String(it.location_code).trim().toUpperCase() : 'UNSET';
+        if (locCode !== 'UNSET' && !LOC_CODE_RE.test(locCode))
+          throw new Error(`invalid location_code ${locCode}`);
+
+        // 1) 입고 라인 기록
+        insGri.run(receiptId, poiId, poi.ingredient_id, qty, locCode);
+        // 2) PO 라인 received_qty 업데이트
+        updPoi.run(qty, poiId);
+
+        // 3) 실제 재고 반영 (위치별)
+        const locRow = db.prepare(
+          'SELECT id, qty FROM ingredient_locations WHERE ingredient_id=? AND location_code=?'
+        ).get(poi.ingredient_id, locCode);
+        if (locRow) {
+          db.prepare('UPDATE ingredient_locations SET qty = qty + ? WHERE id=?').run(qty, locRow.id);
+        } else {
+          db.prepare(
+            'INSERT INTO ingredient_locations (ingredient_id, location_code, qty) VALUES (?,?,?)'
+          ).run(poi.ingredient_id, locCode, qty);
+        }
+        recalcIngredientQty(poi.ingredient_id);
+
+        // 4) inventory_history 기록
+        const ing = db.prepare('SELECT name_ko FROM ingredients WHERE id=?').get(poi.ingredient_id);
+        db.prepare(
+          'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+        ).run(poi.ingredient_id, ing ? ing.name_ko : '', 'in', qty, `PO ${po.po_number} @${locCode}`);
+
+        // 5) 단가 변동 이력 (입고 시 unit_cost 가 다르면 기록)
+        if (Math.abs(poi.unit_cost - 0) > 1e-9) {
+          db.prepare(
+            'INSERT INTO ingredient_cost_history (ingredient_id, cost_per_unit) VALUES (?,?)'
+          ).run(poi.ingredient_id, poi.unit_cost);
+        }
+      }
+
+      // PO 상태 갱신
+      const allItems = db.prepare('SELECT ordered_qty, received_qty FROM purchase_order_items WHERE po_id=?').all(id);
+      const fullyReceived = allItems.every(r => r.received_qty + 1e-9 >= r.ordered_qty);
+      const newStatus = fullyReceived ? 'received' : 'partially_received';
+      db.prepare('UPDATE purchase_orders SET status=?, updated_at=? WHERE id=?')
+        .run(newStatus, Date.now(), id);
+
+      return { receiptId, newStatus };
+    })();
+    res.json({ success: true, receipt_id: result.receiptId, status: result.newStatus });
+  } catch (e) {
+    console.error('PO receive error:', e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// ─── STOCK COUNTS (PHYSICAL INVENTORY) ──────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+function computeUnitNormalizedCost(ing) {
+  // Recipe deduction divides by capacity_ml when set; align variance valuation.
+  if (ing.capacity_ml && ing.capacity_ml > 0) return ing.cost_per_unit / ing.capacity_ml;
+  return ing.cost_per_unit;
+}
+
+app.get('/api/stock-counts', requireAuth, (req, res) => {
+  const rows = db.prepare(`
+    SELECT sc.*, COUNT(sci.id) AS item_count
+      FROM stock_counts sc
+      LEFT JOIN stock_count_items sci ON sci.count_id = sc.id
+     GROUP BY sc.id
+     ORDER BY sc.created_at DESC LIMIT 200
+  `).all();
+  res.json(rows);
+});
+
+app.get('/api/stock-counts/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sc = db.prepare('SELECT * FROM stock_counts WHERE id=?').get(id);
+  if (!sc) return res.status(404).json({ error: 'count not found' });
+  sc.items = db.prepare(`
+    SELECT sci.*, i.name_ko, i.name_ar, i.unit, i.category, i.cost_per_unit, i.capacity_ml
+      FROM stock_count_items sci
+      JOIN ingredients i ON i.id = sci.ingredient_id
+     WHERE sci.count_id = ?
+     ORDER BY i.category, i.name_ko
+  `).all(id);
+  res.json(sc);
+});
+
+// 새 실사 시작: 현재 ingredient 스냅샷 생성
+app.post('/api/stock-counts', requireAuth, (req, res) => {
+  const { count_name, notes, started_by, category } = req.body || {};
+  if (!count_name || !String(count_name).trim())
+    return res.status(400).json({ error: 'count_name required' });
+  try {
+    const out = db.transaction(() => {
+      const info = db.prepare(`
+        INSERT INTO stock_counts (count_name, status, notes, started_by) VALUES (?, 'open', ?, ?)
+      `).run(String(count_name).trim(), notes || null, started_by || null);
+      const countId = info.lastInsertRowid;
+      let ings;
+      if (category && String(category).trim()) {
+        ings = db.prepare('SELECT * FROM ingredients WHERE category=? ORDER BY name_ko').all(category);
+      } else {
+        ings = db.prepare('SELECT * FROM ingredients ORDER BY category, name_ko').all();
+      }
+      const insSci = db.prepare(`
+        INSERT INTO stock_count_items (count_id, ingredient_id, expected_qty)
+        VALUES (?,?,?)
+      `);
+      for (const ing of ings) insSci.run(countId, ing.id, ing.current_qty || 0);
+      return countId;
+    })();
+    res.json({ success: true, id: out });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 실사 항목 카운트 입력 (batch)
+app.put('/api/stock-counts/:id/items', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sc = db.prepare('SELECT * FROM stock_counts WHERE id=?').get(id);
+  if (!sc) return res.status(404).json({ error: 'count not found' });
+  if (sc.status !== 'open') return res.status(400).json({ error: 'count not editable' });
+  const { items } = req.body || {};
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'items required' });
+  try {
+    db.transaction(() => {
+      const upd = db.prepare(`
+        UPDATE stock_count_items
+           SET counted_qty=?, notes=?
+         WHERE count_id=? AND ingredient_id=?
+      `);
+      for (const it of items) {
+        const q = it.counted_qty == null ? null : Number(it.counted_qty);
+        if (q != null && (!Number.isFinite(q) || q < 0))
+          throw new Error('counted_qty invalid');
+        upd.run(q, it.notes || null, id, it.ingredient_id);
+      }
+    })();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// 제출: variance 계산 (재고 변경은 reconcile에서)
+app.post('/api/stock-counts/:id/submit', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sc = db.prepare('SELECT * FROM stock_counts WHERE id=?').get(id);
+  if (!sc) return res.status(404).json({ error: 'count not found' });
+  if (sc.status !== 'open') return res.status(400).json({ error: 'only open counts can be submitted' });
+
+  try {
+    const totalVar = db.transaction(() => {
+      const items = db.prepare(`
+        SELECT sci.*, i.cost_per_unit, i.capacity_ml
+          FROM stock_count_items sci
+          JOIN ingredients i ON i.id = sci.ingredient_id
+         WHERE sci.count_id=?
+      `).all(id);
+      const upd = db.prepare(`
+        UPDATE stock_count_items SET variance_qty=?, variance_value=? WHERE id=?
+      `);
+      let total = 0;
+      for (const it of items) {
+        if (it.counted_qty == null) continue; // 미카운트는 건너뜀
+        const vQty = it.counted_qty - it.expected_qty;
+        const unitCost = computeUnitNormalizedCost({ cost_per_unit: it.cost_per_unit, capacity_ml: it.capacity_ml });
+        const vVal = vQty * unitCost;
+        upd.run(vQty, vVal, it.id);
+        total += vVal;
+      }
+      db.prepare(`UPDATE stock_counts SET status='submitted', submitted_at=?, total_variance_value=? WHERE id=?`)
+        .run(Date.now(), total, id);
+      return total;
+    })();
+    res.json({ success: true, total_variance_value: totalVar });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 정산: 실사 결과를 실제 재고에 반영(자동 보정 + history 기록)
+app.post('/api/stock-counts/:id/reconcile', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sc = db.prepare('SELECT * FROM stock_counts WHERE id=?').get(id);
+  if (!sc) return res.status(404).json({ error: 'count not found' });
+  if (sc.status !== 'submitted')
+    return res.status(400).json({ error: 'only submitted counts can be reconciled' });
+  const reconciledBy = (req.body && req.body.reconciled_by) || 'admin';
+  try {
+    db.transaction(() => {
+      const items = db.prepare(`
+        SELECT sci.*, i.name_ko
+          FROM stock_count_items sci
+          JOIN ingredients i ON i.id = sci.ingredient_id
+         WHERE sci.count_id=? AND sci.counted_qty IS NOT NULL
+      `).all(id);
+      for (const it of items) {
+        const delta = (it.counted_qty || 0) - (it.expected_qty || 0);
+        if (Math.abs(delta) < 1e-9) continue;
+        applyStockDelta(it.ingredient_id, delta);
+        db.prepare(
+          'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+        ).run(
+          it.ingredient_id,
+          it.name_ko,
+          delta >= 0 ? 'in' : 'out',
+          Math.abs(delta),
+          `STOCK_COUNT #${id} variance ${delta >= 0 ? '+' : ''}${delta.toFixed(3)}`
+        );
+      }
+      db.prepare(`UPDATE stock_counts SET status='reconciled', reconciled_by=?, reconciled_at=? WHERE id=?`)
+        .run(reconciledBy, Date.now(), id);
+    })();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/stock-counts/:id/cancel', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sc = db.prepare('SELECT * FROM stock_counts WHERE id=?').get(id);
+  if (!sc) return res.status(404).json({ error: 'count not found' });
+  if (sc.status === 'reconciled')
+    return res.status(400).json({ error: 'cannot cancel reconciled count' });
+  db.prepare(`UPDATE stock_counts SET status='cancelled' WHERE id=?`).run(id);
+  res.json({ success: true });
+});
+
+app.delete('/api/stock-counts/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sc = db.prepare('SELECT * FROM stock_counts WHERE id=?').get(id);
+  if (!sc) return res.status(404).json({ error: 'count not found' });
+  if (sc.status !== 'open' && sc.status !== 'cancelled')
+    return res.status(400).json({ error: 'only open/cancelled counts can be deleted' });
+  db.prepare('DELETE FROM stock_counts WHERE id=?').run(id);
+  res.json({ success: true });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// ─── PROFITABILITY DASHBOARD (ADVANCED) ─────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+function periodToRange(period) {
+  const days = period === 'day' ? 1
+    : period === 'week' ? 7
+      : period === '3month' ? 90
+        : period === 'year' ? 365
+          : 30; // default month
+  const now = new Date();
+  const todayBgd = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  const todayStr = todayBgd.toISOString().slice(0, 10);
+  const start = new Date(todayBgd);
+  start.setDate(start.getDate() - (days - 1));
+  return { startStr: start.toISOString().slice(0, 10), endStr: todayStr, days };
+}
+
+function computeMenuCostMap() {
+  // menu_item -> { cost: total_recipe_cost, ingredients: [...] }
+  const rows = db.prepare(`
+    SELECT r.menu_item, r.quantity, i.id AS ingredient_id, i.name_ko, i.cost_per_unit, i.capacity_ml
+      FROM recipes r
+      JOIN ingredients i ON i.id = r.ingredient_id
+  `).all();
+  const map = new Map();
+  for (const r of rows) {
+    const unitCost = r.capacity_ml > 0 ? r.cost_per_unit / r.capacity_ml : r.cost_per_unit;
+    const lineCost = r.quantity * unitCost;
+    if (!map.has(r.menu_item)) map.set(r.menu_item, { cost: 0, ingredients: [] });
+    const e = map.get(r.menu_item);
+    e.cost += lineCost;
+    e.ingredients.push({ ingredient_id: r.ingredient_id, name_ko: r.name_ko, line_cost: lineCost, qty: r.quantity });
+  }
+  return map;
+}
+
+function computeMenuSalesInRange(startStr, endStr) {
+  // menu_item -> { qty, revenue } from completed orders minus refunds
+  const orders = db.prepare(`
+    SELECT items, total
+      FROM orders
+     WHERE status != 'cancelled'
+       AND date(datetime(timestamp/1000, 'unixepoch', '+3 hours')) BETWEEN ? AND ?
+  `).all(startStr, endStr);
+  const refunds = db.prepare(`
+    SELECT r.lines, r.amount
+      FROM refunds r
+      JOIN orders o ON o.id = r.order_id
+     WHERE o.status != 'cancelled'
+       AND date(datetime(o.timestamp/1000, 'unixepoch', '+3 hours')) BETWEEN ? AND ?
+  `).all(startStr, endStr);
+  const map = new Map();
+  for (const o of orders) {
+    let items = []; try { items = JSON.parse(o.items || '[]'); } catch (_) { }
+    for (const it of (items || [])) {
+      const nm = it && it.name; if (!nm) continue;
+      const q = Number(it.qty ?? it.quantity) || 0;
+      const p = Number(it.price) || 0;
+      if (!map.has(nm)) map.set(nm, { qty: 0, revenue: 0 });
+      const e = map.get(nm);
+      e.qty += q;
+      e.revenue += q * p;
+    }
+  }
+  for (const r of refunds) {
+    let lines = []; try { lines = JSON.parse(r.lines || '[]'); } catch (_) { }
+    for (const ln of (lines || [])) {
+      const nm = ln && ln.name; if (!nm || !map.has(nm)) continue;
+      const q = Number(ln.qty ?? ln.quantity) || 0;
+      const p = Number(ln.price) || 0;
+      const e = map.get(nm);
+      e.qty -= q;
+      e.revenue -= q * p;
+      if (e.qty <= 0 && e.revenue <= 0) map.delete(nm);
+    }
+  }
+  return map;
+}
+
+// 메인 수익성 요약
+app.get('/api/profitability/summary', requireAuth, (req, res) => {
+  const { period } = req.query;
+  const { startStr, endStr } = periodToRange(period);
+  const costMap = computeMenuCostMap();
+  const salesMap = computeMenuSalesInRange(startStr, endStr);
+  const prices = db.prepare('SELECT menu_item, selling_price FROM menu_prices').all();
+  const priceMap = new Map(prices.map(p => [p.menu_item, p.selling_price]));
+
+  const allMenus = new Set([...costMap.keys(), ...salesMap.keys(), ...priceMap.keys()]);
+  const rows = [];
+  let totalRevenue = 0, totalCost = 0, totalQty = 0;
+  for (const menu of allMenus) {
+    const cost = costMap.get(menu)?.cost || 0;
+    const price = priceMap.get(menu) || 0;
+    const sale = salesMap.get(menu) || { qty: 0, revenue: 0 };
+    const margin = price - cost;
+    const marginRate = price > 0 ? (margin / price) * 100 : 0;
+    const grossProfit = sale.qty * margin;
+    totalRevenue += sale.revenue;
+    totalCost += sale.qty * cost;
+    totalQty += sale.qty;
+    rows.push({
+      menu_item: menu,
+      cost: Math.round(cost),
+      selling_price: Math.round(price),
+      margin: Math.round(margin),
+      margin_rate: Math.round(marginRate * 10) / 10,
+      qty_sold: sale.qty,
+      revenue: Math.round(sale.revenue),
+      gross_profit: Math.round(grossProfit),
+    });
+  }
+  rows.sort((a, b) => b.gross_profit - a.gross_profit);
+  const totalProfit = totalRevenue - totalCost;
+  res.json({
+    period: { startStr, endStr },
+    rows,
+    totals: {
+      revenue: Math.round(totalRevenue),
+      cost: Math.round(totalCost),
+      gross_profit: Math.round(totalProfit),
+      margin_rate: totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 1000) / 10 : 0,
+      qty_sold: totalQty,
+    },
+  });
+});
+
+// ABC 분석: 매출 누적 비중으로 A(80%)/B(95%)/C(나머지) 분류
+app.get('/api/profitability/abc', requireAuth, (req, res) => {
+  const { period } = req.query;
+  const { startStr, endStr } = periodToRange(period);
+  const costMap = computeMenuCostMap();
+  const salesMap = computeMenuSalesInRange(startStr, endStr);
+  const arr = [];
+  for (const [menu, s] of salesMap.entries()) {
+    const cost = costMap.get(menu)?.cost || 0;
+    arr.push({ menu_item: menu, qty: s.qty, revenue: s.revenue, profit: s.revenue - cost * s.qty });
+  }
+  arr.sort((a, b) => b.revenue - a.revenue);
+  const total = arr.reduce((s, r) => s + r.revenue, 0) || 1;
+  let acc = 0;
+  for (const r of arr) {
+    acc += r.revenue;
+    const ratio = acc / total;
+    r.cumulative_ratio = Math.round(ratio * 1000) / 10;
+    r.abc_class = ratio <= 0.8 ? 'A' : ratio <= 0.95 ? 'B' : 'C';
+    r.revenue = Math.round(r.revenue);
+    r.profit = Math.round(r.profit);
+  }
+  res.json({ period: { startStr, endStr }, total_revenue: Math.round(total), rows: arr });
+});
+
+// 메뉴별 시계열: 일별 판매 + 마진
+app.get('/api/profitability/menu/:menu', requireAuth, (req, res) => {
+  const menu = req.params.menu;
+  const { period } = req.query;
+  const { startStr, endStr } = periodToRange(period);
+  const costMap = computeMenuCostMap();
+  const cost = costMap.get(menu)?.cost || 0;
+  const priceRow = db.prepare('SELECT selling_price FROM menu_prices WHERE menu_item=?').get(menu);
+  const price = priceRow?.selling_price || 0;
+
+  const orders = db.prepare(`
+    SELECT date(datetime(timestamp/1000, 'unixepoch', '+3 hours')) AS day, items
+      FROM orders
+     WHERE status != 'cancelled'
+       AND date(datetime(timestamp/1000, 'unixepoch', '+3 hours')) BETWEEN ? AND ?
+  `).all(startStr, endStr);
+  const dayMap = new Map();
+  for (const o of orders) {
+    let items = []; try { items = JSON.parse(o.items || '[]'); } catch (_) { }
+    for (const it of (items || [])) {
+      if (!it || it.name !== menu) continue;
+      const q = Number(it.qty ?? it.quantity) || 0;
+      const p = Number(it.price) || price;
+      if (!dayMap.has(o.day)) dayMap.set(o.day, { qty: 0, revenue: 0 });
+      const e = dayMap.get(o.day);
+      e.qty += q;
+      e.revenue += q * p;
+    }
+  }
+  const series = Array.from(dayMap.entries())
+    .sort((a, b) => a[0] < b[0] ? -1 : 1)
+    .map(([day, v]) => ({
+      day,
+      qty: v.qty,
+      revenue: Math.round(v.revenue),
+      cost: Math.round(v.qty * cost),
+      profit: Math.round(v.revenue - v.qty * cost),
+    }));
+  res.json({
+    menu_item: menu,
+    cost: Math.round(cost),
+    selling_price: Math.round(price),
+    margin: Math.round(price - cost),
+    margin_rate: price > 0 ? Math.round(((price - cost) / price) * 1000) / 10 : 0,
+    series,
+  });
+});
+
+// 가격 시뮬레이터: 새 가격에서 손익 변화 + 손익분기 판매수량
+app.get('/api/profitability/simulate', requireAuth, (req, res) => {
+  const menu = req.query.menu_item;
+  const newPrice = Number(req.query.new_price);
+  const fixedCostBudget = Number(req.query.fixed_cost) || 0;
+  if (!menu || !Number.isFinite(newPrice) || newPrice < 0)
+    return res.status(400).json({ error: 'menu_item and new_price required' });
+  const costMap = computeMenuCostMap();
+  const cost = costMap.get(menu)?.cost || 0;
+  const priceRow = db.prepare('SELECT selling_price FROM menu_prices WHERE menu_item=?').get(menu);
+  const oldPrice = priceRow?.selling_price || 0;
+  const oldMargin = oldPrice - cost;
+  const newMargin = newPrice - cost;
+  const breakEvenQty = newMargin > 0 ? Math.ceil(fixedCostBudget / newMargin) : null;
+  res.json({
+    menu_item: menu,
+    cost: Math.round(cost),
+    old_price: Math.round(oldPrice),
+    new_price: Math.round(newPrice),
+    old_margin: Math.round(oldMargin),
+    new_margin: Math.round(newMargin),
+    margin_delta: Math.round(newMargin - oldMargin),
+    new_margin_rate: newPrice > 0 ? Math.round((newMargin / newPrice) * 1000) / 10 : 0,
+    break_even_qty: breakEvenQty,
+  });
+});
+
+// 재료가 메뉴 마진에 미치는 영향
+app.get('/api/profitability/ingredient-impact', requireAuth, (req, res) => {
+  const menu = req.query.menu_item;
+  if (!menu) return res.status(400).json({ error: 'menu_item required' });
+  const priceRow = db.prepare('SELECT selling_price FROM menu_prices WHERE menu_item=?').get(menu);
+  const price = priceRow?.selling_price || 0;
+  const costMap = computeMenuCostMap();
+  const entry = costMap.get(menu);
+  if (!entry) return res.json({ menu_item: menu, selling_price: price, items: [] });
+  const totalCost = entry.cost;
+  const items = entry.ingredients.map(i => ({
+    ingredient_id: i.ingredient_id,
+    name_ko: i.name_ko,
+    line_cost: Math.round(i.line_cost),
+    cost_share: totalCost > 0 ? Math.round((i.line_cost / totalCost) * 1000) / 10 : 0,
+    margin_share: price > 0 ? Math.round((i.line_cost / price) * 1000) / 10 : 0,
+  })).sort((a, b) => b.line_cost - a.line_cost);
+  res.json({
+    menu_item: menu,
+    selling_price: Math.round(price),
+    total_cost: Math.round(totalCost),
+    margin: Math.round(price - totalCost),
+    items,
+  });
+});
+
+// 재료 단가 변동 추이
+app.get('/api/profitability/cost-trend', requireAuth, (req, res) => {
+  const ingId = parseInt(req.query.ingredient_id, 10);
+  if (!Number.isInteger(ingId) || ingId <= 0)
+    return res.status(400).json({ error: 'ingredient_id required' });
+  const days = parseInt(req.query.days, 10) || 90;
+  const cutoff = Date.now() - days * 24 * 3600 * 1000;
+  const rows = db.prepare(`
+    SELECT cost_per_unit, recorded_at
+      FROM ingredient_cost_history
+     WHERE ingredient_id=? AND recorded_at >= ?
+     ORDER BY recorded_at ASC
+  `).all(ingId, cutoff);
+  res.json({ ingredient_id: ingId, rows });
+});
+
+// 실효 마진(폐기/환불 차감 후)
+app.get('/api/profitability/effective-margin', requireAuth, (req, res) => {
+  const { period } = req.query;
+  const { startStr, endStr } = periodToRange(period);
+  const startMs = new Date(startStr + 'T00:00:00+03:00').getTime();
+  const endMs = new Date(endStr + 'T23:59:59+03:00').getTime();
+  const costMap = computeMenuCostMap();
+  const salesMap = computeMenuSalesInRange(startStr, endStr);
+
+  let revenue = 0, cogs = 0;
+  for (const [menu, s] of salesMap.entries()) {
+    revenue += s.revenue;
+    cogs += (costMap.get(menu)?.cost || 0) * s.qty;
+  }
+
+  // 환불 손실 (취소 주문 외 추가 환불)
+  const refundSum = db.prepare(`
+    SELECT COALESCE(SUM(amount),0) AS t FROM refunds
+     WHERE created_at BETWEEN ? AND ?
+  `).get(startMs, endMs);
+
+  // 폐기/실사 차이로 인한 비용 (history reason 기반 추정)
+  const wasteSum = db.prepare(`
+    SELECT COALESCE(SUM(quantity * COALESCE(i.cost_per_unit / NULLIF(i.capacity_ml,0), i.cost_per_unit)), 0) AS t
+      FROM inventory_history h
+      LEFT JOIN ingredients i ON i.id = h.ingredient_id
+     WHERE h.change_type='out'
+       AND (h.reason LIKE 'STOCK_COUNT%' OR h.reason LIKE '%waste%' OR h.reason LIKE '%spoil%')
+       AND h.created_at BETWEEN datetime(?, 'unixepoch') AND datetime(?, 'unixepoch')
+  `).get(Math.floor(startMs / 1000), Math.floor(endMs / 1000));
+
+  const grossProfit = revenue - cogs;
+  const effectiveProfit = grossProfit - (refundSum.t || 0) - (wasteSum.t || 0);
+  res.json({
+    period: { startStr, endStr },
+    revenue: Math.round(revenue),
+    cogs: Math.round(cogs),
+    gross_profit: Math.round(grossProfit),
+    refunds: Math.round(refundSum.t || 0),
+    waste_estimate: Math.round(wasteSum.t || 0),
+    effective_profit: Math.round(effectiveProfit),
+    effective_margin_rate: revenue > 0 ? Math.round((effectiveProfit / revenue) * 1000) / 10 : 0,
+  });
+});
+
+// 메뉴 가격 이력
+app.get('/api/profitability/price-history/:menu', requireAuth, (req, res) => {
+  const menu = req.params.menu;
+  const days = parseInt(req.query.days, 10) || 365;
+  const cutoff = Date.now() - days * 24 * 3600 * 1000;
+  const rows = db.prepare(`
+    SELECT selling_price, recorded_at FROM menu_price_history
+     WHERE menu_item=? AND recorded_at >= ?
+     ORDER BY recorded_at ASC
+  `).all(menu, cutoff);
+  res.json({ menu_item: menu, rows });
 });
 
 // ─── START ────────────────────────────────────────────────────────────────────

@@ -530,30 +530,27 @@ test.describe('Mobile 375px QA - Cross-page verification', () => {
       await page.goto(pageUrl);
       await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 
-      // Check for text visibility
-      const textElements = await page.locator('body *').all();
-      console.log(`${pageUrl}: ${textElements.length} elements`);
+      // Check for text visibility (use count to avoid serializing all handles)
+      const elementCount = await page.locator('body *').count();
+      console.log(`${pageUrl}: ${elementCount} elements`);
 
       // Check if elements have reasonable line-height and don't overlap visually
       const overlapCheck = await page.evaluate(() => {
-        const elements = document.querySelectorAll('body *');
+        const elements = Array.from(document.querySelectorAll('body *')).slice(0, 50);
         let hasIssue = false;
 
-        // Sample check first 20 visible elements with text
         let checked = 0;
-        elements.forEach(el => {
-          if (checked < 20 && el.textContent && el.offsetHeight > 0) {
+        for (const el of elements) {
+          if (checked >= 20) break;
+          if (el.textContent && el.offsetHeight > 0) {
             const computed = window.getComputedStyle(el);
             const lineHeight = computed.lineHeight;
-            const fontSize = computed.fontSize;
-
-            // Check if line-height is reasonable
             if (lineHeight === 'normal' || lineHeight.includes('px')) {
               // OK
             }
             checked++;
           }
-        });
+        }
 
         return hasIssue;
       });
@@ -569,17 +566,17 @@ test.describe('Mobile 375px QA - Cross-page verification', () => {
       await page.goto(pageUrl);
       await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 
-      const buttons = await page.locator('button, [role="button"]').all();
-      console.log(`${pageUrl}: ${buttons.length} buttons`);
+      const buttonLocator = page.locator('button, [role="button"]');
+      const buttonCount = await buttonLocator.count();
+      console.log(`${pageUrl}: ${buttonCount} buttons`);
 
-      if (buttons.length > 0) {
-        // Check if first button is clickable (within viewport)
-        for (let i = 0; i < Math.min(3, buttons.length); i++) {
-          const btn = buttons[i];
+      if (buttonCount > 0) {
+        // Check if first few buttons are clickable (within viewport)
+        for (let i = 0; i < Math.min(3, buttonCount); i++) {
+          const btn = buttonLocator.nth(i);
           try {
             const box = await btn.boundingBox();
             if (box) {
-              const withinViewport = box.y + box.height < MOBILE_HEIGHT + 500;
               // We just want to verify buttons have dimensions
               expect(box.width).toBeGreaterThan(0);
               expect(box.height).toBeGreaterThan(0);

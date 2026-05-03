@@ -8,7 +8,11 @@
       "Bash(mkdir -p /Users/alli/.claude/skills)",
       "Bash(cp -r /Users/alli/.claude/anthropics-skills/skills/* /Users/alli/.claude/skills/)",
       "Read(//Users/alli/.claude/**)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(lsof -ti:3000)",
+      "Bash(railway up *)",
+      "Bash(curl -s http://localhost:3000/api/auth/login -X POST -H 'Content-Type: application/json' -d '{\"password\":\"1234\"}')",
+      "Bash(curl -s -X DELETE http://localhost:3000/api/suppliers/1 -H \"x-auth-token: $\\(curl -s http://localhost:3000/api/auth/login -X POST -H 'Content-Type: application/json' -d '{\"password\":\"1234\"}')"
     ]
   }
 }

@@ -129,7 +129,9 @@
       gap: 2px;
     }
     .lang-btn {
-      padding: 6px 16px;
+      padding: 10px 18px;
+      min-width: 44px;
+      min-height: 44px;
       border-radius: var(--radius-pill);
       font-size: 12px;
       font-weight: 800;
@@ -532,6 +534,56 @@
     .group-tab:hover { border-color: var(--green); color: var(--green); }
     .group-tab.active { background: var(--green); color: var(--white); border-color: var(--green); }
 
+    /* Menu search bar */
+    .menu-search-wrap {
+      max-width: 480px;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+    .menu-search-wrap::before {
+      content: '🔍';
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .menu-search {
+      width: 100%;
+      padding: 12px 44px 12px 44px;
+      border-radius: 9999px;
+      border: 2px solid #d4e8d8;
+      background: var(--white);
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--text-mid);
+      outline: none;
+      transition: border-color var(--speed) var(--ease), box-shadow var(--speed) var(--ease);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .menu-search:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(46,125,50,0.12); }
+    .menu-search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text-soft);
+      display: none;
+    }
+    .menu-search-clear:hover { background: rgba(0,0,0,0.06); }
+    .menu-search-wrap.has-text .menu-search-clear { display: block; }
+    [dir="rtl"] .menu-search-wrap::before { left: auto; right: 16px; }
+    [dir="rtl"] .menu-search-clear { right: auto; left: 8px; }
+
     /* Category tiles */
     .cat-grid {
       display: grid;
@@ -760,6 +812,8 @@
       font-size: 1.5rem; cursor: pointer;
       color: var(--text-mid);
       line-height: 1;
+      min-width: 44px; min-height: 44px;
+      display: flex; align-items: center; justify-content: center;
     }
     .cart-items {
       flex: 1;
@@ -1026,9 +1080,12 @@
     }
     .size-btn:hover { border-color: var(--green); }
     .size-btn.selected { border-color: var(--green); background: var(--green-pale); }
-    .size-btn .size-letter { font-weight: 900; font-size: 1.3rem; display: block; margin-bottom: 4px; }
-    .size-btn .size-price { font-size: 0.78rem; color: var(--text-soft); }
+    .size-btn .size-letter { font-weight: 900; font-size: 1.3rem; display: block; margin-bottom: 2px; }
+    .size-btn .size-name { font-size: 0.78rem; color: var(--text); display: block; font-weight: 600; }
+    .size-btn .size-volume { font-size: 0.7rem; color: var(--text-soft); display: block; margin-bottom: 4px; }
+    .size-btn .size-price { font-size: 0.78rem; color: var(--text-soft); display: block; }
     .size-btn.selected .size-price { color: var(--green); font-weight: 700; }
+    .size-btn.selected .size-name { color: var(--green); }
     .btn-size-confirm {
       width: 100%; padding: 16px; border-radius: var(--radius-pill);
       background: var(--green); color: var(--white); border: none;
@@ -1128,7 +1185,8 @@
       padding: 4px; margin-bottom: 24px;
     }
     .auth-tab {
-      flex: 1; padding: 8px;
+      flex: 1; padding: 12px 8px;
+      min-height: 44px;
       border-radius: var(--radius-pill);
       border: none; background: transparent;
       font-family: inherit; font-size: 0.85rem; font-weight: 800;
@@ -1180,6 +1238,8 @@
       background: none; border: none;
       cursor: pointer; font-family: inherit;
       font-size: inherit;
+      min-height: 44px; padding: 10px 8px;
+      display: inline-flex; align-items: center;
     }
     .auth-error {
       background: #fff0f0; border: 1px solid #fca5a5;
@@ -1223,6 +1283,22 @@
     }
     html[lang="ar"] .profile-drawer { transform: translateX(-100%); }
     .profile-overlay.open .profile-drawer { transform: translateX(0); }
+    @media (max-width: 480px) {
+      .profile-drawer { width: 100vw; }
+      .profile-user-card { padding: 14px 16px 12px; }
+      .profile-hero-row { gap: 10px; margin-bottom: 12px; }
+      .profile-avatar { width: 48px; height: 48px; font-size: 1.15rem; }
+      .profile-user-name { font-size: 0.98rem; }
+      .profile-user-meta { font-size: 0.7rem; }
+      .profile-stat-grid { gap: 5px; }
+      .profile-stat-tile { padding: 7px 2px; border-radius: 12px; }
+      .profile-stat-num { font-size: 0.95rem; }
+      .profile-stat-label { font-size: 0.58rem; }
+      .profile-tabs { padding: 10px 12px; gap: 5px; }
+      .profile-tab { padding: 7px 12px; font-size: 0.74rem; }
+      .profile-pane { padding: 14px 16px; }
+      .profile-drawer-header { padding: 16px 18px; }
+    }
     .profile-drawer-header {
       padding: 20px 24px;
       background: var(--green);
@@ -1233,38 +1309,80 @@
     .profile-drawer-header h3 { font-size: 1rem; font-weight: 900; }
     .btn-close-drawer {
       background: rgba(255,255,255,0.2); border: none;
-      border-radius: 50%; width: 32px; height: 32px;
-      color: #fff; font-size: 1rem;
+      border-radius: 50%; width: 44px; height: 44px;
+      color: #fff; font-size: 1.1rem;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       font-family: inherit;
     }
     .profile-user-card {
-      padding: 20px 24px;
-      background: var(--green-pale);
-      border-bottom: 1px solid #d4e8d8;
+      padding: 18px 20px 16px;
+      background: linear-gradient(160deg, var(--green-pale) 0%, #fff 100%);
+      border-bottom: 1px solid #e2efe6;
       flex-shrink: 0;
     }
-    .profile-user-name { font-size: 1.1rem; font-weight: 900; color: var(--text-dark); }
-    .profile-user-meta { font-size: 0.8rem; color: var(--text-soft); margin-top: 2px; }
+    .profile-hero-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .profile-avatar {
+      width: 56px; height: 56px; flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; font-weight: 900;
+      box-shadow: 0 6px 16px rgba(54,125,77,0.28);
+    }
+    .profile-hero-text { flex: 1; min-width: 0; }
+    .profile-user-name {
+      font-size: 1.05rem; font-weight: 900; color: var(--text-dark);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .profile-user-meta {
+      font-size: 0.74rem; color: var(--text-soft); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .profile-tier-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff; border: 1px solid #d4e8d8;
+      padding: 4px 10px; border-radius: var(--radius-pill);
+      font-size: 0.72rem; font-weight: 800; color: var(--green);
+      margin-top: 6px;
+    }
+    .profile-stat-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    }
+    .profile-stat-tile {
+      background: #fff; border: 1px solid #e2efe6;
+      border-radius: 14px; padding: 8px 4px;
+      text-align: center;
+    }
+    .profile-stat-num {
+      font-size: 1.05rem; font-weight: 900; color: var(--green);
+      line-height: 1.1; direction: ltr; unicode-bidi: plaintext;
+    }
+    .profile-stat-label {
+      font-size: 0.62rem; font-weight: 700; color: var(--text-soft);
+      letter-spacing: 0.02em; margin-top: 3px;
+    }
 
     .profile-tabs {
-      display: flex; gap: 4px;
-      padding: 12px 16px 0; flex-shrink: 0;
-      border-bottom: 2px solid #eee;
+      display: flex; gap: 6px;
+      padding: 12px 16px; flex-shrink: 0;
+      border-bottom: 1px solid #eee;
+      overflow-x: auto; scrollbar-width: none;
     }
+    .profile-tabs::-webkit-scrollbar { display: none; }
     .profile-tab {
-      padding: 8px 16px;
-      border-radius: 8px 8px 0 0;
-      border: 1px solid transparent;
-      border-bottom: none;
-      font-family: inherit; font-size: 0.82rem; font-weight: 800;
-      cursor: pointer; background: var(--off-white);
-      color: var(--text-mid); transition: all 0.2s;
-      position: relative; bottom: -2px;
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid #e5e5e5;
+      font-family: inherit; font-size: 0.78rem; font-weight: 800;
+      cursor: pointer; background: #fff;
+      color: var(--text-mid); transition: all 0.18s;
+      white-space: nowrap; flex-shrink: 0;
     }
+    .profile-tab:hover { border-color: var(--green); color: var(--green); }
     .profile-tab.active {
-      background: var(--white); color: var(--green);
-      border-color: #eee; border-bottom-color: var(--white);
+      background: var(--green); color: #fff;
+      border-color: var(--green);
+      box-shadow: 0 4px 10px rgba(54,125,77,0.25);
     }
     .profile-pane { display: none; padding: 16px 24px; overflow-y: auto; flex: 1; }
     .profile-pane.active { display: block; }
@@ -1314,8 +1432,8 @@
     .btn-fav-add:hover { background: var(--green-dark); }
     .btn-fav-remove {
       background: none; border: 2px solid #fca5a5;
-      border-radius: 50%; width: 28px; height: 28px;
-      color: #e53e3e; font-size: 0.8rem;
+      border-radius: 50%; width: 44px; height: 44px;
+      color: #e53e3e; font-size: 0.9rem;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
     .btn-logout {
@@ -1329,16 +1447,16 @@
     }
     .btn-logout:hover { border-color: #e53e3e; color: #e53e3e; }
 
-    /* 메뉴 카드 별표 아이콘 */
+    
     .menu-card { position: relative; }
     .btn-star {
       position: absolute; top: 8px; right: 8px;
-      background: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.95);
       border: none; border-radius: 50%;
-      width: 32px; height: 32px;
+      width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; cursor: pointer;
-      box-shadow: var(--shadow-xs);
+      font-size: 1.4rem; cursor: pointer;
+      box-shadow: var(--shadow-sm);
       transition: transform 0.2s, background 0.2s;
       z-index: 2;
     }
@@ -1346,7 +1464,7 @@
     .btn-star:hover { transform: scale(1.15); }
     .btn-star.starred { background: var(--green-pale); color: var(--green); }
 
-    /* 즐겨찾기 탭 */
+    
     .group-tab[data-group="favorites"] { display: none; }
     .group-tab[data-group="favorites"].show { display: inline-flex; }
 
@@ -1653,7 +1771,7 @@
     }
     .btn-status-close:hover { background: var(--green-dark); transform: translateY(-1px); }
 
-    /* ─── 플로팅 내 주문 버튼 ─── */
+    
     .my-order-fab {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
       background: var(--green); color: #fff;
@@ -2041,7 +2159,13 @@
       color: var(--text-mid);
       line-height: 1.65;
     }
-    .c-link { color: var(--green); font-weight: 700; }
+    .c-link {
+      color: var(--green); font-weight: 700;
+      display: inline-block;
+      padding: 10px 4px;
+      min-height: 44px;
+      line-height: 1.3;
+    }
     .c-link:hover { text-decoration: underline; }
 
     .map-box {
@@ -2161,11 +2285,15 @@
       color: rgba(255,255,255,0.38);
       margin-bottom: 18px;
     }
-    .footer-links { display: flex; flex-direction: column; gap: 10px; }
+    .footer-links { display: flex; flex-direction: column; gap: 4px; }
     .footer-links a {
       font-size: 0.87rem;
       color: rgba(255,255,255,0.62);
       transition: color var(--speed) var(--ease);
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 10px 0;
     }
     .footer-links a:hover { color: var(--white); }
 
@@ -2239,18 +2367,16 @@
       .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
     }
 
-    /* =========================================
-       MOBILE — iOS / Android 핵심 최적화
-    ========================================= */
+    
 
-    /* 1. iOS 자동 줌 방지: input이 16px 미만이면 Safari가 확대함 */
+    
     @media (max-width: 768px) {
       input, select, textarea {
         font-size: 16px !important;
       }
     }
 
-    /* 2. Hero 모바일 패딩 축소 + 주소창 공간 확보 */
+    
     @media (max-width: 768px) {
       .hero {
         padding: 96px 24px 64px;
@@ -2263,7 +2389,7 @@
       .btn-hero { padding: 14px 32px; font-size: 0.92rem; }
     }
 
-    /* 3. 안전 영역 인셋: iPhone 홈바 위로 FAB·Toast 띄우기 */
+    
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       .my-order-fab {
         bottom: calc(16px + env(safe-area-inset-bottom));
@@ -2273,7 +2399,7 @@
       }
     }
 
-    /* 4. 터치 타겟 최소 44px */
+    
     @media (max-width: 768px) {
       .btn-add         { min-height: 44px; padding: 10px 18px; font-size: 0.85rem; }
       .btn-nav-order   { min-height: 44px; }
@@ -2285,7 +2411,7 @@
       .timeslot-btn    { min-height: 44px; padding: 10px 8px; font-size: 0.82rem; }
     }
 
-    /* 5. 섹션 상하 여백 축소 + 내부 여백 조정 */
+    
     @media (max-width: 768px) {
       section { padding: 56px 20px; }
       .split-content { padding: 36px 22px; }
@@ -2293,7 +2419,7 @@
       .section-desc { font-size: 0.93rem; }
     }
 
-    /* 6. 카트 드로어: 모바일 full-width + 안전 영역 */
+    
     @media (max-width: 480px) {
       .cart-drawer {
         width: 100vw;
@@ -2301,7 +2427,7 @@
       }
     }
 
-    /* 7. 체크아웃 모달 패딩 축소 */
+    
     @media (max-width: 480px) {
       .modal-box { padding: 24px 18px; border-radius: var(--radius-sm); }
       .order-type-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -2310,28 +2436,28 @@
       .order-type-btn .type-label { font-size: 0.72rem; }
     }
 
-    /* 8. 예약 캘린더 모바일 */
+    
     @media (max-width: 600px) {
       .cal-day { min-height: 38px; font-size: 0.85rem; }
       .reserve-time-grid { grid-template-columns: repeat(3, 1fr); }
       .timeslot-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     }
 
-    /* 9. 네비게이션 모바일 메뉴 하단 안전 영역 */
+    
     @media (max-width: 768px) {
       .nav-links.open {
         padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       }
-      /* 네비 버튼 간격 확보 */
+      
       .nav-links.open a { padding: 13px 0; }
     }
 
-    /* 10. 플로팅 주문 FAB 모바일 크기 */
+    
     @media (max-width: 480px) {
       .my-order-fab { padding: 12px 20px; font-size: 0.85rem; }
     }
 
-    /* 11. 375px 네비 과밀 해소: 간격 축소 + 카트 아이콘 전용 */
+    
     @media (max-width: 480px) {
       .nav-right { gap: 8px; }
       .lang-btn { padding: 4px 9px; font-size: 11px; }
@@ -2342,7 +2468,7 @@
       .btn-auth-profile { padding: 5px 10px 5px 5px; font-size: 11px; }
     }
 
-    /* 12. 375px 이하: 섹션 패딩 최소화 + 히어로 로고 축소 */
+    
     @media (max-width: 375px) {
       section { padding: 48px 16px; }
       .hero-logo-wrap { width: 100px; height: 100px; }
@@ -2358,7 +2484,7 @@
 <nav class="navbar" aria-label="Main navigation">
 
   <a href="#home" aria-label="Mr. Kim's CAFE">
-    <img class="nav-logo" src="text logo.png" alt="Mr. Kim's CAFE">
+    <img class="nav-logo" src="text logo.webp" alt="Mr. Kim's CAFE">
   </a>
 
   <ul class="nav-links" id="nav-links">
@@ -2435,7 +2561,7 @@
     <div class="hero-right">
 
       <div class="hero-logo-wrap">
-        <img class="hero-logo" src="logo.jpg" alt="Mr. Kim's CAFE logo">
+        <img class="hero-logo" src="logo.webp" alt="Mr. Kim's CAFE logo">
       </div>
 
 
@@ -2462,7 +2588,7 @@
     REPLACE_IMG: seasonal/promo image
     추천: 킴스커피_대지 1 사본 5.jpg (종이컵 사진)
   -->
-<img class="split-img" src="cups.jpg" alt="Kim's CAFE drinks" loading="lazy">
+<img class="split-img" src="cups.webp" alt="Kim's CAFE drinks" loading="lazy">
 
   <div class="split-content">
     <div class="split-content-inner">
@@ -2472,7 +2598,7 @@
       </p>
       <h2 class="section-title">
         <span class="en">Every day<br>fresh coffee</span>
-        <span class="ar">اختيارات طازجة<br>لكل مزاج</span>
+        <span class="ar">قهوة طازجة<br>كل يوم</span>
       </h2>
       <p class="section-desc">
         <span class="en">Discover our latest seasonal drinks and snacks — crafted fresh daily with the finest ingredients.</span>
@@ -2518,7 +2644,7 @@
     REPLACE_IMG: mugs / merchandise photo
     추천: 킴스커피_대지 1 사본 2.jpg (흰 머그컵)
   -->
-<img class="split-img" src="mug.jpg" alt="Kim's CAFE mugs" loading="lazy">
+<img class="split-img" src="mug.webp" alt="Kim's CAFE mugs" loading="lazy">
 
 </div>
 
@@ -2542,6 +2668,22 @@
       <span class="en">From specialty coffee to refreshing cold drinks and fresh bites — we've got you covered.</span>
       <span class="ar">من القهوة المتخصصة إلى المشروبات الباردة المنعشة والوجبات الطازجة — نحن هنا لك.</span>
     </p>
+  </div>
+
+  <!-- Menu Search -->
+  <div class="menu-search-wrap" id="menu-search-wrap">
+    <input
+      type="text"
+      class="menu-search"
+      id="menu-search"
+      oninput="searchMenu(this.value)"
+      autocomplete="off"
+      placeholder="Search menu..."
+      data-ph-en="Search menu..."
+      data-ph-ar="ابحث في القائمة..."
+      aria-label="Search menu"
+    />
+    <button type="button" class="menu-search-clear" id="menu-search-clear" onclick="clearMenuSearch()" aria-label="Clear search">×</button>
   </div>
 
   <!-- Category Grid -->
@@ -2872,7 +3014,7 @@
         REPLACE_IMG: about/storefront photo
         추천: 킴스커피_대지 1.jpg (벤치 사진 — 가장 분위기 있음)
       -->
-<img class="about-img" src="bench.jpg" alt="Kim's CAFE storefront" loading="lazy">
+<img class="about-img" src="bench.webp" alt="Kim's CAFE storefront" loading="lazy">
 
       <div class="about-badge">
         <span class="badge-num">100%</span>
@@ -3009,9 +3151,15 @@
       <!-- Map -->
       <div class="map-box">
         <iframe
-          src="https://maps.google.com/maps?q=Mr+Kim%27s+Cafe,+Salikh,+600+Street,+Baghdad&output=embed"
+          src="https://maps.google.com/maps?q=33.3947732,44.3805760&z=16&output=embed"
           width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <a href="https://maps.google.com/?q=33.3947732,44.3805760"
+           target="_blank" rel="noopener noreferrer"
+           class="c-link map-link" style="display:block;text-align:center;margin-top:8px;">
+          <span class="en">📍 Open in Google Maps</span>
+          <span class="ar">📍 افتح في خرائط جوجل</span>
+        </a>
       </div>
     </div>
 
@@ -3105,7 +3253,6 @@
           <li><a href="#menu">    <span class="en">Menu</span>      <span class="ar">القائمة</span></a></li>
           <li><a href="#order">   <span class="en">Order Now</span> <span class="ar">اطلب الآن</span></a></li>
           <li><a href="#about">   <span class="en">About Us</span>  <span class="ar">من نحن</span></a></li>
-          <li><a href="#ratings"> <span class="en">Reviews</span>   <span class="ar">التقييمات</span></a></li>
         </ul>
       </div>
 
@@ -3339,9 +3486,16 @@
     document.getElementById('size-thumb').textContent = item.emoji;
     document.getElementById('size-name-en').textContent = item.en;
     document.getElementById('size-name-ar').textContent = item.ar;
+    const isAr = document.getElementById('html-root').lang === 'ar';
+    const sizeLabels = isAr
+      ? { S: 'صغير', M: 'وسط', L: 'كبير' }
+      : { S: 'Small', M: 'Medium', L: 'Large' };
+    const sizeVolumes = { S: '350ml', M: '450ml', L: '600ml' };
     document.getElementById('size-options').innerHTML = ['S','M','L'].map(s => `
       <button class="size-btn${s === 'M' ? ' selected' : ''}" id="size-opt-${s}" onclick="selectSize('${s}')">
         <span class="size-letter">${s}</span>
+        <span class="size-name">${sizeLabels[s]}</span>
+        <span class="size-volume">${sizeVolumes[s]}</span>
         <span class="size-price">${(basePrice + SIZE_MODS[s]).toLocaleString()} IQD</span>
       </button>`).join('');
     document.getElementById('size-overlay').classList.add('open');
@@ -3439,12 +3593,12 @@
     document.getElementById('cart-drawer').classList.remove('open');
   }
 
-  /* ─── Dine-in QR 토큰 (URL 파라미터에서 읽기) ─── */
+  
   const _urlParams = new URLSearchParams(location.search);
   const dineInToken = _urlParams.get('t') || null;
   const dineInTable = _urlParams.get('table') || null;
 
-  // QR 스캔 시 서버에서 1시간 세션 발급
+  
   let dineSessionToken = null;
   if (dineInToken) {
     fetch('/api/dine-session', {
@@ -3461,7 +3615,7 @@
 
   function openCheckout() {
     closeCart();
-    // QR 토큰 없으면 Dine-in 버튼 비활성화
+    
     const dineBtn = document.getElementById('type-dine');
     if (!dineInToken) {
       dineBtn.disabled = false;
@@ -3475,10 +3629,10 @@
       dineBtn.style.cursor = '';
       dineBtn.style.pointerEvents = '';
       dineBtn.title = '';
-      // 테이블 번호 자동 세팅
+      
       const tableInput = document.getElementById('input-table');
       if (tableInput && dineInTable) tableInput.value = dineInTable;
-      // QR 스캔으로 들어온 경우 Dine-in 자동 선택
+      
       document.getElementById('checkout-modal').classList.add('open');
       selectType('dine');
       return;
@@ -3545,7 +3699,7 @@
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
     document.getElementById('confirm-total-price').textContent = total.toLocaleString() + ' IQD';
 
-    // 픽업은 결제 필수 — 버튼 텍스트 변경
+    
     const placeBtn = document.getElementById('btn-place-order');
     if (selectedType === 'pickup') {
       placeBtn.querySelector('.en').textContent = '💳 Pay & Order';
@@ -3563,7 +3717,7 @@
     openCheckout();
   }
 
-  /* ─── 주문 상태 추적 ─── */
+  
   let _statusOrderId = null;
   let _statusPollTimer = null;
   const lang = document.documentElement.lang || 'en';
@@ -3664,7 +3818,7 @@
         if (!res.ok) return;
         const order = await res.json();
         renderStatusModal(order);
-        // 모달이 열려있으면 모달도 업데이트, FAB도 업데이트
+        
         if (document.getElementById('status-modal').classList.contains('open')) {
           renderStatusModal(order);
         }
@@ -3672,10 +3826,10 @@
         if (order.status === 'done' || order.status === 'cancelled') {
           clearInterval(_statusPollTimer);
           _statusPollTimer = null;
-          // 완료 시 로그인 고객에게 스탬프 적립 알림
+          
           if (order.status === 'done' && authState.customer) {
             const isAr = document.documentElement.lang === 'ar';
-            // 최신 스탬프 수 조회 후 토스트
+            
             fetch('/api/customers/stamps', { headers: authHeader() })
               .then(r => r.ok ? r.json() : null)
               .then(data => {
@@ -3687,7 +3841,7 @@
                 );
               }).catch(() => {});
           }
-          // 완료/취소 5초 후 FAB 제거
+          
           setTimeout(() => {
             hideMyOrderFab();
             clearActiveOrder();
@@ -3697,13 +3851,13 @@
       } catch (_) {}
     }
 
-    poll(); // 즉시 한 번
+    poll(); 
     _statusPollTimer = setInterval(poll, 4000);
   }
 
   function closeStatusModal() {
     document.getElementById('status-modal').classList.remove('open');
-    // 주문 진행 중이면 FAB 유지, 폴링 계속
+    
     if (_statusOrderId) {
       fetch(`/api/orders/${_statusOrderId}`)
         .then(r => r.ok ? r.json() : null)
@@ -3718,11 +3872,11 @@
    *  amount 단위: IQD 정수
    * ------------------------------------------------------------------- */
   async function processCardPayment(cardData, amount) {
-    // TODO: 실제 카드 결제 API 코드로 교체
+    
     throw new Error('PAYMENT_API_NOT_CONFIGURED');
   }
 
-  /* ─── 결제 모달 열기 ─── */
+  
   function openPaymentModal() {
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
     document.getElementById('pay-amount-display').textContent = total.toLocaleString() + ' IQD';
@@ -3767,9 +3921,7 @@
       }
     } catch (e) {
       if (e.message === 'PAYMENT_API_NOT_CONFIGURED') {
-        // 결제 시스템 미설정 시 결제 없이 주문 진행
-        closePaymentModal();
-        await placeOrderInternal(null);
+        errorEl.textContent = '⚠️ Online card payment is temporarily unavailable. Please order Dine-in at the cafe, or contact us via WhatsApp.';
       } else {
         errorEl.textContent = '⚠️ Payment error: ' + e.message;
       }
@@ -3781,7 +3933,7 @@
   }
 
   async function placeOrder() {
-    // 픽업 주문은 반드시 온라인 결제 먼저
+    
     if (selectedType === 'pickup') {
       document.getElementById('confirm-modal').classList.remove('open');
       openPaymentModal();
@@ -3795,7 +3947,7 @@
     if (btn) btn.disabled = true;
     const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
 
-    // 로그인 상태면 이름/전화번호 자동 채움 (authState 우선, 폼 입력값 보조)
+    
     let cName = null, cPhone = null, cArrival = null;
     if (selectedType === 'pickup') {
       cName   = document.getElementById('input-name').value.trim()   || (authState.customer?.name  ?? null);
@@ -3822,7 +3974,8 @@
           arrivalTime: cArrival,
           items: cart.map(c => ({ emoji: c.emoji, name: c.name, nameAr: c.nameAr, qty: c.qty, price: c.price, size: c.size || null })),
           total,
-          paymentTransactionId: transactionId || null
+          paymentTransactionId: transactionId || null,
+          source: 'online'
         })
       });
       if (res.ok) {
@@ -4185,6 +4338,90 @@
     // no-op — flat layout, categories always visible
   }
 
+  /* ─── Menu Search ─── */
+  function clearMenuSearch() {
+    const input = document.getElementById('menu-search');
+    if (input) { input.value = ''; searchMenu(''); input.focus(); }
+  }
+
+  function searchMenu(rawQuery) {
+    const query = (rawQuery || '').trim().toLowerCase();
+    const wrap = document.getElementById('menu-search-wrap');
+    const catGrid = document.getElementById('cat-grid');
+    const groupTabs = document.getElementById('group-tabs');
+    const grid = document.getElementById('menu-grid');
+    const titleEl = document.getElementById('cat-panel-title');
+    const isAr = document.documentElement.lang === 'ar';
+
+    if (wrap) wrap.classList.toggle('has-text', query.length > 0);
+
+    if (!query) {
+      if (catGrid) catGrid.style.display = '';
+      if (groupTabs) groupTabs.style.display = '';
+      const activeTab = document.querySelector('.group-tab.active');
+      if (activeTab) {
+        filterGroup(activeTab.dataset.group, activeTab);
+      }
+      return;
+    }
+
+    if (catGrid) catGrid.style.display = 'none';
+    if (groupTabs) groupTabs.style.display = 'none';
+
+    const favKeys = new Set((authState.favorites || []).map(f => f.menu_key));
+    const results = [];
+    Object.keys(menuData).forEach(cat => {
+      const items = (menuData[cat] && menuData[cat].items) || [];
+      items.forEach((item, idx) => {
+        const hay = [item.en, item.ar, item.descEn, item.descAr]
+          .map(s => String(s || '').toLowerCase()).join(' ');
+        if (hay.includes(query)) results.push({ cat, idx, item });
+      });
+    });
+
+    titleEl.innerHTML =
+      `<span class="en">Search results (${results.length})</span>` +
+      `<span class="ar">نتائج البحث (${results.length})</span>`;
+
+    if (results.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-soft);">
+        <div style="font-size:2.5rem;margin-bottom:12px;">🔍</div>
+        <span class="en">No items match "${esc(rawQuery)}"</span>
+        <span class="ar">لا توجد نتائج لـ "${esc(rawQuery)}"</span>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = results.map(({ cat, idx, item }) => {
+      const key = `${cat}:${idx}`;
+      const starred = favKeys.has(key) ? 'starred' : '';
+      const starIcon = favKeys.has(key) ? '★' : '☆';
+      return `
+      <div class="menu-card">
+        <button class="btn-star ${starred}" onclick="toggleFavorite('${key}','${String(item.en).replace(/'/g,"\\'")}','${String(item.ar).replace(/'/g,"\\'")}','${item.emoji}',${item.price})" title="Favorite">${starIcon}</button>
+        <div class="card-thumb-placeholder">${item.emoji}</div>
+        <div class="card-body">
+          <div class="card-name en">${item.en}</div>
+          <div class="card-name ar">${item.ar}</div>
+          <div class="card-desc en">${item.descEn || ''}</div>
+          <div class="card-desc ar">${item.descAr || ''}</div>
+          <div class="card-footer">
+            <div>
+              <div class="card-price en">${parseInt(item.price).toLocaleString()} IQD</div>
+              <div class="card-price ar">${parseInt(item.price).toLocaleString()} دينار</div>
+            </div>
+            <button class="btn-add" onclick="addToCart('${cat}', ${idx})">
+              <span class="en">+ Add</span><span class="ar">+ أضف</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    grid.classList.remove('updated');
+    void grid.offsetWidth;
+    grid.classList.add('updated');
+  }
+
   /* ─── XSS helper ─── */
   function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -4226,9 +4463,9 @@
       const initial = (authState.customer.name || '?')[0].toUpperCase();
       document.getElementById('profile-avatar').textContent = initial;
       document.getElementById('profile-name-short').textContent = authState.customer.name.split(' ')[0];
-      // 즐겨찾기 탭 표시
+      
       document.querySelector('.group-tab[data-group="favorites"]').classList.add('show');
-      // 예약 폼 자동 채움
+      
       prefillResContactIfLoggedIn();
     } else {
       document.querySelector('.group-tab[data-group="favorites"]').classList.remove('show');
@@ -4333,7 +4570,7 @@
       authState.customer = data.customer;
       authState.token = data.token;
       authState.favorites = [];
-      saveAuthState(true); // 회원가입 후 localStorage에 저장 (탭 닫아도 유지)
+      saveAuthState(true); 
       updateAuthUI();
       closeAuthModal();
       btn.disabled = false;
@@ -4361,11 +4598,50 @@
     document.getElementById('profile-overlay').classList.add('open');
     document.body.style.overflow = 'hidden';
     if (authState.customer) {
-      document.getElementById('profile-full-name').textContent = authState.customer.name;
+      const name = authState.customer.name || '';
+      document.getElementById('profile-full-name').textContent = name;
       document.getElementById('profile-meta').innerHTML = `<span dir="ltr" style="unicode-bidi:plaintext;">${authState.customer.phone}</span> · ${authState.customer.email}`;
+      const initials = name.trim().split(/\s+/).slice(0,2).map(s => s[0] || '').join('').toUpperCase() || '☕';
+      document.getElementById('profile-avatar').textContent = initials;
     }
     switchProfileTab('orders');
     loadProfileData();
+    loadHeroStats();
+  }
+
+  async function loadHeroStats() {
+    if (!authState.token) return;
+    try {
+      const res = await fetch('/api/customers/stamps', { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const isAr = document.getElementById('html-root').lang === 'ar';
+      const { total_earned = 0, total_redeemed = 0, available = 0 } = data;
+      const freeDrinks = Math.floor(available / 9);
+      const totalFreeEver = Math.floor(total_redeemed / 9);
+      const visits = total_earned + totalFreeEver;
+      const levels = [
+        { min: 5, icon: '👑', en: 'Legend',   ar: 'أسطوري' },
+        { min: 3, icon: '💎', en: 'Platinum', ar: 'بلاتيني' },
+        { min: 2, icon: '⭐', en: 'Gold',     ar: 'ذهبي' },
+        { min: 1, icon: '🥈', en: 'Silver',   ar: 'فضي' },
+        { min: 0, icon: '🥉', en: 'Bronze',   ar: 'برونزي' },
+      ];
+      const lv = levels.find(l => totalFreeEver >= l.min);
+      document.getElementById('hero-stat-stamps').textContent = available;
+      document.getElementById('hero-stat-free').textContent = freeDrinks;
+      document.getElementById('hero-stat-visits').textContent = visits;
+      const chip = document.getElementById('profile-tier-chip');
+      document.getElementById('profile-tier-icon').textContent = lv.icon;
+      document.getElementById('profile-tier-name').textContent = isAr ? lv.ar : lv.en;
+      chip.style.display = 'inline-flex';
+    } catch (_) {}
+    try {
+      const r2 = await fetch('/api/customers/me', { headers: authHeader() });
+      if (!r2.ok) return;
+      const me = await r2.json();
+      document.getElementById('hero-stat-orders').textContent = (me.orders || []).length;
+    } catch (_) {}
   }
 
   function closeProfileModal(e) {
@@ -4562,8 +4838,16 @@
   })();
 
   async function loadReserveSlots() {
-    const date = document.getElementById('res-date').value;
+    const dateInput = document.getElementById('res-date');
+    const date = dateInput.value;
     if (!date) return;
+    const todayStr = getResDateMin();
+    if (date < todayStr) {
+      const isAr = document.getElementById('html-root').lang === 'ar';
+      showToast(isAr ? 'لا يمكن حجز تاريخ في الماضي' : 'Cannot book a date in the past');
+      dateInput.value = todayStr;
+      return;
+    }
     resSlotSelected = null;
     document.getElementById('res-slots-wrap').style.display = 'none';
 
@@ -4763,7 +5047,7 @@
       } else {
         showToast(l==='ar' ? 'تمت الإزالة من المفضلة' : 'Removed from Favorites');
       }
-      // 현재 열린 카테고리 새로고침
+      
       if (fromProfile) { renderFavsList(); }
       else {
         const panel = document.getElementById('items-panel');
@@ -4771,9 +5055,9 @@
           const favTab = document.querySelector('.group-tab[data-group="favorites"]');
           if (favTab?.classList.contains('active')) { renderFavoritesPanel(); }
           else {
-            // 현재 카테고리 리렌더
+            
             const btn = document.querySelector('.btn-star'); // re-render via showCategory
-            // 별 아이콘만 업데이트
+            
             document.querySelectorAll('.btn-star').forEach(btn => {
               const onclick = btn.getAttribute('onclick') || '';
               const keyMatch = onclick.match(/toggleFavorite\('([^']+)'/);
@@ -4790,7 +5074,7 @@
     } catch (_) {}
   }
 
-  /* ─── 주문 상태 localStorage 유지 ─── */
+  
   function saveActiveOrder(orderId, orderNum) {
     localStorage.setItem('kims-active-order', JSON.stringify({ id: orderId, num: orderNum, ts: Date.now() }));
   }
@@ -4803,7 +5087,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem('kims-active-order') || 'null');
       if (!saved) return;
-      // 2시간 이상 지난 주문은 무시
+      
       if (Date.now() - saved.ts > 2 * 60 * 60 * 1000) { clearActiveOrder(); return; }
       fetch(`/api/orders/${saved.id}`).then(r => r.ok ? r.json() : null).then(order => {
         if (!order) { clearActiveOrder(); return; }
@@ -4850,11 +5134,11 @@
   /* ─── Phone formatting: xxxx xxx xxxx (11 digits) ─── */
   function formatPhoneInput(e) {
     const input = e.target;
-    // 숫자만 추출
+    
     let digits = input.value.replace(/\D/g, '');
-    // 최대 11자리
+    
     if (digits.length > 11) digits = digits.slice(0, 11);
-    // xxxx xxx xxxx 포맷
+    
     let formatted = '';
     if (digits.length <= 4) {
       formatted = digits;
@@ -4880,7 +5164,7 @@
     if (!el) return;
     el.addEventListener('input', formatPhoneInput);
     el.addEventListener('keydown', (e) => {
-      // 백스페이스가 공백 바로 뒤에서 눌리면 공백도 같이 삭제
+      
       if (e.key === 'Backspace') {
         const val = el.value;
         if (val.endsWith(' ')) {
@@ -4912,25 +5196,25 @@
       )
     );
 
-    // Phone formatting 연결
+    
     ['login-phone','signup-phone','input-phone','book-phone'].forEach(attachPhoneFormat);
 
     // Auth: restore session
     loadAuthState();
-    updateAuthUI(); // 캐시된 상태 즉시 반영 (로그인 유지)
+    updateAuthUI(); 
     if (authState.token) {
-      // 백그라운드에서 서버 검증 — 실패해도 로그아웃 안 함
+      
       try {
         const r = await fetch('/api/customers/me', { headers: authHeader() });
         if (r.ok) {
           const d = await r.json();
           authState.customer = d.customer;
-          saveAuthState(!!localStorage.getItem('kims-auth')); // 저장소 업데이트
+          saveAuthState(!!localStorage.getItem('kims-auth')); 
           authState.favorites = [];
           await loadFavorites();
           updateAuthUI();
         }
-        // 401/403/500 모두 캐시 유지 — 명시적 로그아웃만 클리어
+        
       } catch (_) {}
     }
 
@@ -5003,6 +5287,7 @@
         <label><span class="en">Table Number</span><span class="ar">رقم الطاولة</span></label>
         <input type="number" id="input-table" min="1" max="99"
           placeholder="e.g. 5"
+          data-ph-en="e.g. 5" data-ph-ar="مثال: 5"
           style="width:100%;padding:10px 14px;border:2px solid #d4e8d8;border-radius:12px;font-size:1rem;font-family:inherit;outline:none;" />
       </div>
     </div>
@@ -5010,7 +5295,7 @@
     <div id="form-pickup" style="display:none">
       <div class="order-form-field">
         <label><span class="en">Your Name</span><span class="ar">اسمك</span></label>
-        <input type="text" id="input-name" placeholder="e.g. Ahmed" />
+        <input type="text" id="input-name" placeholder="e.g. Ahmed" data-ph-en="e.g. Ahmed" data-ph-ar="مثال: أحمد" />
       </div>
       <div class="order-form-field">
         <label><span class="en">Phone Number</span><span class="ar">رقم الهاتف</span></label>
@@ -5019,12 +5304,12 @@
       <div class="order-form-field">
         <label><span class="en">Arriving in</span><span class="ar">سأصل خلال</span></label>
         <select id="input-arrival">
-          <option value=""><span class="en">Select time…</span></option>
+          <option value=""><span class="en">Select time…</span><span class="ar">اختر الوقت…</span></option>
           <option value="5 min">5 min / 5 دقائق</option>
           <option value="10 min">10 min / 10 دقائق</option>
-          <option value="15 min">15 min / 15 دقائق</option>
-          <option value="20 min">20 min / 20 دقائق</option>
-          <option value="30 min">30 min / 30 دقائق</option>
+          <option value="15 min">15 min / 15 دقيقة</option>
+          <option value="20 min">20 min / 20 دقيقة</option>
+          <option value="30 min">30 min / 30 دقيقة</option>
           <option value="45 min">45 min / 45 دقيقة</option>
         </select>
       </div>
@@ -5258,7 +5543,7 @@
       <div class="auth-field-row">
         <div class="auth-field">
           <label><span class="en">Full Name</span><span class="ar">الاسم الكامل</span></label>
-          <input type="text" id="signup-name" placeholder="Ahmed Al-..." autocomplete="name" />
+          <input type="text" id="signup-name" placeholder="Ahmed Al-..." data-ph-en="Ahmed Al-..." data-ph-ar="أحمد ال-..." autocomplete="name" />
         </div>
         <div class="auth-field">
           <label><span class="en">Birthdate</span><span class="ar">تاريخ الميلاد</span></label>
@@ -5271,7 +5556,7 @@
       </div>
       <div class="auth-field">
         <label><span class="en">Password</span><span class="ar">كلمة المرور</span></label>
-        <input type="password" id="signup-password" placeholder="Min 8 chars" autocomplete="new-password" />
+        <input type="password" id="signup-password" placeholder="Min 8 chars" data-ph-en="Min 8 chars" data-ph-ar="٨ أحرف على الأقل" autocomplete="new-password" />
       </div>
       <div class="auth-field">
         <label><span class="en">Confirm Password</span><span class="ar">تأكيد كلمة المرور</span></label>
@@ -5289,7 +5574,7 @@
       </div>
     </div>
 
-    <button style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-soft);font-family:inherit;" onclick="closeAuthModal()">✕</button>
+    <button style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-soft);font-family:inherit;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;" onclick="closeAuthModal()">✕</button>
   </div>
 </div>
 
@@ -5303,8 +5588,34 @@
       <button class="btn-close-drawer" onclick="closeProfileModal()">✕</button>
     </div>
     <div class="profile-user-card">
-      <div class="profile-user-name" id="profile-full-name">—</div>
-      <div class="profile-user-meta" id="profile-meta">—</div>
+      <div class="profile-hero-row">
+        <div class="profile-avatar" id="profile-avatar">—</div>
+        <div class="profile-hero-text">
+          <div class="profile-user-name" id="profile-full-name">—</div>
+          <div class="profile-user-meta" id="profile-meta">—</div>
+          <div class="profile-tier-chip" id="profile-tier-chip" style="display:none;">
+            <span id="profile-tier-icon">🥉</span><span id="profile-tier-name">Bronze</span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-stat-grid">
+        <div class="profile-stat-tile">
+          <div class="profile-stat-num" id="hero-stat-stamps">0</div>
+          <div class="profile-stat-label"><span class="en">Stamps</span><span class="ar">طوابع</span></div>
+        </div>
+        <div class="profile-stat-tile">
+          <div class="profile-stat-num" id="hero-stat-free">0</div>
+          <div class="profile-stat-label"><span class="en">Free</span><span class="ar">مجانية</span></div>
+        </div>
+        <div class="profile-stat-tile">
+          <div class="profile-stat-num" id="hero-stat-visits">0</div>
+          <div class="profile-stat-label"><span class="en">Visits</span><span class="ar">زيارات</span></div>
+        </div>
+        <div class="profile-stat-tile">
+          <div class="profile-stat-num" id="hero-stat-orders">0</div>
+          <div class="profile-stat-label"><span class="en">Orders</span><span class="ar">طلبات</span></div>
+        </div>
+      </div>
     </div>
     <div class="profile-tabs">
       <button class="profile-tab active" id="ptab-orders"  onclick="switchProfileTab('orders')">

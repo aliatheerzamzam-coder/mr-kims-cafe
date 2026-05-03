@@ -19,6 +19,11 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
     headless: true,
   },
+  webServer: {
+    command: 'node server.js',
+    url: 'http://localhost:3000',
+    reuseExistingServer: true,
+  },
   projects: [
     {
       name: 'chromium',

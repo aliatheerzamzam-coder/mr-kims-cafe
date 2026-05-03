@@ -129,8 +129,10 @@ function buildAskPrompt(team, history) {
 function buildMeetingPrompt(team, topic, otherTeams) {
   const persona = readAgentBody(team.agent);
   const others = otherTeams.filter(t => t.id !== team.id).map(t => t.label).join(', ') || '없음';
+  // C3: Sandbox topic to prevent prompt injection by wrapping in code block
+  const sandboxedTopic = `\`${topic}\``;
   const userTask = [
-    `# 다자 회의 — 주제: ${topic}`,
+    `# 다자 회의 — 주제: ${sandboxedTopic}`,
     '',
     '## 너의 역할',
     `${team.label}으로서 위 주제에 대한 너의 의견을 단독으로 제시한다. 다른 팀(${others})도 같은 주제로 동시에 답하고 있고, 사장이 나중에 답변들을 비교한다.`,

@@ -92,13 +92,14 @@
       const nm = STATE.lang==='ar'?c.name_ar:c.name_en;
       el.classList.add('has');
       const init = nm.substring(0,1);
+      const tierKey = String(c.tier||'').toLowerCase().replace(/[^a-z]/g,'');
       el.innerHTML = `
-        <div class="cav">${init}</div>
+        <div class="cav">${esc(init)}</div>
         <div class="cm">
-          <div class="cn1">${nm}</div>
-          <div class="cn2">${c.phone} · ${c.stamps}/10 🎁</div>
+          <div class="cn1">${esc(nm)}</div>
+          <div class="cn2">${esc(c.phone)} · ${esc(c.stamps)}/10 🎁</div>
         </div>
-        <span class="cst ${c.tier}">${t(c.tier.toLowerCase())}</span>`;
+        <span class="cst ${tierKey}">${esc(t(tierKey))}</span>`;
     } else {
       el.classList.remove('has');
       el.innerHTML = `
@@ -135,9 +136,12 @@
 
   // ---------- CART OPS ----------
   function lineQ(i,d){
-    STATE.cart[i].q += d;
-    if(STATE.cart[i].q<=0) STATE.cart.splice(i,1);
-    renderCart(); MK.audit('cart.qty', {line:i, d});
+    if(!STATE.cart[i]) return;
+    const delta = Math.trunc(Number(d) || 0);
+    const nextQ = (Number(STATE.cart[i].q) || 0) + delta;
+    if(nextQ <= 0){ STATE.cart.splice(i,1); }
+    else { STATE.cart[i].q = nextQ; }
+    renderCart(); MK.audit('cart.qty', {line:i, d:delta});
   }
   function removeLine(i){ STATE.cart.splice(i,1); renderCart(); MK.audit('cart.remove',{line:i}); }
 
@@ -250,10 +254,12 @@
     const el = document.getElementById('cust-list');
     el.innerHTML = list.map(c=>{
       const nm = STATE.lang==='ar'?c.name_ar:c.name_en;
-      return `<div class="cc-row" onclick="MKO.pickCustomer('${c.id}')">
-        <div><div style="font-weight:800">${nm}</div><div class="phone">${c.phone}</div></div>
-        <div><div style="font-weight:900;color:#367d4d;font-family:var(--mk-font-mono)">${c.stamps}/10</div>
-        <span class="cst ${c.tier}" style="font-size:9px">${c.tier}</span></div>
+      const safeId = String(c.id||'').replace(/[^A-Za-z0-9_\-]/g,'');
+      const tierKey = String(c.tier||'').toLowerCase().replace(/[^a-z]/g,'');
+      return `<div class="cc-row" onclick="MKO.pickCustomer('${safeId}')">
+        <div><div style="font-weight:800">${esc(nm)}</div><div class="phone">${esc(c.phone)}</div></div>
+        <div><div style="font-weight:900;color:#367d4d;font-family:var(--mk-font-mono)">${esc(c.stamps)}/10</div>
+        <span class="cst ${tierKey}" style="font-size:9px">${esc(c.tier)}</span></div>
       </div>`;
     }).join('');
   }
@@ -329,7 +335,13 @@
     if(v!==null){ STATE.order.note = v; toast('✓ '+t('note')); }
   }
   function splitBill(){
-    toast(t('split')+' — 준비중', 'warn');
+    if(!STATE.cart.length){ toast(STATE.lang==='ar'?'السلة فارغة':'Cart empty','warn'); return; }
+    const tot = cartTotals();
+    let n = parseInt(prompt(STATE.lang==='ar'?'تقسيم الفاتورة على كم شخص؟':'Split bill into how many?','2'));
+    if(!(n>=2 && n<=20)) return;
+    const per = Math.ceil(tot.total / n);
+    toast((STATE.lang==='ar'?'لكل شخص: ':'Per person: ')+fmtIQD(per)+' × '+n,'ok');
+    MK.audit('order.split', {n, per});
   }
 
   // ---------- PAYMENT ----------
@@ -442,10 +454,13 @@
     // Append to txn history
     MK_DATA.TXNS.unshift({
       id: rcpt.id, at: rcpt.at, type: rcpt.type, table: rcpt.table, cashier: rcpt.cashier,
-      lines: rcpt.lines.map(l=>({sku:l.sku||'', name:l.name, q:l.q, price:l.price, total:l.total, opts:l.opts})),
+      lines: rcpt.lines.map(l=>({sku:l.sku||'', name:l.name, mods:(l.mods||''), q:l.q, price:l.price, total:l.total, opts:l.opts})),
       sub: rcpt.sub, tax: rcpt.tax, total: rcpt.total, payment: PM.toLowerCase(),
-      customerId: rcpt.customerId
+      customerId: rcpt.customerId,
+      status: 'incoming'
     });
+    try { if(window.MKV && typeof MKV.renderKDS==='function' && (MK.STATE.view==='kds'||MK.STATE.view==='kitchen')) MKV.renderKDS(); } catch(_){}
+    try { if(typeof updateKdsBadge==='function') updateKdsBadge(); } catch(_){}
     // Kitchen ticket for prep items
     MK.audit('payment.complete', {id:rcpt.id, total:rcpt.total, method:PM});
     const prepLines = STATE.cart.filter(l=>l.sku.startsWith('C')||l.sku.startsWith('I')||l.sku.startsWith('T')||l.sku.startsWith('S')||l.sku.startsWith('F'));

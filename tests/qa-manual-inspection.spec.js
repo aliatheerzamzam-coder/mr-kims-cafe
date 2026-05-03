@@ -384,13 +384,18 @@ test.describe('캐셔 관점 — 캐셔 페이지 (cashier.html)', () => {
     expect(loginRes.ok()).toBeTruthy();
     const { token } = await loginRes.json();
 
+    const ticketRes = await request.post('/api/orders/stream-ticket', {
+      headers: { 'x-cashier-token': token },
+    });
+    expect(ticketRes.ok()).toBeTruthy();
+    const { ticket } = await ticketRes.json();
+
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 2000);
     let status = -1;
     let ct = '';
     try {
-      const res = await fetch('http://localhost:3000/api/orders/stream', {
-        headers: { 'x-cashier-token': token },
+      const res = await fetch(`http://localhost:3000/api/orders/stream?ticket=${ticket}`, {
         signal: ctrl.signal,
       });
       status = res.status;

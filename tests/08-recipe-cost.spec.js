@@ -59,7 +59,7 @@ test.describe('원가 계산 API', () => {
   });
 
   test('레시피 등록된 메뉴 원가 계산', async () => {
-    const { status, data } = await apiRequest('GET', `/api/cost/${menuName}`);
+    const { status, data } = await apiRequest('GET', `/api/cost/${menuName}`, null, { 'x-auth-token': adminToken });
 
     expect(status).toBe(200);
     expect(data.menu_item).toBe(menuName);
@@ -71,14 +71,14 @@ test.describe('원가 계산 API', () => {
   });
 
   test('원가 항목별 세부 내역 확인', async () => {
-    const { data } = await apiRequest('GET', `/api/cost/${menuName}`);
+    const { data } = await apiRequest('GET', `/api/cost/${menuName}`, null, { 'x-auth-token': adminToken });
     const costs = data.items.map(i => i.quantity * i.cost_per_unit);
     const sum = costs.reduce((a, b) => a + b, 0);
     expect(Math.round(sum)).toBe(data.total_cost);
   });
 
   test('레시피 없는 메뉴 원가 → total_cost: 0, items: []', async () => {
-    const { status, data } = await apiRequest('GET', '/api/cost/nonexistent_menu_xyz_999');
+    const { status, data } = await apiRequest('GET', '/api/cost/nonexistent_menu_xyz_999', null, { 'x-auth-token': adminToken });
 
     expect(status).toBe(200);
     expect(data.total_cost).toBe(0);
@@ -141,7 +141,7 @@ test.describe('레시피 삭제', () => {
   });
 
   test('삭제 후 원가 계산 → total_cost: 0', async () => {
-    const { data } = await apiRequest('GET', `/api/cost/${menuName}`);
+    const { data } = await apiRequest('GET', `/api/cost/${menuName}`, null, { 'x-auth-token': adminToken });
     expect(data.total_cost).toBe(0);
     expect(data.items).toHaveLength(0);
   });

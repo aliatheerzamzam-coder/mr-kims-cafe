@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mr. Kim's Cafe — Warehouse</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800&display=swap&subset=arabic,latin" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -16,8 +19,8 @@
   --ease:cubic-bezier(.16,1,.3,1);--spd:.3s;
 }
 body{font-family:'Nunito',sans-serif;background:#f0f2f5;color:var(--text);min-height:100vh}
-[dir="rtl"]{font-family:'Cairo',sans-serif}
-.ar{font-family:'Cairo',sans-serif;direction:rtl}
+[dir="rtl"]{font-family:'Cairo','Noto Naskh Arabic',sans-serif}
+.ar{font-family:'Cairo','Noto Naskh Arabic',sans-serif;direction:rtl}
 
 /* ── APP SHELL ── */
 .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
@@ -116,6 +119,7 @@ tr:hover td{background:#f8fbf9}
 .badge-danger{background:#fff0f0;color:var(--red)}
 .badge-in{background:#e8f5ee;color:var(--green)}
 .badge-out{background:#fff0f0;color:var(--red)}
+.loc-chip{display:inline-block;font-family:'SF Mono',Menlo,monospace;font-size:.72rem;font-weight:700;background:var(--card-bg);color:var(--green);border:1px solid var(--green);border-radius:6px;padding:.12rem .4rem;margin:.1rem .15rem;letter-spacing:.5px;unicode-bidi:isolate}
 
 /* ── FORM ── */
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;margin-bottom:1.1rem}
@@ -265,7 +269,7 @@ tr:hover td{background:#f8fbf9}
 .top5-bar{height:100%;background:var(--green);border-radius:var(--r-pill);transition:width .5s var(--ease)}
 .top5-qty{font-size:.8rem;font-weight:700;color:var(--mid);min-width:2.5rem;text-align:right}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha256-oAKkWRwMlmmkLgqQ7FMpKJqMm0LBhMbvCGBfuROBsGA=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha256-DiMmxoaAcr7BWSdgxnKQQ8ruopYKK0bO5qIZKqxqv/A=" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -285,7 +289,7 @@ tr:hover td{background:#f8fbf9}
 <!-- ── SIDEBAR ── -->
 <aside class="side">
   <div class="side-brand">
-    <div class="dot"><img src="logo.jpg" alt="Mr. Kim's"/></div>
+    <div class="dot"><img src="logo.webp" alt="Mr. Kim's"/></div>
     <div class="t">Mr. Kim's<small data-i18n="brand_sub">Warehouse</small></div>
   </div>
   <div class="side-nav" id="mainNav">
@@ -296,6 +300,10 @@ tr:hover td{background:#f8fbf9}
     <button onclick="showTab('daily',this)" data-i18n="nav_daily"><span class="ic">🛒</span> <span data-i18n="nav_daily">🛒 Daily Sales</span></button>
     <button onclick="showTab('history',this)" data-i18n="nav_history"><span class="ic">📜</span> <span data-i18n="nav_history">📜 History</span></button>
     <button onclick="showTab('report',this)" data-i18n="nav_report"><span class="ic">📈</span> <span data-i18n="nav_report">📈 Consumption Report</span></button>
+    <button onclick="showTab('suppliers',this); loadSuppliers()" data-i18n="nav_suppliers"><span class="ic">🚚</span> <span data-i18n="nav_suppliers">🚚 Suppliers</span></button>
+    <button onclick="showTab('po',this); loadPoList()" data-i18n="nav_po"><span class="ic">📋</span> <span data-i18n="nav_po">📋 Purchase Orders</span></button>
+    <button onclick="showTab('counts',this); loadCountList()" data-i18n="nav_counts"><span class="ic">🔢</span> <span data-i18n="nav_counts">🔢 Stock Count</span></button>
+    <button onclick="showTab('profit',this); loadProfitability()" data-i18n="nav_profit"><span class="ic">💰</span> <span data-i18n="nav_profit">💰 Profitability</span></button>
     <button onclick="showTab('settings',this)" data-i18n="nav_settings"><span class="ic">⚙️</span> <span data-i18n="nav_settings">⚙️ Settings</span></button>
   </div>
   <div class="side-footer">
@@ -621,30 +629,50 @@ tr:hover td{background:#f8fbf9}
       <label data-i18n="label_pw">Password</label>
       <input type="password" id="newCashierPw" data-i18n-ph="ph_cashier_pw" placeholder="4+ characters">
     </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label data-i18n="label_role">Role</label>
+      <select id="newCashierRole" style="width:100%;padding:.5rem .75rem;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:.95rem">
+        <option value="cashier" data-i18n-opt="role_cashier">Cashier</option>
+        <option value="manager" data-i18n-opt="role_manager">Manager (Full Access)</option>
+      </select>
+    </div>
     <div id="cashierMsg"></div>
     <div class="btn-bar">
       <button class="btn btn-primary" onclick="addCashier()" data-i18n="btn_add">Add</button>
     </div>
   </div>
+</div>
 
-  <!-- Supplier management -->
-  <div class="card" style="max-width:520px;margin-top:1.5rem">
-    <h3 data-i18n="supplier_title">🚚 Supplier Contacts</h3>
+<!-- ───────────── 9. 공급업체 (Suppliers) ───────────── -->
+<div class="tab-panel" id="tab-suppliers">
+  <div class="sec-head">
+    <h2 data-i18n="supplier_title">🚚 Supplier Contacts</h2>
+    <button class="btn btn-outline btn-sm" onclick="loadSuppliers()" data-i18n="btn_refresh">🔄 Refresh</button>
+  </div>
+  <div class="card" style="max-width:720px">
     <div id="supplierList" style="margin-bottom:1rem"></div>
     <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem">
     <h4 data-i18n="supplier_add_title" style="margin:0 0 .75rem">Add New Supplier</h4>
     <div class="form-grid">
       <div class="form-group">
-        <label data-i18n="label_sup_name">Company Name</label>
+        <label data-i18n="label_sup_name">Company Name *</label>
         <input type="text" id="supName" data-i18n-ph="ph_sup_name" placeholder="e.g. Baghdad Foods">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_contact_person">Contact Person</label>
+        <input type="text" id="supContactPerson" data-i18n-ph="ph_contact_person" placeholder="e.g. Ahmed Ali">
       </div>
       <div class="form-group">
         <label data-i18n="label_sup_phone">Phone</label>
         <input type="tel" id="supPhone" data-i18n-ph="ph_sup_phone" placeholder="e.g. 07701234567">
       </div>
       <div class="form-group">
-        <label data-i18n="label_sup_item">Items Supplied</label>
-        <input type="text" id="supItem" data-i18n-ph="ph_sup_item" placeholder="e.g. Dairy, Coffee">
+        <label data-i18n="label_whatsapp">WhatsApp</label>
+        <input type="tel" id="supWhatsapp" data-i18n-ph="ph_whatsapp" placeholder="e.g. +9647701234567">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_address">Address</label>
+        <input type="text" id="supAddress" data-i18n-ph="ph_address" placeholder="Street, district, city">
       </div>
       <div class="form-group">
         <label data-i18n="label_sup_note">Note</label>
@@ -691,7 +719,134 @@ tr:hover td{background:#f8fbf9}
   </div>
 </div>
 
+<!-- ───────────── 9. Purchase Orders (PO) ───────────── -->
+<div class="tab-panel" id="tab-po">
+  <div class="sec-head">
+    <h2>📋 Purchase Orders</h2>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <select id="poFilterStatus" onchange="loadPoList()" style="padding:.4rem .6rem;border-radius:6px">
+        <option value="">All</option>
+        <option value="draft">Draft</option>
+        <option value="pending_approval">Pending Approval</option>
+        <option value="approved">Approved</option>
+        <option value="partially_received">Partially Received</option>
+        <option value="received">Received</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="loadPoList()">🔄 Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="openPoModal()">+ New PO</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table id="poTable">
+      <thead><tr>
+        <th>PO #</th><th>Supplier</th><th>Status</th><th>Items</th>
+        <th>Total (IQD)</th><th>Created</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="poTb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ───────────── 10. Stock Counts ───────────── -->
+<div class="tab-panel" id="tab-counts">
+  <div class="sec-head">
+    <h2>🔢 Stock Count (Physical Inventory)</h2>
+    <button class="btn btn-primary btn-sm" onclick="openCountModal()">+ New Count</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table id="countTable">
+      <thead><tr>
+        <th>Name</th><th>Status</th><th>Items</th><th>Variance Value (IQD)</th>
+        <th>Created</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="countTb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ───────────── 11. Profitability ───────────── -->
+<div class="tab-panel" id="tab-profit">
+  <div class="sec-head">
+    <h2>💰 Menu Profitability</h2>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <select id="profitPeriod" onchange="loadProfitability()" style="padding:.4rem .6rem;border-radius:6px">
+        <option value="day">Today</option>
+        <option value="week">This Week</option>
+        <option value="month" selected>This Month</option>
+        <option value="3month">Last 3 Months</option>
+        <option value="year">Last Year</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="loadProfitability()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- KPI 카드 -->
+  <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem">
+    <div><div style="font-size:.75rem;color:var(--soft)">Revenue</div><div id="pfRevenue" style="font-size:1.4rem;font-weight:700">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">COGS</div><div id="pfCogs" style="font-size:1.4rem;font-weight:700">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">Gross Profit</div><div id="pfGross" style="font-size:1.4rem;font-weight:700;color:#10b981">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">Margin %</div><div id="pfMarginRate" style="font-size:1.4rem;font-weight:700">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">Refunds</div><div id="pfRefunds" style="font-size:1.4rem;font-weight:700;color:#ef4444">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">Waste/Variance</div><div id="pfWaste" style="font-size:1.4rem;font-weight:700;color:#f59e0b">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">Effective Profit</div><div id="pfEffective" style="font-size:1.4rem;font-weight:700;color:#3b82f6">-</div></div>
+    <div><div style="font-size:.75rem;color:var(--soft)">Effective Margin %</div><div id="pfEffectiveRate" style="font-size:1.4rem;font-weight:700">-</div></div>
+  </div>
+
+  <!-- 메뉴 수익성 테이블 -->
+  <div class="card">
+    <h3>📊 Menu-by-Menu Profitability</h3>
+    <div class="tbl-wrap"><table id="profitTable">
+      <thead><tr>
+        <th>Menu</th><th>Cost</th><th>Sell Price</th><th>Margin</th><th>Margin %</th>
+        <th>Qty Sold</th><th>Revenue</th><th>Gross Profit</th><th></th>
+      </tr></thead>
+      <tbody id="profitTb"></tbody>
+    </table></div>
+  </div>
+
+  <!-- ABC 분석 -->
+  <div class="card">
+    <h3>📈 ABC Analysis (Revenue Pareto)</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Class</th><th>Menu</th><th>Qty</th><th>Revenue</th>
+        <th>Cumulative %</th><th>Profit</th>
+      </tr></thead>
+      <tbody id="abcTb"></tbody>
+    </table></div>
+  </div>
+
+  <!-- 가격 시뮬레이터 -->
+  <div class="card">
+    <h3>🎯 Price Simulator</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem;align-items:end">
+      <div class="form-group" style="margin:0">
+        <label>Menu</label>
+        <select id="simMenu"></select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>New Price (IQD)</label>
+        <input id="simPrice" type="number" min="0" step="250" placeholder="0">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Fixed Cost Budget (optional)</label>
+        <input id="simFixed" type="number" min="0" step="1000" placeholder="0">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="runSimulator()">Simulate</button>
+    </div>
+    <div id="simResult" style="margin-top:.8rem;font-size:.92rem"></div>
+  </div>
+</div>
+
 </main>
+
+<!-- ── 이미지 줌 모달 ── -->
+<div class="modal-overlay hidden" id="imageZoomModal" onclick="closeImageZoom(event)" style="cursor:zoom-out">
+  <div style="max-width:90vw;max-height:90vh">
+    <img id="imageZoomImg" alt="" style="max-width:100%;max-height:90vh;border-radius:8px;display:block">
+  </div>
+</div>
 
 <!-- ── 재료 추가/수정 모달 ── -->
 <div class="modal-overlay hidden" id="ingModal">
@@ -713,7 +868,6 @@ tr:hover td{background:#f8fbf9}
           <option value="병" data-i18n="unit_bottle">Bottle (Syrup)</option>
           <option value="kg" data-i18n="unit_kg">kg (Powder)</option>
           <option value="봉" data-i18n="unit_bag">Bag (Powder)</option>
-          <option value="상자" data-i18n="unit_box">Box (Cups)</option>
           <option value="개" data-i18n="unit_piece">Piece</option>
           <option value="L">L</option>
           <option value="g">g</option>
@@ -726,8 +880,17 @@ tr:hover td{background:#f8fbf9}
         <datalist id="catOptionList"></datalist>
       </div>
       <div class="form-group">
-        <label data-i18n="label_cur_qty">Current Stock</label>
+        <label data-i18n="label_qty_per_box">Qty per Box</label>
+        <input type="number" id="ingQtyPerBox" min="0" step="0.01" placeholder="0" oninput="recomputeTotalQty()">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_num_boxes">Number of Boxes</label>
+        <input type="number" id="ingNumBoxes" min="0" step="1" placeholder="0" oninput="recomputeTotalQty()">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_cur_qty">Total Qty</label>
         <input type="number" id="ingCurQty" min="0" step="0.01" placeholder="0">
+        <small id="ingCurQtyHint" style="color:var(--soft);font-size:.75rem;display:none" data-i18n="hint_qty_auto">Auto-calculated from boxes</small>
       </div>
       <div class="form-group">
         <label data-i18n="label_min_qty">Min Stock (warning)</label>
@@ -738,27 +901,88 @@ tr:hover td{background:#f8fbf9}
         <input type="number" id="ingCost" min="0" step="1" placeholder="0">
       </div>
       <div class="form-group">
-        <label data-i18n="label_box_qty">Qty per box (0 = unused)</label>
-        <input type="number" id="ingBoxQty" min="0" step="1" data-i18n-ph="ph_box_qty" placeholder="e.g. 6">
+        <label data-i18n="label_market_price">Market Price (IQD)</label>
+        <input type="number" id="ingMarketPrice" min="0" step="1" placeholder="0">
       </div>
       <div class="form-group">
         <label data-i18n="label_capacity">Capacity mL·g (0 = not set)</label>
         <input type="number" id="ingCapacityMl" min="0" step="1" placeholder="1000">
       </div>
       <div class="form-group">
+        <label data-i18n="label_origin">Origin</label>
+        <input id="ingOrigin" data-i18n-ph="ph_origin" placeholder="e.g. Turkey, Korea, UAE">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_market_name">Market Name</label>
+        <input id="ingMarketName" data-i18n-ph="ph_market_name" placeholder="Local brand or label">
+      </div>
+      <div class="form-group">
         <label data-i18n="label_expiry">Expiry Date</label>
         <input type="date" id="ingExpiryDate">
       </div>
       <div class="form-group">
+        <label data-i18n="label_received_date">Received Date</label>
+        <input type="date" id="ingReceivedDate">
+      </div>
+      <div class="form-group">
         <label data-i18n="label_supplier_lbl">Supplier</label>
-        <input id="ingSupplier" list="supplierOptionList" data-i18n-ph="ph_supplier" placeholder="Select or enter supplier name">
-        <datalist id="supplierOptionList"></datalist>
+        <select id="ingSupplierId">
+          <option value="" data-i18n="opt_no_supplier">— Not selected —</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label data-i18n="label_image">Product Image (jpg/png/webp ≤ 5MB)</label>
+        <input type="file" id="ingImageFile" accept="image/jpeg,image/png,image/webp" onchange="previewIngImage(event)">
+        <input type="hidden" id="ingImagePath">
+        <div id="ingImagePreviewWrap" style="margin-top:.5rem;display:none">
+          <img id="ingImagePreview" alt="" style="max-width:160px;max-height:160px;border-radius:8px;border:1px solid var(--off);object-fit:cover">
+          <button type="button" class="btn btn-outline btn-sm" onclick="clearIngImage()" style="margin-left:.5rem" data-i18n="btn_remove_image">Remove image</button>
+        </div>
       </div>
     </div>
     <div id="ingModalMsg"></div>
     <div class="btn-bar">
       <button class="btn btn-outline" onclick="closeModal('ingModal')" data-i18n="btn_cancel">Cancel</button>
       <button id="ingSaveBtn" class="btn btn-primary" onclick="saveIngredient()" data-i18n="btn_save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 위치 관리 모달 ── -->
+<div class="modal-overlay hidden" id="locModal">
+  <div class="modal" style="max-width:480px">
+    <h3 data-i18n="modal_loc_title">Storage Locations</h3>
+    <div style="font-size:.85rem;color:var(--mid);margin-bottom:.75rem" id="locModalIngName"></div>
+    <input type="hidden" id="locModalIngId">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-bottom:.75rem">
+      <div class="form-group" style="margin-bottom:0">
+        <label style="font-size:.75rem;font-weight:700;color:var(--mid)" data-i18n="label_shelf">Shelf</label>
+        <select id="locShelf"></select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label style="font-size:.75rem;font-weight:700;color:var(--mid)" data-i18n="label_column">Column</label>
+        <select id="locColumn"></select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label style="font-size:.75rem;font-weight:700;color:var(--mid)" data-i18n="label_row_box">Row</label>
+        <select id="locRow"></select>
+      </div>
+      <div style="font-family:monospace;font-weight:700;font-size:1.1rem;padding:.5rem;background:var(--card-bg);border-radius:6px;text-align:center;min-width:60px" id="locPreview" dir="ltr">2A2</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:end;margin-bottom:.75rem">
+      <div class="form-group" style="margin-bottom:0">
+        <label style="font-size:.75rem;font-weight:700;color:var(--mid)" data-i18n="label_loc_qty">Quantity</label>
+        <input type="number" id="locQty" min="0" step="0.01" value="0">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="submitLocForm()" data-i18n="btn_add_loc">Add</button>
+    </div>
+    <div id="locModalMsg"></div>
+    <div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.5rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--mid);margin-bottom:.5rem" data-i18n="loc_current_title">Current Locations</div>
+      <div id="locList"></div>
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('locModal')" data-i18n="btn_cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -856,6 +1080,84 @@ tr:hover td{background:#f8fbf9}
   </div>
 </div>
 
+<!-- ── PO 작성/수정 모달 ── -->
+<div class="modal-overlay hidden" id="poModal">
+  <div class="modal" style="max-width:880px;width:96vw">
+    <h3 id="poModalTitle">New Purchase Order</h3>
+    <input type="hidden" id="poId">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Supplier</label>
+        <select id="poSupplier"></select>
+      </div>
+      <div class="form-group">
+        <label>Expected Date</label>
+        <input id="poExpectedDate" type="date">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Notes</label>
+        <input id="poNotes" type="text" placeholder="Optional notes...">
+      </div>
+    </div>
+    <h4 style="margin-top:.8rem">Items</h4>
+    <div id="poItems"></div>
+    <button class="btn btn-outline btn-sm" onclick="addPoItemRow()">+ Add Item</button>
+    <div id="poTotal" style="margin-top:.6rem;font-weight:700;text-align:right">Total: 0 IQD</div>
+    <div id="poModalMsg" style="color:#ef4444;font-size:.85rem"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('poModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePo(false)">Save Draft</button>
+      <button class="btn btn-primary" onclick="savePo(true)" style="background:#3b82f6">Save & Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PO 상세 + 입고 모달 ── -->
+<div class="modal-overlay hidden" id="poDetailModal">
+  <div class="modal" style="max-width:920px;width:96vw;max-height:90vh;overflow-y:auto">
+    <h3 id="poDetailTitle">PO Details</h3>
+    <div id="poDetailBody"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('poDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stock Count 작성 모달 ── -->
+<div class="modal-overlay hidden" id="countModal">
+  <div class="modal">
+    <h3>New Stock Count</h3>
+    <div class="form-group">
+      <label>Count Name</label>
+      <input id="countName" type="text" placeholder="e.g. Monthly count May 2026">
+    </div>
+    <div class="form-group">
+      <label>Category Filter (optional)</label>
+      <select id="countCategory"><option value="">All categories</option></select>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <input id="countNotes" type="text">
+    </div>
+    <div id="countModalMsg" style="color:#ef4444;font-size:.85rem"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('countModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createStockCount()">Start Count</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stock Count 상세/카운트 입력 모달 ── -->
+<div class="modal-overlay hidden" id="countDetailModal">
+  <div class="modal" style="max-width:960px;width:96vw;max-height:90vh;overflow-y:auto">
+    <h3 id="countDetailTitle">Stock Count</h3>
+    <div id="countDetailBody"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('countDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 // i18n — 다국어 지원
@@ -864,7 +1166,7 @@ const TRANSLATIONS = {
   ko: {
     brand_sub:'창고 관리', badge_admin:'🔑 관리자', btn_logout:'로그아웃',
     nav_dashboard:'📊 대시보드', nav_ingredients:'🧪 재료 관리', nav_recipes:'📋 레시피 & 원가',
-    nav_adjust:'📦 입출고', nav_daily:'🛒 일일 판매', nav_history:'📜 기록', nav_settings:'⚙️ 설정',
+    nav_adjust:'📦 입출고', nav_daily:'🛒 일일 판매', nav_history:'📜 기록', nav_settings:'⚙️ 설정', nav_suppliers:'🚚 공급업체',
     tab_dashboard_title:'📊 창고 현황', btn_refresh:'🔄 새로고침',
     sales_chart_title:'판매 현황', period_day:'오늘', period_week:'주간', period_month:'월간',
     chart_daily_orders:'일별 주문 수', chart_top5:'베스트셀러 TOP 5',
@@ -896,7 +1198,7 @@ const TRANSLATIONS = {
     btn_save:'저장', cashier_title:'👤 캐셔 관리', cashier_add_title:'새 캐셔 추가',
     label_name:'이름', ph_cashier_name:'캐셔 이름',
     label_pw:'비밀번호', ph_cashier_pw:'4자 이상', btn_add:'추가',
-    modal_ing_title:'재료 추가', label_name_ko:'재료명 (한국어) *', ph_name_ko:'예: 바닐라 시럽', ph_box_qty:'예: 6',
+    modal_ing_title:'재료 추가', label_name_ko:'재료명 (한국어) *', ph_name_ko:'예: 바닐라 시럽',
     label_name_ar:'재료명 (아랍어)', label_unit:'단위 *',
     label_cur_qty:'현재 재고', label_min_qty:'최소 재고 (경고 기준)',
     label_unit_cost:'단위당 원가 (IQD)', btn_cancel:'취소',
@@ -916,7 +1218,6 @@ const TRANSLATIONS = {
     badge_in:'📥 입고', badge_out:'📤 출고',
     err_load_data:'데이터를 불러오지 못했습니다',
     ing_empty:'재료 없음. 재료를 추가해주세요.',
-    label_box_qty:'박스당 수량 (0 = 미사용)',
     status_out:'재고없음', status_low:'부족', status_ok:'정상',
     err_load_retry:'불러오기 실패. 새로고침 해주세요.',
     modal_ing_edit_title:'재료 수정',
@@ -1004,11 +1305,26 @@ const TRANSLATIONS = {
     label_capacity:'병/봉 용량 mL·g (0 = 미설정)',
     label_expiry:'유통기한', label_supplier_lbl:'납품업체',
     ph_supplier:'업체명 선택 또는 입력',
+    label_origin:'원산지', ph_origin:'예: 터키, 한국, UAE',
+    label_market_name:'시장 제품명', ph_market_name:'현지 브랜드/라벨',
+    label_qty_per_box:'박스당 수량', label_num_boxes:'박스 수',
+    label_market_price:'시장 판매가 (IQD)', label_market_price_short:'시장가',
+    label_received_date:'입고일자',
+    label_image:'제품 사진 (jpg/png/webp ≤ 5MB)',
+    label_contact_person:'담당자', ph_contact_person:'예: Ahmed Ali',
+    label_whatsapp:'WhatsApp', ph_whatsapp:'예: +9647701234567',
+    label_address:'주소', ph_address:'거리, 지역, 도시',
+    opt_no_supplier:'— 선택 안 함 —',
+    btn_remove_image:'사진 제거',
+    hint_qty_auto:'박스값 기준 자동 계산',
+    err_image_size:'이미지는 5MB 이하여야 합니다',
+    err_image_type:'jpg / png / webp만 허용',
+    err_network:'네트워크 오류',
     // 레시피 모달
     label_recipe_cat:'메뉴 종류', ph_recipe_cat:'예: 음료',
     // 단위 옵션
     unit_bottle:'병 (시럽류)', unit_kg:'kg (파우더류)', unit_bag:'봉 (파우더류)',
-    unit_box:'상자 (컵류)', unit_piece:'개',
+    unit_piece:'개',
     // 테이블
     col_emoji:'이모지', col_name_lang:'한국어',
     price_editor_title:'💵 메뉴 판매가 관리',
@@ -1060,7 +1376,7 @@ const TRANSLATIONS = {
   ar: {
     brand_sub:'إدارة المخزن', badge_admin:'🔑 مدير', btn_logout:'خروج',
     nav_dashboard:'📊 لوحة التحكم', nav_ingredients:'🧪 المواد', nav_recipes:'📋 الوصفات والتكلفة',
-    nav_adjust:'📦 الجرد', nav_daily:'🛒 مبيعات اليوم', nav_history:'📜 السجل', nav_settings:'⚙️ الإعدادات',
+    nav_adjust:'📦 الجرد', nav_daily:'🛒 مبيعات اليوم', nav_history:'📜 السجل', nav_settings:'⚙️ الإعدادات', nav_suppliers:'🚚 الموردون',
     tab_dashboard_title:'📊 لوحة التحكم', btn_refresh:'🔄 تحديث',
     sales_chart_title:'إحصائيات المبيعات', period_day:'اليوم', period_week:'الأسبوع', period_month:'الشهر',
     chart_daily_orders:'الطلبات اليومية', chart_top5:'الأكثر مبيعاً TOP 5',
@@ -1092,7 +1408,7 @@ const TRANSLATIONS = {
     btn_save:'حفظ', cashier_title:'👤 إدارة الكاشير', cashier_add_title:'إضافة كاشير',
     label_name:'الاسم', ph_cashier_name:'اسم الكاشير',
     label_pw:'كلمة المرور', ph_cashier_pw:'4 أحرف على الأقل', btn_add:'إضافة',
-    modal_ing_title:'إضافة مادة', label_name_ko:'الاسم (كوري) *', ph_name_ko:'مثال: شراب الفانيليا', ph_box_qty:'مثال: 6',
+    modal_ing_title:'إضافة مادة', label_name_ko:'الاسم (كوري) *', ph_name_ko:'مثال: شراب الفانيليا',
     label_name_ar:'الاسم (عربي)', label_unit:'الوحدة *',
     label_cur_qty:'المخزون الحالي', label_min_qty:'الحد الأدنى (تحذير)',
     label_unit_cost:'التكلفة للوحدة (IQD)', btn_cancel:'إلغاء',
@@ -1199,13 +1515,28 @@ const TRANSLATIONS = {
     label_capacity:'السعة mL·g (0 = غير محدد)',
     label_expiry:'تاريخ الانتهاء', label_supplier_lbl:'المورد',
     ph_supplier:'اختر أو اكتب اسم المورد',
+    label_origin:'بلد المنشأ', ph_origin:'مثال: تركيا، كوريا، الإمارات',
+    label_market_name:'الاسم في السوق', ph_market_name:'علامة محلية أو ملصق',
+    label_qty_per_box:'الكمية في الصندوق', label_num_boxes:'عدد الصناديق',
+    label_market_price:'سعر السوق (د.ع)', label_market_price_short:'سوق',
+    label_received_date:'تاريخ الاستلام',
+    label_image:'صورة المنتج (jpg / png / webp ≤ 5MB)',
+    label_contact_person:'الشخص المسؤول', ph_contact_person:'مثال: أحمد علي',
+    label_whatsapp:'واتساب', ph_whatsapp:'مثال: +9647701234567',
+    label_address:'العنوان', ph_address:'الشارع، الحي، المدينة',
+    opt_no_supplier:'— غير محدد —',
+    btn_remove_image:'إزالة الصورة',
+    hint_qty_auto:'محسوبة تلقائياً من الصناديق',
+    err_image_size:'يجب أن تكون الصورة 5 ميغابايت كحد أقصى',
+    err_image_type:'فقط jpg / png / webp مسموحة',
+    err_network:'خطأ في الشبكة',
     ph_cat_name_ko:'مثال: سيروب', ph_cat_emoji:'🍯',
     price_editor_title:'💵 إدارة أسعار البيع',
     // مودال الوصفة
     label_recipe_cat:'نوع المنتج', ph_recipe_cat:'مثال: مشروب',
     // خيارات الوحدة
     unit_bottle:'زجاجة (سيروب)', unit_kg:'كيلو (بودرة)', unit_bag:'كيس (بودرة)',
-    unit_box:'صندوق (أكواب)', unit_piece:'قطعة',
+    unit_piece:'قطعة',
     // جدول
     col_emoji:'رمز', col_name_lang:'كوري',
     // رسائل JS لإدارة الفئات
@@ -1252,11 +1583,21 @@ const TRANSLATIONS = {
     size_sales_success:'منتج تم تسجيله.',
     err_no_size_sales:'أدخل كمية واحدة على الأقل',
     daily_other_title:'🛒 مبيعات أخرى',
+    col_location:'المواقع',
+    modal_loc_title:'مواقع التخزين',
+    label_shelf:'الرف', label_column:'العمود', label_row_box:'الصف',
+    label_loc_preview:'الكود', label_loc_qty:'الكمية',
+    btn_loc:'+ موقع', btn_add_loc:'إضافة', btn_loc_save:'حفظ',
+    loc_empty:'لا توجد مواقع', loc_empty_hint:'انقر على زر الموقع لإضافته',
+    loc_current_title:'المواقع الحالية',
+    err_loc_format:'كود غير صالح (مثال: 2A2)',
+    err_loc_qty:'الكمية يجب أن تكون 0 أو أكثر',
+    confirm_del_loc:'حذف هذا الموقع؟',
   },
   en: {
     brand_sub:'Warehouse', badge_admin:'🔑 Admin', btn_logout:'Logout',
     nav_dashboard:'📊 Dashboard', nav_ingredients:'🧪 Ingredients', nav_recipes:'📋 Recipes & Cost',
-    nav_adjust:'📦 Stock In/Out', nav_daily:'🛒 Daily Sales', nav_history:'📜 History', nav_settings:'⚙️ Settings',
+    nav_adjust:'📦 Stock In/Out', nav_daily:'🛒 Daily Sales', nav_history:'📜 History', nav_settings:'⚙️ Settings', nav_suppliers:'🚚 Suppliers',
     tab_dashboard_title:'📊 Dashboard', btn_refresh:'🔄 Refresh',
     sales_chart_title:'Sales Overview', period_day:'Today', period_week:'Weekly', period_month:'Monthly',
     chart_daily_orders:'Daily Orders', chart_top5:'Best Seller TOP 5',
@@ -1288,7 +1629,7 @@ const TRANSLATIONS = {
     btn_save:'Save', cashier_title:'👤 Cashier Management', cashier_add_title:'Add New Cashier',
     label_name:'Name', ph_cashier_name:'Cashier name',
     label_pw:'Password', ph_cashier_pw:'4+ characters', btn_add:'Add',
-    modal_ing_title:'Add Ingredient', label_name_ko:'Name (KO) *', ph_name_ko:'e.g. Vanilla Syrup', ph_box_qty:'e.g. 6',
+    modal_ing_title:'Add Ingredient', label_name_ko:'Name (KO) *', ph_name_ko:'e.g. Vanilla Syrup',
     label_name_ar:'Name (AR)', label_unit:'Unit *',
     label_cur_qty:'Current Stock', label_min_qty:'Min Stock (warning)',
     label_unit_cost:'Unit Cost (IQD)', btn_cancel:'Cancel',
@@ -1307,7 +1648,6 @@ const TRANSLATIONS = {
     badge_in:'📥 In', badge_out:'📤 Out',
     err_load_data:'Failed to load data',
     ing_empty:'No ingredients. Please add one.',
-    label_box_qty:'Qty per box (0 = unused)',
     status_out:'Out of Stock', status_low:'Low', status_ok:'Normal',
     err_load_retry:'Load failed. Please refresh.',
     modal_ing_edit_title:'Edit Ingredient',
@@ -1386,10 +1726,25 @@ const TRANSLATIONS = {
     label_capacity:'Capacity mL·g (0 = not set)',
     label_expiry:'Expiry Date', label_supplier_lbl:'Supplier',
     ph_supplier:'Select or enter supplier name',
+    label_origin:'Origin', ph_origin:'e.g. Turkey, Korea, UAE',
+    label_market_name:'Market Name', ph_market_name:'Local brand or label',
+    label_qty_per_box:'Qty per Box', label_num_boxes:'Number of Boxes',
+    label_market_price:'Market Price (IQD)', label_market_price_short:'MP',
+    label_received_date:'Received Date',
+    label_image:'Product Image (jpg/png/webp ≤ 5MB)',
+    label_contact_person:'Contact Person', ph_contact_person:'e.g. Ahmed Ali',
+    label_whatsapp:'WhatsApp', ph_whatsapp:'e.g. +9647701234567',
+    label_address:'Address', ph_address:'Street, district, city',
+    opt_no_supplier:'— Not selected —',
+    btn_remove_image:'Remove image',
+    hint_qty_auto:'Auto-calculated from boxes',
+    err_image_size:'Image must be ≤ 5MB',
+    err_image_type:'Only jpg / png / webp allowed',
+    err_network:'Network error',
     ph_cat_name_ko:'e.g. Syrup', ph_cat_emoji:'🍯',
     label_recipe_cat:'Menu Type', ph_recipe_cat:'e.g. Drink',
     unit_bottle:'Bottle (Syrup)', unit_kg:'kg (Powder)', unit_bag:'Bag (Powder)',
-    unit_box:'Box (Cups)', unit_piece:'Piece',
+    unit_piece:'Piece',
     col_emoji:'Emoji', col_name_lang:'Korean',
     price_editor_title:'💵 Menu Price Management',
     ing_empty_cat:'No ingredients',
@@ -1427,6 +1782,16 @@ const TRANSLATIONS = {
     size_sales_success:'menus recorded.',
     err_no_size_sales:'Enter at least one quantity',
     daily_other_title:'🛒 Other Menu Sales',
+    col_location:'Locations',
+    modal_loc_title:'Storage Locations',
+    label_shelf:'Shelf', label_column:'Column', label_row_box:'Row',
+    label_loc_preview:'Code', label_loc_qty:'Quantity',
+    btn_loc:'+ Loc', btn_add_loc:'Add', btn_loc_save:'Save',
+    loc_empty:'No locations', loc_empty_hint:'Click the location button to add',
+    loc_current_title:'Current Locations',
+    err_loc_format:'Invalid code (e.g. 2A2)',
+    err_loc_qty:'Quantity must be 0 or more',
+    confirm_del_loc:'Delete this location?',
   }
 };
 
@@ -1524,10 +1889,9 @@ function esc(str) {
 // 2. 바그다드 타임존(UTC+3) 안전 날짜 유틸리티
 // ══════════════════════════════════════════════
 function localDateStr() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset(); // 분 단위 (UTC - local)
-  const local = new Date(now.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 10);
+  // 서버와 동일한 바그다드 UTC+3 고정 오프셋. 사용자 브라우저 타임존에 의존하면 안 됨.
+  const baghdad = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  return baghdad.toISOString().slice(0, 10);
 }
 
 // ══════════════════════════════════════════════
@@ -1658,7 +2022,7 @@ async function init() {
 // ══════════════════════════════════════════════
 async function loadDashboard() {
   try {
-    const resp = await fetch('/api/dashboard', { headers: hdr() });
+    const resp = await apiFetch('/api/dashboard', { headers: hdr() });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const d = await resp.json();
     ingredients = d.ingredients;
@@ -1751,7 +2115,7 @@ function setSalesPeriod(period, btn) {
 
 async function loadSalesChart(period) {
   try {
-    const resp = await fetch(`/api/sales/summary?period=${period}`, { headers: hdr() });
+    const resp = await apiFetch(`/api/sales/summary?period=${encodeURIComponent(period)}`, { headers: hdr() });
     if (!resp.ok) return;
     const d = await resp.json();
 
@@ -1868,17 +2232,7 @@ let CATEGORY_ORDER, CATEGORY_EMOJI, CATEGORY_AR;
 syncCatConstants();
 
 function fmtQty(i) {
-  const qty = i.current_qty;
-  const unit = i.unit;
-  const bq = i.box_qty;
-  if (bq && bq > 0 && qty > 0) {
-    const boxes = Math.floor(qty / bq);
-    const rem = qty % bq;
-    if (boxes > 0 && rem > 0) return `${boxes}box + ${rem}${unit}`;
-    if (boxes > 0) return `${boxes}box`;
-    return `${qty}${unit}`;
-  }
-  return `${qty} ${unit}`;
+  return `${i.current_qty} ${i.unit}`;
 }
 
 async function loadIngredients(render = true) {
@@ -1924,13 +2278,40 @@ async function loadIngredients(render = true) {
             : `<span class="badge badge-ok">${t('status_ok')}</span>`;
         const cls = i.current_qty === 0 ? 'qty-danger' : i.current_qty <= i.min_qty ? 'qty-warn' : 'qty-ok';
         const rowCls = i.current_qty <= i.min_qty ? ' class="ing-row-low"' : '';
+        const locs = Array.isArray(i.locations) ? i.locations : [];
+        const locChips = locs.length
+          ? locs.map(l => `<span class="loc-chip" dir="ltr">${esc(l.location_code)}·${l.qty}</span>`).join(' ')
+          : `<span style="color:var(--soft);font-size:.8rem">—</span>`;
+        const thumb = i.image_path
+          ? `<img src="${esc(i.image_path)}" alt="" loading="lazy" data-action="zoom" data-img-src="${esc(i.image_path)}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:zoom-in;border:1px solid var(--off);vertical-align:middle">`
+          : `<span style="display:inline-block;width:36px;height:36px;border-radius:6px;background:var(--off);color:var(--soft);font-size:1rem;text-align:center;line-height:36px;vertical-align:middle">📦</span>`;
+        const supLine = i.supplier_name
+          ? `<div style="font-size:.7rem;color:var(--soft);margin-top:.15rem">🚚 ${esc(i.supplier_name)}${i.supplier_phone ? ` · ${esc(i.supplier_phone)}` : ''}</div>`
+          : '';
+        const originLine = i.origin
+          ? `<div style="font-size:.7rem;color:var(--soft)">🌍 ${esc(i.origin)}</div>`
+          : '';
+        const recvLine = i.received_date
+          ? `<div style="font-size:.7rem;color:var(--soft)">📥 ${esc(i.received_date)}</div>`
+          : '';
         return `<tr${rowCls} data-ing-id="${i.id}" data-del-id="${i.id}" data-del-name="${esc(i.name_ko)}">
-          <td><b>${esc(i.name_ko)}</b></td>
+          <td>${thumb}</td>
+          <td>
+            <b>${esc(i.name_ko)}</b>
+            ${i.market_name ? `<div style="font-size:.7rem;color:var(--soft)">🏷️ ${esc(i.market_name)}</div>` : ''}
+            ${originLine}
+            ${supLine}
+            ${recvLine}
+          </td>
           <td class="ar">${esc(i.name_ar || '-')}</td>
           <td class="${cls} ing-qty">${fmtQty(i)}</td>
           <td>${esc(String(i.min_qty))} ${esc(i.unit)}</td>
-          <td>${i.cost_per_unit.toLocaleString()} IQD</td>
+          <td>${i.cost_per_unit.toLocaleString()} IQD${i.market_price ? `<div style="font-size:.7rem;color:var(--soft)">${t('label_market_price_short') || 'MP'}: ${Number(i.market_price).toLocaleString()}</div>` : ''}</td>
           <td>${status}</td>
+          <td style="white-space:normal;max-width:160px">
+            ${locChips}
+            <button class="btn btn-outline btn-sm" style="margin-${currentLang==='ar'?'right':'left'}:.25rem;font-size:.7rem;padding:.2rem .4rem" data-action="loc" data-ing-id="${i.id}" data-ing-name="${esc(i.name_ko)}">${t('btn_loc')}</button>
+          </td>
           <td style="white-space:nowrap">
             <button class="btn btn-outline btn-sm" data-action="edit" data-ing-idx="${d.indexOf(i)}">${t('btn_edit')}</button>
             <button class="btn btn-danger btn-sm" data-action="del" data-ing-id="${i.id}" data-ing-name="${esc(i.name_ko)}">${t('btn_delete')}</button>
@@ -1941,12 +2322,14 @@ async function loadIngredients(render = true) {
         <h3 style="margin-bottom:.75rem;font-size:1rem;color:var(--green)">${emoji} ${cat} <span class="ar" style="font-size:.9rem;color:var(--soft);font-weight:400;margin-right:.4rem">${CATEGORY_AR[cat] || ''}</span><span style="font-size:.8rem;color:var(--soft);font-weight:400">(${items.length})</span></h3>
         <div class="tbl-wrap"><table>
           <thead><tr>
+            <th style="width:48px"></th>
             <th>${t('col_name_ko')}</th>
             <th>${t('col_name_ar')}</th>
             <th>${t('col_cur_qty')}</th>
             <th>${t('col_min_qty')}</th>
             <th>${t('col_cost')}</th>
             <th>${t('col_status')}</th>
+            <th>${t('col_location')}</th>
             <th>${t('col_manage')}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
@@ -1961,6 +2344,12 @@ async function loadIngredients(render = true) {
     });
     container.querySelectorAll('[data-action="del"]').forEach(btn => {
       btn.addEventListener('click', () => delIng(btn.dataset.ingId, btn.dataset.ingName));
+    });
+    container.querySelectorAll('[data-action="loc"]').forEach(btn => {
+      btn.addEventListener('click', () => openLocModal(btn.dataset.ingId, btn.dataset.ingName));
+    });
+    container.querySelectorAll('[data-action="zoom"]').forEach(img => {
+      img.addEventListener('click', () => openImageZoom(img.dataset.imgSrc));
     });
 
   } catch (e) {
@@ -2105,39 +2494,79 @@ function moveCat(idx, dir) {
   loadIngredients();
 }
 
+const ING_MODAL_FIELDS = [
+  'ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost', 'ingCapacityMl',
+  'ingCategory', 'ingExpiryDate',
+  'ingOrigin', 'ingMarketName', 'ingQtyPerBox', 'ingNumBoxes', 'ingMarketPrice',
+  'ingReceivedDate', 'ingImagePath',
+];
+
 function openIngModal() {
   document.getElementById('ingModalTitle').textContent = t('modal_ing_title');
   document.getElementById('ingId').value = '';
-  ['ingNameKo', 'ingNameAr', 'ingCurQty', 'ingMinQty', 'ingCost', 'ingBoxQty', 'ingCapacityMl', 'ingCategory', 'ingExpiryDate', 'ingSupplier'].forEach(id => document.getElementById(id).value = '');
+  ING_MODAL_FIELDS.forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('ingUnit').value = '병';
+  const supSel = document.getElementById('ingSupplierId');
+  if (supSel) supSel.value = '';
+  const fileInput = document.getElementById('ingImageFile');
+  if (fileInput) fileInput.value = '';
+  document.getElementById('ingImagePreviewWrap').style.display = 'none';
+  document.getElementById('ingImagePreview').src = '';
+  document.getElementById('ingCurQty').readOnly = false;
+  const hint = document.getElementById('ingCurQtyHint'); if (hint) hint.style.display = 'none';
   document.getElementById('ingModalMsg').innerHTML = '';
-  syncSupplierDatalist();
+  loadSuppliers();
   document.getElementById('ingModal').classList.remove('hidden');
 }
 
 function editIng(i) {
   document.getElementById('ingModalTitle').textContent = t('modal_ing_edit_title');
   document.getElementById('ingId').value = i.id;
-  document.getElementById('ingNameKo').value = i.name_ko;
-  document.getElementById('ingNameAr').value = i.name_ar;
+  document.getElementById('ingNameKo').value = i.name_ko || '';
+  document.getElementById('ingNameAr').value = i.name_ar || '';
   document.getElementById('ingUnit').value = i.unit;
   document.getElementById('ingCurQty').value = i.current_qty;
   document.getElementById('ingMinQty').value = i.min_qty;
   document.getElementById('ingCost').value = i.cost_per_unit;
-  document.getElementById('ingBoxQty').value = i.box_qty || 0;
   document.getElementById('ingCapacityMl').value = i.capacity_ml || 0;
   document.getElementById('ingCategory').value = i.category || '';
   document.getElementById('ingExpiryDate').value = i.expiry_date || '';
-  document.getElementById('ingSupplier').value = i.supplier || '';
+  document.getElementById('ingOrigin').value = i.origin || '';
+  document.getElementById('ingMarketName').value = i.market_name || '';
+  document.getElementById('ingQtyPerBox').value = i.qty_per_box != null ? i.qty_per_box : '';
+  document.getElementById('ingNumBoxes').value = i.num_boxes != null ? i.num_boxes : '';
+  document.getElementById('ingMarketPrice').value = i.market_price != null ? i.market_price : '';
+  document.getElementById('ingReceivedDate').value = i.received_date || '';
+  document.getElementById('ingImagePath').value = i.image_path || '';
+  document.getElementById('ingImageFile').value = '';
+  if (i.image_path) {
+    document.getElementById('ingImagePreview').src = i.image_path;
+    document.getElementById('ingImagePreviewWrap').style.display = 'block';
+  } else {
+    document.getElementById('ingImagePreview').src = '';
+    document.getElementById('ingImagePreviewWrap').style.display = 'none';
+  }
   document.getElementById('ingModalMsg').innerHTML = '';
-  syncSupplierDatalist();
+  loadSuppliers().then(() => {
+    const supSel = document.getElementById('ingSupplierId');
+    if (supSel) supSel.value = i.supplier_id != null ? String(i.supplier_id) : '';
+  });
+  recomputeTotalQty();
   document.getElementById('ingModal').classList.remove('hidden');
 }
 
 async function saveIngredient() {
   const id = document.getElementById('ingId').value;
-  const expiryVal = document.getElementById('ingExpiryDate').value;
-  const supplierVal = document.getElementById('ingSupplier').value.trim();
+  const supplierIdVal = document.getElementById('ingSupplierId').value;
+  const supplierIdNum = supplierIdVal ? parseInt(supplierIdVal, 10) : null;
+  const supplierName = supplierIdNum
+    ? (SUPPLIERS_CACHE.find(s => s.id === supplierIdNum)?.name || null)
+    : null;
+  const numOrNull = (v) => {
+    if (v === '' || v === null || v === undefined) return null;
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
   const body = {
     name_ko: document.getElementById('ingNameKo').value.trim(),
     name_ar: document.getElementById('ingNameAr').value.trim(),
@@ -2145,11 +2574,18 @@ async function saveIngredient() {
     current_qty: parseFloat(document.getElementById('ingCurQty').value) || 0,
     min_qty: parseFloat(document.getElementById('ingMinQty').value) || 1,
     cost_per_unit: parseFloat(document.getElementById('ingCost').value) || 0,
-    box_qty: parseInt(document.getElementById('ingBoxQty').value) || 0,
     capacity_ml: parseInt(document.getElementById('ingCapacityMl').value) || 0,
     category: document.getElementById('ingCategory').value.trim() || undefined,
-    expiry_date: expiryVal || null,
-    supplier: supplierVal || null
+    expiry_date: document.getElementById('ingExpiryDate').value || null,
+    origin: document.getElementById('ingOrigin').value.trim() || null,
+    market_name: document.getElementById('ingMarketName').value.trim() || null,
+    qty_per_box: numOrNull(document.getElementById('ingQtyPerBox').value),
+    num_boxes: numOrNull(document.getElementById('ingNumBoxes').value),
+    market_price: numOrNull(document.getElementById('ingMarketPrice').value),
+    received_date: document.getElementById('ingReceivedDate').value || null,
+    image_path: document.getElementById('ingImagePath').value || null,
+    supplier_id: supplierIdNum,
+    supplier: supplierName, // legacy text column kept in sync
   };
   if (!body.name_ko) {
     document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${t('err_ing_name')}</div>`;
@@ -2159,9 +2595,32 @@ async function saveIngredient() {
   try {
     const url = id ? `/api/ingredients/${id}` : '/api/ingredients';
     const method = id ? 'PUT' : 'POST';
-    const r = await fetch(url, { method, headers: hdr(), body: JSON.stringify(body) }).then(r => r.json());
-    if (r.success) { closeModal('ingModal'); loadIngredients(); }
-    else document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
+    const resp = await apiFetch(url, { method, headers: hdr(), body: JSON.stringify(body) });
+    const r = await resp.json();
+    if (!resp.ok || !r.success) {
+      document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${esc(r.error || t('err_save_net'))}</div>`;
+      return;
+    }
+    const newId = id || r.id;
+    const fileInput = document.getElementById('ingImageFile');
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if (file && newId) {
+      const fd = new FormData();
+      fd.append('image', file);
+      const upResp = await fetch(`/api/ingredients/${newId}/image`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+        body: fd,
+      });
+      if (!upResp.ok) {
+        const ud = await upResp.json().catch(() => ({}));
+        document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${esc(ud.error || 'Image upload failed')}</div>`;
+        loadIngredients();
+        return;
+      }
+    }
+    closeModal('ingModal');
+    loadIngredients();
   } catch (e) {
     document.getElementById('ingModalMsg').innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
   } finally {
@@ -2172,7 +2631,145 @@ async function saveIngredient() {
 async function delIng(id, name) {
   if (!confirm(`"${name}" ${t('confirm_del_ing')}`)) return;
   try {
-    await fetch(`/api/ingredients/${id}`, { method: 'DELETE', headers: hdr() });
+    const resp = await apiFetch(`/api/ingredients/${id}`, { method: 'DELETE', headers: hdr() });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || r.success === false) {
+      alert(r.error || t('err_del'));
+      return;
+    }
+    loadIngredients();
+  } catch (e) {
+    alert(t('err_del'));
+  }
+}
+
+// ══════════════════════════════════════════════
+// 위치 관리 (ingredient_locations)
+// ══════════════════════════════════════════════
+const LOC_CODE_RE = /^[1-9][A-E][1-9]$/;
+
+function buildLocSelect(id, values) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join('');
+  sel.addEventListener('change', updateLocPreview);
+}
+
+function updateLocPreview() {
+  const s = document.getElementById('locShelf').value;
+  const c = document.getElementById('locColumn').value;
+  const r = document.getElementById('locRow').value;
+  document.getElementById('locPreview').textContent = `${s}${c}${r}`;
+}
+
+async function openLocModal(ingId, ingName) {
+  document.getElementById('locModalIngId').value = ingId;
+  document.getElementById('locModalIngName').textContent = ingName;
+  document.getElementById('locModalMsg').innerHTML = '';
+  document.getElementById('locQty').value = '0';
+  if (!document.getElementById('locShelf').options.length) {
+    buildLocSelect('locShelf', ['1','2','3','4','5','6','7','8','9']);
+    buildLocSelect('locColumn', ['A','B','C','D','E']);
+    buildLocSelect('locRow', ['1','2','3','4','5','6','7','8','9']);
+  }
+  document.getElementById('locShelf').value = '2';
+  document.getElementById('locColumn').value = 'A';
+  document.getElementById('locRow').value = '2';
+  updateLocPreview();
+  await refreshLocList(ingId);
+  document.getElementById('locModal').classList.remove('hidden');
+}
+
+async function refreshLocList(ingId) {
+  const list = document.getElementById('locList');
+  try {
+    const resp = await apiFetch(`/api/ingredients`, { headers: hdr() });
+    const data = await resp.json();
+    const arr = Array.isArray(data) ? data : (data.data || []);
+    const ing = arr.find(x => String(x.id) === String(ingId));
+    const locs = (ing && ing.locations) || [];
+    if (!locs.length) {
+      list.innerHTML = `<p style="color:var(--soft);font-size:.85rem;text-align:center;padding:.5rem 0">${t('loc_empty')}</p>`;
+      return;
+    }
+    list.innerHTML = locs.map(l => `
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border:1px solid var(--border);border-radius:6px;margin-bottom:.35rem">
+        <span class="loc-chip" dir="ltr" style="min-width:40px;text-align:center">${esc(l.location_code)}</span>
+        <input type="number" min="0" step="0.01" value="${l.qty}" id="locRowQty_${l.id}" style="width:80px;padding:.3rem">
+        <button class="btn btn-outline btn-sm" onclick="saveLocRow(${l.id}, ${ingId})" style="font-size:.7rem;padding:.25rem .5rem">${t('btn_loc_save')}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteLoc(${l.id}, ${ingId})" style="font-size:.7rem;padding:.25rem .5rem">${t('btn_delete')}</button>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--red);font-size:.85rem">${t('err_load_retry')}</p>`;
+  }
+}
+
+async function submitLocForm() {
+  const ingId = document.getElementById('locModalIngId').value;
+  const code = document.getElementById('locPreview').textContent.trim();
+  const qty = parseFloat(document.getElementById('locQty').value);
+  const msg = document.getElementById('locModalMsg');
+  if (!LOC_CODE_RE.test(code)) {
+    msg.innerHTML = `<div class="alert alert-danger">${t('err_loc_format')}</div>`;
+    return;
+  }
+  if (!(qty >= 0)) {
+    msg.innerHTML = `<div class="alert alert-danger">${t('err_loc_qty')}</div>`;
+    return;
+  }
+  try {
+    const resp = await apiFetch(`/api/ingredients/${ingId}/locations`, {
+      method: 'POST', headers: hdr(),
+      body: JSON.stringify({ location_code: code, qty })
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || r.success === false) {
+      msg.innerHTML = `<div class="alert alert-danger">${esc(r.error || t('err_save_net'))}</div>`;
+      return;
+    }
+    msg.innerHTML = '';
+    document.getElementById('locQty').value = '0';
+    await refreshLocList(ingId);
+    loadIngredients();
+  } catch (e) {
+    msg.innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
+  }
+}
+
+async function saveLocRow(locId, ingId) {
+  const qty = parseFloat(document.getElementById(`locRowQty_${locId}`).value);
+  if (!(qty >= 0)) {
+    alert(t('err_loc_qty'));
+    return;
+  }
+  try {
+    const resp = await apiFetch(`/api/ingredient-locations/${locId}`, {
+      method: 'PATCH', headers: hdr(),
+      body: JSON.stringify({ qty })
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || r.success === false) {
+      alert(r.error || t('err_save_net'));
+      return;
+    }
+    await refreshLocList(ingId);
+    loadIngredients();
+  } catch (e) {
+    alert(t('err_save_net'));
+  }
+}
+
+async function deleteLoc(locId, ingId) {
+  if (!confirm(t('confirm_del_loc'))) return;
+  try {
+    const resp = await apiFetch(`/api/ingredient-locations/${locId}`, {
+      method: 'DELETE', headers: hdr()
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || r.success === false) {
+      alert(r.error || t('err_del'));
+      return;
+    }
+    await refreshLocList(ingId);
     loadIngredients();
   } catch (e) {
     alert(t('err_del'));
@@ -2184,7 +2781,7 @@ async function delIng(id, name) {
 // ══════════════════════════════════════════════
 async function loadRecipes() {
   try {
-    const resp = await fetch('/api/recipes', { headers: hdr() });
+    const resp = await apiFetch('/api/recipes', { headers: hdr() });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const d = await resp.json();
     recipes = d;
@@ -2461,13 +3058,14 @@ async function saveRecipe() {
 
   lockBtn('recipeSaveBtn');
   try {
-    const r = await fetch('/api/recipes', {
+    const resp = await apiFetch('/api/recipes', {
       method: 'POST',
       headers: hdr(),
       body: JSON.stringify({ menu_item: menu, items: rawItems, menu_category })
-    }).then(r => r.json());
-    if (r.success) { closeModal('recipeModal'); loadRecipes(); }
-    else msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error)}</div>`;
+    });
+    const r = await resp.json();
+    if (resp.ok && r.success) { closeModal('recipeModal'); loadRecipes(); }
+    else msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error || t('err_save_net'))}</div>`;
   } catch (e) {
     msgEl.innerHTML = `<div class="alert alert-danger">${t('err_save_net')}</div>`;
   } finally {
@@ -2478,7 +3076,12 @@ async function saveRecipe() {
 async function delRecipe(menu) {
   if (!confirm(`"${menu}" ${t('confirm_del_recipe')}`)) return;
   try {
-    await fetch(`/api/recipes/menu/${encodeURIComponent(menu)}`, { method: 'DELETE', headers: hdr() });
+    const resp = await apiFetch(`/api/recipes/menu/${encodeURIComponent(menu)}`, { method: 'DELETE', headers: hdr() });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || r.success === false) {
+      alert(r.error || t('err_del'));
+      return;
+    }
     loadRecipes();
   } catch (e) {
     alert(t('err_del'));
@@ -2491,7 +3094,8 @@ async function calcCost() {
   lockBtn('calcCostBtn', t('btn_calculating'));
   try {
     // ── 6. 항상 최신 데이터로 계산 ──
-    const d = await fetch(`/api/cost/${encodeURIComponent(menu)}`).then(r => r.json());
+    const r = await apiFetch(`/api/cost/${encodeURIComponent(menu)}`, { headers: hdr() });
+    const d = await r.json();
     const box = document.getElementById('costResult');
     box.classList.remove('hidden');
     box.innerHTML = '';
@@ -2583,7 +3187,7 @@ async function submitAdjust() {
 // ══════════════════════════════════════════════
 async function loadSizeRecipes() {
   try {
-    const resp = await fetch('/api/size-recipes', { headers: hdr() });
+    const resp = await apiFetch('/api/size-recipes', { headers: hdr() });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     sizeRecipes = await resp.json();
 
@@ -2931,7 +3535,7 @@ async function submitSales() {
 // ══════════════════════════════════════════════
 async function loadHistory() {
   try {
-    const resp = await fetch('/api/inventory/history?limit=200', { headers: hdr() });
+    const resp = await apiFetch('/api/inventory/history?limit=200', { headers: hdr() });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const d = await resp.json();
     _histCache = d;
@@ -2987,7 +3591,7 @@ async function openHistEditModal(id) {
 async function deleteHistEntry(id) {
   if (!confirm(t('confirm_del_hist'))) return;
   try {
-    const r = await fetch(`/api/inventory/history/${id}`, { method: 'DELETE', headers: hdr() });
+    const r = await apiFetch(`/api/inventory/history/${id}`, { method: 'DELETE', headers: hdr() });
     if (!r.ok) throw new Error();
     await loadHistory();
     await loadDashboard();
@@ -2997,22 +3601,25 @@ async function deleteHistEntry(id) {
 }
 
 async function saveHistEdit() {
-  const id = parseInt(document.getElementById('histEditId').value);
+  const id = parseInt(document.getElementById('histEditId').value, 10);
   const change_type = document.getElementById('histEditType').value;
   const quantity = parseFloat(document.getElementById('histEditQty').value);
   const reason = document.getElementById('histEditReason').value.trim();
   const msgEl = document.getElementById('histEditMsg');
 
+  if (!Number.isInteger(id) || id <= 0) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_hist_save')}</div>`; return;
+  }
   if (!['in', 'out'].includes(change_type)) {
     msgEl.innerHTML = `<div class="alert alert-danger">${t('err_hist_type')}</div>`; return;
   }
-  if (!(quantity > 0)) {
+  if (!Number.isFinite(quantity) || quantity <= 0) {
     msgEl.innerHTML = `<div class="alert alert-danger">${t('err_hist_qty')}</div>`; return;
   }
 
   lockBtn('histEditSaveBtn');
   try {
-    const r = await fetch(`/api/inventory/history/${id}`, {
+    const r = await apiFetch(`/api/inventory/history/${id}`, {
       method: 'PUT',
       headers: hdr(),
       body: JSON.stringify({ change_type, quantity, reason })
@@ -3041,12 +3648,13 @@ async function changePw() {
 
   lockBtn('pwBtn');
   try {
-    const r = await fetch('/api/auth/change-password', {
+    const resp = await apiFetch('/api/auth/change-password', {
       method: 'POST',
       headers: hdr(),
       body: JSON.stringify({ newPassword: pw })
-    }).then(r => r.json());
-    if (r.success) {
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (resp.ok && r.success) {
       msgEl.innerHTML = `<div class="alert alert-success">${t('pw_success')}</div>`;
       document.getElementById('newPw').value = '';
       document.getElementById('newPw2').value = '';
@@ -3067,7 +3675,7 @@ async function loadCashiers() {
   const listEl = document.getElementById('cashier-list');
   if (!listEl) return;
   try {
-    const cashiersResp = await fetch('/api/cashiers', { headers: hdr() });
+    const cashiersResp = await apiFetch('/api/cashiers', { headers: hdr() });
     if (!cashiersResp.ok) throw new Error(`HTTP ${cashiersResp.status}`);
     const data = await cashiersResp.json();
     if (!data.length) {
@@ -3076,9 +3684,12 @@ async function loadCashiers() {
     }
     listEl.innerHTML = data.map(c => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);">
-        <span>👤 <strong>${esc(c.name)}</strong></span>
-        <button class="btn btn-danger" style="padding:4px 10px;font-size:.8em" onclick="deleteCashier(${c.id},'${esc(c.name)}')">${t('btn_delete')}</button>
+        <span>${c.role==='manager'?'🔑':'👤'} <strong>${esc(c.name)}</strong> <small style="color:var(--soft);font-size:.78em;margin-left:.4rem">${c.role==='manager'?t('role_manager')||'Manager':'Cashier'}</small></span>
+        <button class="btn btn-danger js-del-cashier" data-id="${c.id}" data-name="${esc(c.name)}" style="padding:4px 10px;font-size:.8em">${t('btn_delete')}</button>
       </div>`).join('');
+    listEl.querySelectorAll('.js-del-cashier').forEach(btn => {
+      btn.addEventListener('click', () => deleteCashier(parseInt(btn.dataset.id, 10), btn.dataset.name));
+    });
   } catch (e) {
     listEl.innerHTML = `<p style="color:var(--red);font-size:.9em">${t('err_load')}</p>`;
   }
@@ -3087,19 +3698,22 @@ async function loadCashiers() {
 async function addCashier() {
   const name = document.getElementById('newCashierName').value.trim();
   const pw = document.getElementById('newCashierPw').value;
+  const role = document.getElementById('newCashierRole').value;
   const msgEl = document.getElementById('cashierMsg');
   if (!name) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_cashier_name')}</div>`; return; }
   if (pw.length < 4) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_cashier_pw')}</div>`; return; }
   try {
-    const r = await fetch('/api/cashiers', {
+    const resp = await apiFetch('/api/cashiers', {
       method: 'POST',
       headers: { ...hdr(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password: pw })
-    }).then(r => r.json());
-    if (r.success) {
+      body: JSON.stringify({ name, password: pw, role })
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (resp.ok && r.success) {
       msgEl.innerHTML = `<div class="alert alert-success">${t('cashier_added')}</div>`;
       document.getElementById('newCashierName').value = '';
       document.getElementById('newCashierPw').value = '';
+      document.getElementById('newCashierRole').value = 'cashier';
       loadCashiers();
     } else {
       msgEl.innerHTML = `<div class="alert alert-danger">${esc(r.error||t('cashier_add_fail'))}</div>`;
@@ -3110,10 +3724,12 @@ async function addCashier() {
 }
 
 async function deleteCashier(id, name) {
+  if (!Number.isInteger(id) || id <= 0) return;
   if (!confirm(`"${name}" ${t('confirm_del_cashier')}`)) return;
   try {
-    const r = await fetch(`/api/cashiers/${id}`, { method: 'DELETE', headers: hdr() }).then(r => r.json());
-    if (r.success) loadCashiers();
+    const resp = await apiFetch(`/api/cashiers/${id}`, { method: 'DELETE', headers: hdr() });
+    const r = await resp.json().catch(() => ({}));
+    if (resp.ok && r.success) loadCashiers();
     else alert(r.error || t('err_del'));
   } catch (e) {
     alert(t('err_del'));
@@ -3169,19 +3785,21 @@ async function loadBudgetTracker() {
 
   try {
     // 이번 달 입고 기록만 집계
-    const histResp = await fetch('/api/inventory/history?limit=2000', { headers: hdr() });
+    const histResp = await apiFetch('/api/inventory/history?limit=2000', { headers: hdr() });
     if (!histResp.ok) throw new Error(`HTTP ${histResp.status}`);
     const hist = await histResp.json();
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const ingById = new Map(ingredients.map(i => [i.id, i]));
 
     let spent = 0;
     hist.forEach(h => {
       if (h.change_type !== 'in') return;
       const d = new Date(h.created_at + (h.created_at.includes('Z') ? '' : 'Z'));
       if (d < monthStart) return;
-      // 재료 단위 원가 찾기
-      const ing = ingredients.find(i => i.name_ko === h.ingredient_name || i.name_ar === h.ingredient_name);
+      // 재료 단위 원가 찾기 (ID 우선, 이름은 폴백)
+      let ing = h.ingredient_id ? ingById.get(h.ingredient_id) : null;
+      if (!ing) ing = ingredients.find(i => i.name_ko === h.ingredient_name || i.name_ar === h.ingredient_name);
       if (ing && ing.cost_per_unit) {
         const unitCost = ing.capacity_ml > 0 ? ing.cost_per_unit / ing.capacity_ml : ing.cost_per_unit;
         spent += h.quantity * unitCost;
@@ -3216,71 +3834,152 @@ async function loadBudgetTracker() {
 }
 
 // ══════════════════════════════════════════════
-// 공급업체 관리 (localStorage)
+// 공급업체 관리 (server API)
 // ══════════════════════════════════════════════
-function getSuppliers() {
-  try { return JSON.parse(localStorage.getItem('wh_suppliers') || '[]'); }
-  catch { return []; }
+let SUPPLIERS_CACHE = [];
+
+async function fetchSuppliers() {
+  try {
+    const r = await fetch('/api/suppliers', { headers: hdr() });
+    if (!r.ok) throw new Error('load failed');
+    SUPPLIERS_CACHE = await r.json();
+  } catch (_) {
+    SUPPLIERS_CACHE = [];
+  }
+  return SUPPLIERS_CACHE;
 }
 
 function syncSupplierDatalist() {
-  const dl = document.getElementById('supplierOptionList');
-  if (!dl) return;
-  dl.innerHTML = '';
-  getSuppliers().forEach(s => {
+  const sel = document.getElementById('ingSupplierId');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = `<option value="">${t('opt_no_supplier')}</option>`;
+  SUPPLIERS_CACHE.forEach(s => {
     const opt = document.createElement('option');
-    opt.value = s.name;
-    dl.appendChild(opt);
+    opt.value = String(s.id);
+    opt.textContent = s.name + (s.phone ? `  ·  ${s.phone}` : '');
+    sel.appendChild(opt);
   });
-}
-function saveSuppliers(arr) {
-  localStorage.setItem('wh_suppliers', JSON.stringify(arr));
+  if (current) sel.value = current;
 }
 
-function loadSuppliers() {
+async function loadSuppliers() {
+  await fetchSuppliers();
+  syncSupplierDatalist();
   const list = document.getElementById('supplierList');
   if (!list) return;
-  const sups = getSuppliers();
-  if (!sups.length) {
+  if (!SUPPLIERS_CACHE.length) {
     list.innerHTML = `<p style="color:var(--soft);margin:0;font-size:.85rem">${t('supplier_empty')}</p>`;
     return;
   }
   list.innerHTML = '';
-  sups.forEach((s, idx) => {
+  SUPPLIERS_CACHE.forEach(s => {
     const card = document.createElement('div');
     card.className = 'supplier-card';
     card.innerHTML = `
       <div>
         <div class="sup-name">${esc(s.name)}</div>
-        <div class="sup-detail">📞 ${esc(s.phone || '-')}</div>
-        ${s.item ? `<div class="sup-detail">📦 ${esc(s.item)}</div>` : ''}
-        ${s.note ? `<div class="sup-detail">💬 ${esc(s.note)}</div>` : ''}
+        ${s.contact_person ? `<div class="sup-detail">👤 ${esc(s.contact_person)}</div>` : ''}
+        ${s.phone ? `<div class="sup-detail">📞 ${esc(s.phone)}</div>` : ''}
+        ${s.whatsapp ? `<div class="sup-detail">💬 ${esc(s.whatsapp)}</div>` : ''}
+        ${s.address ? `<div class="sup-detail">📍 ${esc(s.address)}</div>` : ''}
+        ${s.note ? `<div class="sup-detail">📝 ${esc(s.note)}</div>` : ''}
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteSupplier(${idx})" style="flex-shrink:0">${t('btn_delete')}</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSupplier(${s.id})" style="flex-shrink:0">${t('btn_delete')}</button>
     `;
     list.appendChild(card);
   });
 }
 
-function addSupplier() {
+async function addSupplier() {
   const name = document.getElementById('supName').value.trim();
   if (!name) { alert(t('err_sup_name')); return; }
-  const phone = document.getElementById('supPhone').value.trim();
-  const item  = document.getElementById('supItem').value.trim();
-  const note  = document.getElementById('supNote').value.trim();
-  const sups = getSuppliers();
-  sups.push({ name, phone, item, note });
-  saveSuppliers(sups);
-  ['supName','supPhone','supItem','supNote'].forEach(id => { document.getElementById(id).value = ''; });
-  loadSuppliers();
+  const payload = {
+    name,
+    contact_person: document.getElementById('supContactPerson').value.trim(),
+    phone: document.getElementById('supPhone').value.trim(),
+    whatsapp: document.getElementById('supWhatsapp').value.trim(),
+    address: document.getElementById('supAddress').value.trim(),
+    note: document.getElementById('supNote').value.trim(),
+  };
+  try {
+    const r = await fetch('/api/suppliers', { method: 'POST', headers: hdr(), body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (!r.ok) { alert(data.error || 'failed'); return; }
+    ['supName','supContactPerson','supPhone','supWhatsapp','supAddress','supNote'].forEach(id => { document.getElementById(id).value = ''; });
+    await loadSuppliers();
+  } catch (_) {
+    alert(t('err_network') || 'Network error');
+  }
 }
 
-function deleteSupplier(idx) {
+async function deleteSupplier(id) {
   if (!confirm(t('confirm_del_supplier'))) return;
-  const sups = getSuppliers();
-  sups.splice(idx, 1);
-  saveSuppliers(sups);
-  loadSuppliers();
+  try {
+    const r = await fetch('/api/suppliers/' + id, { method: 'DELETE', headers: hdr() });
+    if (!r.ok) { const d = await r.json().catch(()=>({})); alert(d.error || 'failed'); return; }
+    await loadSuppliers();
+  } catch (_) {
+    alert(t('err_network') || 'Network error');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 재고 모달 헬퍼: 박스 자동 계산 + 이미지 미리보기
+// ══════════════════════════════════════════════
+function recomputeTotalQty() {
+  const qpb = parseFloat(document.getElementById('ingQtyPerBox').value);
+  const nb  = parseFloat(document.getElementById('ingNumBoxes').value);
+  const cur = document.getElementById('ingCurQty');
+  const hint = document.getElementById('ingCurQtyHint');
+  if (Number.isFinite(qpb) && qpb > 0 && Number.isFinite(nb) && nb > 0) {
+    cur.value = (qpb * nb).toFixed(2).replace(/\.?0+$/, '');
+    cur.readOnly = true;
+    if (hint) hint.style.display = 'block';
+  } else {
+    cur.readOnly = false;
+    if (hint) hint.style.display = 'none';
+  }
+}
+
+function previewIngImage(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  const wrap = document.getElementById('ingImagePreviewWrap');
+  const img = document.getElementById('ingImagePreview');
+  if (!file) { wrap.style.display = 'none'; img.src = ''; return; }
+  if (file.size > 5 * 1024 * 1024) {
+    alert(t('err_image_size') || 'Image must be ≤ 5MB');
+    ev.target.value = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    alert(t('err_image_type') || 'Only jpg / png / webp allowed');
+    ev.target.value = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
+  reader.readAsDataURL(file);
+}
+
+function clearIngImage() {
+  document.getElementById('ingImageFile').value = '';
+  document.getElementById('ingImagePath').value = '';
+  document.getElementById('ingImagePreview').src = '';
+  document.getElementById('ingImagePreviewWrap').style.display = 'none';
+}
+
+function openImageZoom(src) {
+  if (!src) return;
+  document.getElementById('imageZoomImg').src = src;
+  document.getElementById('imageZoomModal').classList.remove('hidden');
+}
+function closeImageZoom(ev) {
+  if (ev && ev.target && ev.target.id === 'imageZoomImg') return;
+  document.getElementById('imageZoomModal').classList.add('hidden');
+  document.getElementById('imageZoomImg').src = '';
 }
 
 // ══════════════════════════════════════════════
@@ -3301,8 +4000,11 @@ async function loadAllCosts(grouped) {
   // 판매가 fetch
   let priceMap = {};
   try {
-    const rows = await fetch('/api/menu-prices', { headers: hdr() }).then(r => r.json());
-    rows.forEach(r => { priceMap[r.menu_item] = r.selling_price; });
+    const resp = await apiFetch('/api/menu-prices', { headers: hdr() });
+    if (resp.ok) {
+      const rows = await resp.json();
+      rows.forEach(r => { priceMap[r.menu_item] = r.selling_price; });
+    }
   } catch (_) {}
 
   grid.innerHTML = '';
@@ -3315,7 +4017,11 @@ async function loadAllCosts(grouped) {
     const sellingPrice = priceMap[menu] || 0;
     const rate = sellingPrice > 0 ? ((totalCost / sellingPrice) * 100).toFixed(1) : null;
     const rateNum = rate !== null ? parseFloat(rate) : 0;
-    const rateColor = rateNum > 100 ? '#c0392b' : rateNum > 40 ? 'var(--danger)' : 'var(--green)';
+    // 카페 업계 통상: 25-35% 양호 / 35-50% 주의 / >50% 위험 / >100% 손실
+    const rateColor = rateNum > 100 ? '#c0392b'
+                    : rateNum > 50  ? 'var(--danger)'
+                    : rateNum > 35  ? 'var(--orange, #f59e0b)'
+                                    : 'var(--green)';
     const rateHtml = rate !== null
       ? `<div class="menu-rate" style="font-size:.8rem;margin-top:.25rem;color:${rateColor}">cost ${esc(rate)}%${rateNum > 100 ? ' ⚠️ LOSS' : ''}</div>`
       : `<div class="menu-rate" style="font-size:.75rem;color:var(--soft);margin-top:.25rem">${t('price_not_set')}</div>`;
@@ -3367,13 +4073,15 @@ function renderPriceEditor(menus, priceMap) {
 }
 
 async function saveMenuPrice(menuItem, value) {
-  const price = parseFloat(value) || 0;
+  const price = parseFloat(value);
+  if (!Number.isFinite(price) || price < 0) return;
   try {
-    await fetch('/api/menu-prices', {
+    const resp = await apiFetch('/api/menu-prices', {
       method: 'POST',
       headers: hdr(),
       body: JSON.stringify({ menu_item: menuItem, selling_price: price })
     });
+    if (!resp.ok) return;
     // 카드 새로고침
     await loadAllCosts(_cachedGrouped);
   } catch (_) {}
@@ -3404,7 +4112,9 @@ async function loadReport() {
   tb.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--soft)">${t('report_loading')}</td></tr>`;
 
   try {
-    const hist = await fetch('/api/inventory/history?limit=2000', { headers: hdr() }).then(r => r.json());
+    const histResp = await apiFetch('/api/inventory/history?limit=2000', { headers: hdr() });
+    if (!histResp.ok) throw new Error(`HTTP ${histResp.status}`);
+    const hist = await histResp.json();
     const start = getReportDateRange();
 
     const map = {};
@@ -3457,7 +4167,8 @@ function drawBarChart(canvas, labels, values) {
   canvas.style.height = H + 'px';
 
   const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
+  // 매 렌더마다 transform을 초기화해야 dpr 스케일이 누적되지 않음
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
 
   const padL = 10, padR = 10, padT = 20, padB = 56;
@@ -3515,6 +4226,572 @@ function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
 });
+
+// ══════════════════════════════════════════════
+// PURCHASE ORDERS (PO)
+// ══════════════════════════════════════════════
+let _poCachedIngredients = null;
+let _poCachedSuppliers = null;
+
+async function _loadPoLookups() {
+  if (!_poCachedIngredients) {
+    const r = await apiFetch('/api/ingredients', { headers: hdr() });
+    _poCachedIngredients = await r.json();
+  }
+  if (!_poCachedSuppliers) {
+    const r = await apiFetch('/api/suppliers', { headers: hdr() });
+    _poCachedSuppliers = await r.json();
+  }
+  return { ings: _poCachedIngredients, suppliers: _poCachedSuppliers };
+}
+
+function fmtMoney(v) { return (Math.round(v || 0)).toLocaleString() + ' IQD'; }
+function fmtDate(ms) { if (!ms) return '-'; const d = new Date(ms); return d.toISOString().slice(0, 16).replace('T', ' '); }
+
+const PO_STATUS_LABEL = {
+  draft: '📝 Draft', pending_approval: '⏳ Pending Approval', approved: '✅ Approved',
+  partially_received: '📦 Partial', received: '✔️ Received', cancelled: '❌ Cancelled'
+};
+
+async function loadPoList() {
+  const status = document.getElementById('poFilterStatus').value;
+  const url = '/api/po' + (status ? `?status=${encodeURIComponent(status)}` : '');
+  try {
+    const r = await apiFetch(url, { headers: hdr() });
+    const rows = await r.json();
+    const tb = document.getElementById('poTb');
+    tb.innerHTML = rows.map(r => `
+      <tr>
+        <td><strong>${r.po_number}</strong></td>
+        <td>${r.supplier_name || '-'}</td>
+        <td>${PO_STATUS_LABEL[r.status] || r.status}</td>
+        <td>-</td>
+        <td>${fmtMoney(r.total_amount)}</td>
+        <td>${fmtDate(r.created_at)}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="openPoDetail(${r.id})">Open</button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--soft)">No POs</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+async function openPoModal(po) {
+  await _loadPoLookups();
+  document.getElementById('poId').value = po ? po.id : '';
+  document.getElementById('poModalTitle').textContent = po ? `Edit ${po.po_number}` : 'New Purchase Order';
+  const supSel = document.getElementById('poSupplier');
+  supSel.innerHTML = '<option value="">— None —</option>' +
+    _poCachedSuppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  if (po) supSel.value = po.supplier_id || '';
+  document.getElementById('poExpectedDate').value = po && po.expected_date ? po.expected_date : '';
+  document.getElementById('poNotes').value = po && po.notes ? po.notes : '';
+  document.getElementById('poItems').innerHTML = '';
+  document.getElementById('poModalMsg').textContent = '';
+  if (po && po.items && po.items.length) {
+    po.items.forEach(it => addPoItemRow(it));
+  } else {
+    addPoItemRow();
+  }
+  recalcPoTotal();
+  document.getElementById('poModal').classList.remove('hidden');
+}
+
+function addPoItemRow(it) {
+  const wrap = document.getElementById('poItems');
+  const idx = wrap.children.length;
+  const div = document.createElement('div');
+  div.className = 'po-item-row';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:.4rem;margin-bottom:.4rem;align-items:end';
+  div.innerHTML = `
+    <div class="form-group" style="margin:0">
+      <label>Ingredient</label>
+      <select class="po-ing-sel" data-poi-id="${it ? it.id : ''}">
+        ${_poCachedIngredients.map(i => `<option value="${i.id}">${i.name_ko}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Qty</label>
+      <input class="po-qty" type="number" min="0" step="0.01" value="${it ? it.ordered_qty : ''}">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Unit Cost</label>
+      <input class="po-cost" type="number" min="0" step="1" value="${it ? it.unit_cost : ''}">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Line Total</label>
+      <input class="po-line" type="text" readonly value="${it ? Math.round(it.line_total) : 0}">
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="this.parentNode.remove();recalcPoTotal()">×</button>
+  `;
+  wrap.appendChild(div);
+  if (it) div.querySelector('.po-ing-sel').value = it.ingredient_id;
+  div.querySelector('.po-qty').addEventListener('input', recalcPoTotal);
+  div.querySelector('.po-cost').addEventListener('input', recalcPoTotal);
+  recalcPoTotal();
+}
+
+function recalcPoTotal() {
+  let total = 0;
+  document.querySelectorAll('#poItems .po-item-row').forEach(row => {
+    const q = parseFloat(row.querySelector('.po-qty').value) || 0;
+    const c = parseFloat(row.querySelector('.po-cost').value) || 0;
+    const lt = q * c;
+    row.querySelector('.po-line').value = Math.round(lt);
+    total += lt;
+  });
+  document.getElementById('poTotal').textContent = 'Total: ' + fmtMoney(total);
+}
+
+async function savePo(submitAfter) {
+  const id = document.getElementById('poId').value;
+  const supplier_id = document.getElementById('poSupplier').value || null;
+  const expected_date = document.getElementById('poExpectedDate').value || null;
+  const notes = document.getElementById('poNotes').value || null;
+  const items = [];
+  document.querySelectorAll('#poItems .po-item-row').forEach(row => {
+    const ing = parseInt(row.querySelector('.po-ing-sel').value, 10);
+    const q = parseFloat(row.querySelector('.po-qty').value);
+    const c = parseFloat(row.querySelector('.po-cost').value);
+    if (Number.isInteger(ing) && q > 0 && c >= 0) {
+      items.push({ ingredient_id: ing, ordered_qty: q, unit_cost: c });
+    }
+  });
+  if (items.length === 0) {
+    document.getElementById('poModalMsg').textContent = 'Add at least one valid item';
+    return;
+  }
+  const body = JSON.stringify({ supplier_id, expected_date, notes, items });
+  try {
+    let res;
+    if (id) {
+      res = await apiFetch('/api/po/' + id, { method: 'PUT', headers: hdr(), body });
+    } else {
+      res = await apiFetch('/api/po', { method: 'POST', headers: hdr(), body });
+    }
+    const j = await res.json();
+    if (!res.ok) {
+      document.getElementById('poModalMsg').textContent = j.error || 'save failed';
+      return;
+    }
+    const poId = id || j.po.id;
+    if (submitAfter) {
+      await apiFetch('/api/po/' + poId + '/submit', { method: 'POST', headers: hdr() });
+    }
+    closeModal('poModal');
+    loadPoList();
+  } catch (e) {
+    document.getElementById('poModalMsg').textContent = 'Network error';
+  }
+}
+
+async function openPoDetail(id) {
+  try {
+    const r = await apiFetch('/api/po/' + id, { headers: hdr() });
+    const po = await r.json();
+    document.getElementById('poDetailTitle').textContent = `${po.po_number} — ${PO_STATUS_LABEL[po.status]}`;
+    const itemsHtml = po.items.map(it => {
+      const remaining = it.ordered_qty - it.received_qty;
+      return `
+        <tr data-poi-id="${it.id}">
+          <td>${it.name_ko}</td>
+          <td>${it.ordered_qty} ${it.unit}</td>
+          <td>${it.received_qty} ${it.unit}</td>
+          <td>${remaining.toFixed(2)} ${it.unit}</td>
+          <td>${fmtMoney(it.unit_cost)}</td>
+          <td>${fmtMoney(it.line_total)}</td>
+          <td>
+            ${(po.status === 'approved' || po.status === 'partially_received') && remaining > 0 ? `
+              <input class="rcv-qty" type="number" min="0" max="${remaining}" step="0.01" placeholder="qty" style="width:80px">
+              <input class="rcv-loc" type="text" placeholder="2A1" style="width:60px;text-transform:uppercase">
+            ` : '-'}
+          </td>
+        </tr>`;
+    }).join('');
+    const receiptsHtml = (po.receipts || []).map(r => `
+      <div class="card" style="margin:.4rem 0">
+        <div style="font-weight:700">📦 Receipt #${r.id} — ${fmtDate(r.received_at)} ${r.received_by ? '(' + r.received_by + ')' : ''}</div>
+        ${r.notes ? `<div style="font-size:.85rem;color:var(--soft)">${r.notes}</div>` : ''}
+        <table style="width:100%;font-size:.9rem"><thead><tr><th>Item</th><th>Qty</th><th>Location</th></tr></thead>
+        <tbody>${r.items.map(ri => `<tr><td>${ri.name_ko}</td><td>${ri.qty} ${ri.unit}</td><td>${ri.location_code}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `).join('') || '<div style="color:var(--soft)">No receipts yet</div>';
+
+    const actions = [];
+    if (po.status === 'draft') {
+      actions.push(`<button class="btn btn-primary btn-sm" onclick='editPoFromDetail(${JSON.stringify(po)})'>Edit</button>`);
+      actions.push(`<button class="btn btn-primary btn-sm" onclick="submitPo(${id})" style="background:#3b82f6">Submit for Approval</button>`);
+      actions.push(`<button class="btn btn-outline btn-sm" onclick="cancelPo(${id})" style="color:#ef4444">Cancel</button>`);
+      actions.push(`<button class="btn btn-outline btn-sm" onclick="deletePo(${id})" style="color:#ef4444">Delete</button>`);
+    } else if (po.status === 'pending_approval') {
+      actions.push(`<button class="btn btn-primary btn-sm" onclick="approvePo(${id})" style="background:#10b981">Approve</button>`);
+      actions.push(`<button class="btn btn-outline btn-sm" onclick="cancelPo(${id})" style="color:#ef4444">Cancel</button>`);
+    } else if (po.status === 'approved' || po.status === 'partially_received') {
+      actions.push(`<button class="btn btn-primary btn-sm" onclick="receivePo(${id})">📥 Receive Items</button>`);
+      if (po.status === 'approved') {
+        actions.push(`<button class="btn btn-outline btn-sm" onclick="cancelPo(${id})" style="color:#ef4444">Cancel</button>`);
+      }
+    }
+
+    document.getElementById('poDetailBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem;font-size:.92rem">
+        <div><strong>Supplier:</strong> ${po.supplier_name || '-'}</div>
+        <div><strong>Expected:</strong> ${po.expected_date || '-'}</div>
+        <div><strong>Total:</strong> ${fmtMoney(po.total_amount)}</div>
+        <div><strong>Created:</strong> ${fmtDate(po.created_at)} ${po.created_by ? '(' + po.created_by + ')' : ''}</div>
+        ${po.submitted_at ? `<div><strong>Submitted:</strong> ${fmtDate(po.submitted_at)}</div>` : ''}
+        ${po.approved_at ? `<div><strong>Approved:</strong> ${fmtDate(po.approved_at)} (${po.approved_by})</div>` : ''}
+      </div>
+      ${po.notes ? `<div style="margin-top:.4rem;padding:.4rem;background:rgba(0,0,0,.04);border-radius:6px">${po.notes}</div>` : ''}
+      <h4 style="margin-top:.8rem">Items</h4>
+      <div class="tbl-wrap"><table id="poDetailItemTable">
+        <thead><tr><th>Item</th><th>Ordered</th><th>Received</th><th>Remaining</th><th>Unit Cost</th><th>Line Total</th><th>Receive</th></tr></thead>
+        <tbody>${itemsHtml}</tbody>
+      </table></div>
+      <div style="margin-top:.6rem;display:flex;gap:.4rem;flex-wrap:wrap">${actions.join('')}</div>
+      <h4 style="margin-top:1rem">Receipt History</h4>
+      ${receiptsHtml}
+    `;
+    document.getElementById('poDetailModal').classList.remove('hidden');
+  } catch (e) {
+    alert('Failed to load PO: ' + e.message);
+  }
+}
+
+async function editPoFromDetail(po) {
+  closeModal('poDetailModal');
+  await openPoModal(po);
+}
+
+async function submitPo(id) {
+  if (!confirm('Submit this PO for approval?')) return;
+  const r = await apiFetch('/api/po/' + id + '/submit', { method: 'POST', headers: hdr() });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'submit failed'); return; }
+  closeModal('poDetailModal');
+  loadPoList();
+}
+
+async function approvePo(id) {
+  if (!confirm('Approve this PO?')) return;
+  const r = await apiFetch('/api/po/' + id + '/approve', { method: 'POST', headers: hdr(), body: JSON.stringify({ approved_by: 'admin' }) });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'approve failed'); return; }
+  closeModal('poDetailModal');
+  loadPoList();
+}
+
+async function cancelPo(id) {
+  if (!confirm('Cancel this PO?')) return;
+  const r = await apiFetch('/api/po/' + id + '/cancel', { method: 'POST', headers: hdr() });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'cancel failed'); return; }
+  closeModal('poDetailModal');
+  loadPoList();
+}
+
+async function deletePo(id) {
+  if (!confirm('Delete this PO permanently?')) return;
+  const r = await apiFetch('/api/po/' + id, { method: 'DELETE', headers: hdr() });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'delete failed'); return; }
+  closeModal('poDetailModal');
+  loadPoList();
+}
+
+async function receivePo(id) {
+  const rows = document.querySelectorAll('#poDetailItemTable tbody tr');
+  const items = [];
+  for (const tr of rows) {
+    const poiId = parseInt(tr.dataset.poiId, 10);
+    const qInput = tr.querySelector('.rcv-qty');
+    const lInput = tr.querySelector('.rcv-loc');
+    if (!qInput) continue;
+    const q = parseFloat(qInput.value);
+    const loc = (lInput.value || '').trim().toUpperCase();
+    if (Number.isFinite(q) && q > 0) {
+      items.push({ po_item_id: poiId, qty: q, location_code: loc || 'UNSET' });
+    }
+  }
+  if (items.length === 0) { alert('Enter at least one receive qty'); return; }
+  const r = await apiFetch('/api/po/' + id + '/receive', {
+    method: 'POST', headers: hdr(),
+    body: JSON.stringify({ items, received_by: 'admin' })
+  });
+  const j = await r.json();
+  if (!r.ok) { alert(j.error || 'receive failed'); return; }
+  closeModal('poDetailModal');
+  loadPoList();
+  loadIngredients(false);
+}
+
+// ══════════════════════════════════════════════
+// STOCK COUNTS (PHYSICAL INVENTORY)
+// ══════════════════════════════════════════════
+const COUNT_STATUS_LABEL = {
+  open: '📝 Open', submitted: '⏳ Submitted', reconciled: '✅ Reconciled', cancelled: '❌ Cancelled'
+};
+
+async function loadCountList() {
+  try {
+    const r = await apiFetch('/api/stock-counts', { headers: hdr() });
+    const rows = await r.json();
+    const tb = document.getElementById('countTb');
+    tb.innerHTML = rows.map(c => `
+      <tr>
+        <td><strong>${esc(c.count_name)}</strong></td>
+        <td>${COUNT_STATUS_LABEL[c.status] || c.status}</td>
+        <td>${c.item_count}</td>
+        <td style="color:${c.total_variance_value < 0 ? '#ef4444' : '#10b981'}">${fmtMoney(c.total_variance_value)}</td>
+        <td>${fmtDate(c.created_at)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="openCountDetail(${c.id})">Open</button></td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--soft)">No counts</td></tr>';
+  } catch (_) { }
+}
+
+async function openCountModal() {
+  // Populate categories
+  const ings = (_poCachedIngredients || (await _loadPoLookups()).ings);
+  const cats = Array.from(new Set(ings.map(i => i.category).filter(Boolean))).sort();
+  document.getElementById('countCategory').innerHTML =
+    '<option value="">All categories</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  document.getElementById('countName').value = `Count ${new Date().toISOString().slice(0, 10)}`;
+  document.getElementById('countNotes').value = '';
+  document.getElementById('countModalMsg').textContent = '';
+  document.getElementById('countModal').classList.remove('hidden');
+}
+
+async function createStockCount() {
+  const count_name = document.getElementById('countName').value.trim();
+  const category = document.getElementById('countCategory').value || null;
+  const notes = document.getElementById('countNotes').value || null;
+  if (!count_name) {
+    document.getElementById('countModalMsg').textContent = 'Name required';
+    return;
+  }
+  const r = await apiFetch('/api/stock-counts', {
+    method: 'POST', headers: hdr(),
+    body: JSON.stringify({ count_name, notes, category, started_by: 'admin' })
+  });
+  const j = await r.json();
+  if (!r.ok) { document.getElementById('countModalMsg').textContent = j.error || 'failed'; return; }
+  closeModal('countModal');
+  await loadCountList();
+  openCountDetail(j.id);
+}
+
+async function openCountDetail(id) {
+  const r = await apiFetch('/api/stock-counts/' + id, { headers: hdr() });
+  const sc = await r.json();
+  const editable = sc.status === 'open';
+  const itemsHtml = sc.items.map(it => {
+    const counted = it.counted_qty == null ? '' : it.counted_qty;
+    const variance = it.variance_qty == null ? '-' : (it.variance_qty.toFixed(3));
+    const vValue = it.variance_value == null ? '-' : fmtMoney(it.variance_value);
+    const vColor = it.variance_qty == null ? '' : (it.variance_qty < 0 ? '#ef4444' : '#10b981');
+    return `
+      <tr data-ing-id="${it.ingredient_id}">
+        <td>${esc(it.name_ko)} <span style="color:var(--soft);font-size:.8rem">(${it.unit})</span></td>
+        <td>${it.expected_qty.toFixed(2)}</td>
+        <td>${editable
+        ? `<input class="sci-counted" type="number" step="0.01" min="0" value="${counted}" style="width:90px">`
+        : (it.counted_qty == null ? '-' : it.counted_qty.toFixed(2))}</td>
+        <td style="color:${vColor}">${variance}</td>
+        <td style="color:${vColor}">${vValue}</td>
+        <td>${editable
+        ? `<input class="sci-notes" type="text" value="${esc(it.notes || '')}" style="width:140px">`
+        : esc(it.notes || '')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const actions = [];
+  if (sc.status === 'open') {
+    actions.push(`<button class="btn btn-primary btn-sm" onclick="saveCountItems(${id})">💾 Save Counts</button>`);
+    actions.push(`<button class="btn btn-primary btn-sm" onclick="submitCount(${id})" style="background:#3b82f6">Submit (compute variance)</button>`);
+    actions.push(`<button class="btn btn-outline btn-sm" onclick="cancelCount(${id})" style="color:#ef4444">Cancel</button>`);
+    actions.push(`<button class="btn btn-outline btn-sm" onclick="deleteCount(${id})" style="color:#ef4444">Delete</button>`);
+  } else if (sc.status === 'submitted') {
+    actions.push(`<button class="btn btn-primary btn-sm" onclick="reconcileCount(${id})" style="background:#10b981">✅ Reconcile (apply to stock)</button>`);
+    actions.push(`<button class="btn btn-outline btn-sm" onclick="cancelCount(${id})" style="color:#ef4444">Cancel</button>`);
+  }
+
+  document.getElementById('countDetailTitle').textContent = `${sc.count_name} — ${COUNT_STATUS_LABEL[sc.status]}`;
+  document.getElementById('countDetailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem;font-size:.92rem">
+      <div><strong>Status:</strong> ${COUNT_STATUS_LABEL[sc.status]}</div>
+      <div><strong>Items:</strong> ${sc.items.length}</div>
+      <div><strong>Variance:</strong> <span style="color:${sc.total_variance_value < 0 ? '#ef4444' : '#10b981'}">${fmtMoney(sc.total_variance_value)}</span></div>
+      <div><strong>Created:</strong> ${fmtDate(sc.created_at)}</div>
+      ${sc.submitted_at ? `<div><strong>Submitted:</strong> ${fmtDate(sc.submitted_at)}</div>` : ''}
+      ${sc.reconciled_at ? `<div><strong>Reconciled:</strong> ${fmtDate(sc.reconciled_at)} (${sc.reconciled_by})</div>` : ''}
+    </div>
+    ${sc.notes ? `<div style="margin-top:.4rem;padding:.4rem;background:rgba(0,0,0,.04);border-radius:6px">${esc(sc.notes)}</div>` : ''}
+    <div style="margin-top:.6rem;display:flex;gap:.4rem;flex-wrap:wrap">${actions.join('')}</div>
+    <div class="tbl-wrap" style="margin-top:.8rem"><table id="scItemTable">
+      <thead><tr><th>Ingredient</th><th>Expected</th><th>Counted</th><th>Variance Qty</th><th>Variance Value</th><th>Notes</th></tr></thead>
+      <tbody>${itemsHtml}</tbody>
+    </table></div>
+  `;
+  document.getElementById('countDetailModal').classList.remove('hidden');
+}
+
+async function saveCountItems(id) {
+  const items = [];
+  document.querySelectorAll('#scItemTable tbody tr').forEach(tr => {
+    const ingId = parseInt(tr.dataset.ingId, 10);
+    const c = tr.querySelector('.sci-counted');
+    const n = tr.querySelector('.sci-notes');
+    if (!c) return;
+    const v = c.value === '' ? null : parseFloat(c.value);
+    items.push({ ingredient_id: ingId, counted_qty: v, notes: n ? n.value : null });
+  });
+  const r = await apiFetch('/api/stock-counts/' + id + '/items', {
+    method: 'PUT', headers: hdr(), body: JSON.stringify({ items })
+  });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'save failed'); return; }
+  alert('Saved');
+}
+
+async function submitCount(id) {
+  if (!confirm('Submit count? Variance will be computed.')) return;
+  await saveCountItems(id);
+  const r = await apiFetch('/api/stock-counts/' + id + '/submit', { method: 'POST', headers: hdr() });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'submit failed'); return; }
+  closeModal('countDetailModal');
+  loadCountList();
+}
+
+async function reconcileCount(id) {
+  if (!confirm('Reconcile count? Stock will be adjusted to counted values.')) return;
+  const r = await apiFetch('/api/stock-counts/' + id + '/reconcile', {
+    method: 'POST', headers: hdr(), body: JSON.stringify({ reconciled_by: 'admin' })
+  });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'reconcile failed'); return; }
+  closeModal('countDetailModal');
+  loadCountList();
+  loadIngredients(false);
+}
+
+async function cancelCount(id) {
+  if (!confirm('Cancel this count?')) return;
+  const r = await apiFetch('/api/stock-counts/' + id + '/cancel', { method: 'POST', headers: hdr() });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'cancel failed'); return; }
+  closeModal('countDetailModal');
+  loadCountList();
+}
+
+async function deleteCount(id) {
+  if (!confirm('Delete this count permanently?')) return;
+  const r = await apiFetch('/api/stock-counts/' + id, { method: 'DELETE', headers: hdr() });
+  if (!r.ok) { const j = await r.json(); alert(j.error || 'delete failed'); return; }
+  closeModal('countDetailModal');
+  loadCountList();
+}
+
+// ══════════════════════════════════════════════
+// PROFITABILITY DASHBOARD
+// ══════════════════════════════════════════════
+async function loadProfitability() {
+  const period = document.getElementById('profitPeriod').value;
+  try {
+    const [sumRes, abcRes, effRes] = await Promise.all([
+      apiFetch('/api/profitability/summary?period=' + period, { headers: hdr() }),
+      apiFetch('/api/profitability/abc?period=' + period, { headers: hdr() }),
+      apiFetch('/api/profitability/effective-margin?period=' + period, { headers: hdr() }),
+    ]);
+    const sum = await sumRes.json();
+    const abc = await abcRes.json();
+    const eff = await effRes.json();
+
+    document.getElementById('pfRevenue').textContent = fmtMoney(sum.totals.revenue);
+    document.getElementById('pfCogs').textContent = fmtMoney(sum.totals.cost);
+    document.getElementById('pfGross').textContent = fmtMoney(sum.totals.gross_profit);
+    document.getElementById('pfMarginRate').textContent = sum.totals.margin_rate + '%';
+    document.getElementById('pfRefunds').textContent = fmtMoney(eff.refunds);
+    document.getElementById('pfWaste').textContent = fmtMoney(eff.waste_estimate);
+    document.getElementById('pfEffective').textContent = fmtMoney(eff.effective_profit);
+    document.getElementById('pfEffectiveRate').textContent = eff.effective_margin_rate + '%';
+
+    const tb = document.getElementById('profitTb');
+    tb.innerHTML = sum.rows.map(r => `
+      <tr>
+        <td>${esc(r.menu_item)}</td>
+        <td>${fmtMoney(r.cost)}</td>
+        <td>${fmtMoney(r.selling_price)}</td>
+        <td style="color:${r.margin < 0 ? '#ef4444' : '#10b981'}">${fmtMoney(r.margin)}</td>
+        <td>${r.margin_rate}%</td>
+        <td>${r.qty_sold}</td>
+        <td>${fmtMoney(r.revenue)}</td>
+        <td style="color:${r.gross_profit < 0 ? '#ef4444' : '#10b981'}"><strong>${fmtMoney(r.gross_profit)}</strong></td>
+        <td><button class="btn btn-outline btn-sm" onclick='showIngredientImpact(${JSON.stringify(r.menu_item)})'>🔍</button></td>
+      </tr>
+    `).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--soft)">No data</td></tr>';
+
+    const abcTb = document.getElementById('abcTb');
+    abcTb.innerHTML = abc.rows.map(r => `
+      <tr>
+        <td><strong style="color:${r.abc_class === 'A' ? '#10b981' : r.abc_class === 'B' ? '#f59e0b' : '#94a3b8'}">${r.abc_class}</strong></td>
+        <td>${esc(r.menu_item)}</td>
+        <td>${r.qty}</td>
+        <td>${fmtMoney(r.revenue)}</td>
+        <td>${r.cumulative_ratio}%</td>
+        <td>${fmtMoney(r.profit)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--soft)">No data</td></tr>';
+
+    // Populate simulator menu list
+    const simMenu = document.getElementById('simMenu');
+    simMenu.innerHTML = sum.rows.map(r => `<option value="${esc(r.menu_item)}">${esc(r.menu_item)}</option>`).join('');
+    if (sum.rows.length > 0) {
+      simMenu.value = sum.rows[0].menu_item;
+      document.getElementById('simPrice').value = sum.rows[0].selling_price;
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function runSimulator() {
+  const menu = document.getElementById('simMenu').value;
+  const price = document.getElementById('simPrice').value;
+  const fixed = document.getElementById('simFixed').value || 0;
+  if (!menu || price === '') return;
+  const r = await apiFetch(`/api/profitability/simulate?menu_item=${encodeURIComponent(menu)}&new_price=${price}&fixed_cost=${fixed}`, { headers: hdr() });
+  const j = await r.json();
+  if (!r.ok) { alert(j.error || 'failed'); return; }
+  const delta = j.margin_delta;
+  const deltaColor = delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : '';
+  document.getElementById('simResult').innerHTML = `
+    <div class="card" style="background:rgba(59,130,246,.05);border-left:4px solid #3b82f6">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.5rem">
+        <div><span style="color:var(--soft)">Cost:</span> <strong>${fmtMoney(j.cost)}</strong></div>
+        <div><span style="color:var(--soft)">Old Price:</span> <strong>${fmtMoney(j.old_price)}</strong></div>
+        <div><span style="color:var(--soft)">New Price:</span> <strong>${fmtMoney(j.new_price)}</strong></div>
+        <div><span style="color:var(--soft)">Old Margin:</span> <strong>${fmtMoney(j.old_margin)}</strong></div>
+        <div><span style="color:var(--soft)">New Margin:</span> <strong>${fmtMoney(j.new_margin)}</strong></div>
+        <div><span style="color:var(--soft)">Δ Margin:</span> <strong style="color:${deltaColor}">${delta > 0 ? '+' : ''}${fmtMoney(delta)}</strong></div>
+        <div><span style="color:var(--soft)">New Margin %:</span> <strong>${j.new_margin_rate}%</strong></div>
+        ${j.break_even_qty != null ? `<div><span style="color:var(--soft)">Break-Even Qty:</span> <strong>${j.break_even_qty}</strong></div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function showIngredientImpact(menu) {
+  const r = await apiFetch('/api/profitability/ingredient-impact?menu_item=' + encodeURIComponent(menu), { headers: hdr() });
+  const j = await r.json();
+  if (!r.ok) { alert(j.error || 'failed'); return; }
+  const lines = j.items.map(i => `${i.name_ko}: ${fmtMoney(i.line_cost)} (${i.cost_share}% of cost, ${i.margin_share}% of price)`).join('\n');
+  alert(`${menu}\nTotal Cost: ${fmtMoney(j.total_cost)} | Margin: ${fmtMoney(j.margin)}\n\n${lines || 'No recipe'}`);
+}
+
+// ── 탭 진입 시 자동 로드: showTab은 이미 정의되어 있음, 추가 트리거만 ──
+(function _wirePoCountProfitTabs() {
+  const oldShow = window.showTab;
+  window.showTab = function (id, btn) {
+    oldShow(id, btn);
+    if (id === 'po') loadPoList();
+    if (id === 'counts') loadCountList();
+    if (id === 'profit') loadProfitability();
+  };
+})();
 
 // ══════════════════════════════════════════════
 // 시작

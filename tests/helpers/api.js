@@ -13,13 +13,25 @@ async function apiRequest(method, path, body = null, headers = {}) {
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(`${BASE_URL}${path}`, opts);
   const data = await res.json().catch(() => ({}));
-  return { status: res.status, data };
+  // Convert headers to plain object
+  const resHeaders = {};
+  res.headers.forEach((value, key) => {
+    resHeaders[key] = value;
+  });
+  return { status: res.status, data, headers: resHeaders };
 }
 
 // 관리자 로그인 (창고 시스템용)
 async function adminLogin(password = '1234') {
   const { status, data } = await apiRequest('POST', '/api/auth/login', { password });
   if (status !== 200 || !data.token) throw new Error(`관리자 로그인 실패: ${JSON.stringify(data)}`);
+  return data.token;
+}
+
+// Workforce 로그인
+async function workforceLogin(password = process.env.WORKFORCE_INITIAL_PASSWORD || 'Zoom1788!') {
+  const { status, data } = await apiRequest('POST', '/api/workforce/auth/login', { password });
+  if (status !== 200 || !data.token) throw new Error(`Workforce 로그인 실패: ${JSON.stringify(data)}`);
   return data.token;
 }
 
@@ -107,6 +119,7 @@ async function getIngredientQty(ingredientId, adminToken = null) {
 module.exports = {
   apiRequest,
   adminLogin,
+  workforceLogin,
   cashierLogin,
   registerCustomer,
   customerLogin,

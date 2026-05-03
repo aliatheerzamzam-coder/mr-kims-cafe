@@ -10,6 +10,20 @@
   // ================== TABLES VIEW ==================
   let selTable = null;
   let currentFloor = (MK_DATA.FLOORS&&MK_DATA.FLOORS[0]) ? MK_DATA.FLOORS[0].id : 'F1';
+  let editMode = false;
+  function toggleEditMode(){
+    editMode = !editMode;
+    const btn = document.getElementById('tv-edit-btn');
+    if(btn) btn.classList.toggle('active', editMode);
+    if(editMode) MKO.toast(STATE.lang==='ar'?'وضع التعديل مفعّل':'Edit mode ON');
+    else MKO.toast(STATE.lang==='ar'?'وضع التعديل متوقف':'Edit mode OFF');
+    renderTables();
+  }
+  const SHAPE_DEFAULTS = { bar:{w:44,h:44}, rect:{w:120,h:100}, square:{w:86,h:86}, round:{w:80,h:80} };
+  function _tblSize(tbl){
+    const d = SHAPE_DEFAULTS[tbl.shape] || {w:80,h:80};
+    return { w: tbl.w || d.w, h: tbl.h || d.h };
+  }
 
   function renderFloorTabs(){
     const tabs = document.getElementById('tv-tabs');
@@ -19,21 +33,261 @@
 
   function setFloor(id){ currentFloor=id; selTable=null; closeMgmt(); renderFloorTabs(); renderTables(); }
 
+  // Drag-to-move/resize/rotate table positioning (with click-vs-drag threshold)
+  let _dragState = null;
+  function _attachDragHandlers(map){
+    if(map._dragSetup) return;
+    map._dragSetup = true;
+    const onDown = (ev)=>{
+      const isTouch = ev.type === 'touchstart';
+      const pt = isTouch ? ev.touches[0] : ev;
+      const bgEl = ev.target.closest && ev.target.closest('.tv-map-bg');
+      const handle = ev.target.closest && ev.target.closest('.resize-handle, .rotate-handle');
+      // BG drag/resize (edit mode only)
+      if(editMode && bgEl && map.contains(bgEl) && !ev.target.closest('.tbl-node')){
+        const floorObj = (MK_DATA.FLOORS||[]).find(x=>x.id===currentFloor);
+        if(!floorObj) return;
+        let mode = 'drag';
+        let handleDir = null;
+        if(handle){ mode='resize'; handleDir = ['tl','tr','bl','br'].find(c=>handle.classList.contains(c)); }
+        _dragState = {
+          target: 'bg', node: bgEl, floorObj, mode, handleDir,
+          startX: pt.clientX, startY: pt.clientY,
+          origX: floorObj.bgX||0, origY: floorObj.bgY||0,
+          origW: floorObj.bgW||1100, origH: floorObj.bgH||650,
+          curX: floorObj.bgX||0, curY: floorObj.bgY||0, curW: floorObj.bgW||1100, curH: floorObj.bgH||650,
+          mapRect: map.getBoundingClientRect(), moved: false
+        };
+        if(!isTouch) ev.preventDefault();
+        return;
+      }
+      const node = ev.target.closest && ev.target.closest('.tbl-node');
+      if(!node || !map.contains(node)) return;
+      const id = node.dataset.tid;
+      const tbl = MK_DATA.TABLES.find(t=>t.id===id);
+      if(!tbl) return;
+      let mode = 'drag';
+      let handleDir = null;
+      if(handle && editMode){
+        if(handle.classList.contains('rotate-handle')) mode = 'rotate';
+        else { mode = 'resize'; handleDir = ['tl','tr','bl','br'].find(c=>handle.classList.contains(c)); }
+      }
+      const sz = _tblSize(tbl);
+      _dragState = {
+        target: 'tbl',
+        id, node, tbl, mode, handleDir,
+        startX: pt.clientX, startY: pt.clientY,
+        origX: tbl.x, origY: tbl.y,
+        origW: sz.w, origH: sz.h,
+        origRot: tbl.rot || 0,
+        curX: tbl.x, curY: tbl.y, curW: sz.w, curH: sz.h, curRot: tbl.rot||0,
+        mapRect: map.getBoundingClientRect(),
+        moved: false
+      };
+      if(!isTouch) ev.preventDefault();
+    };
+    const onMove = (ev)=>{
+      if(!_dragState) return;
+      const isTouch = ev.type === 'touchmove';
+      const pt = isTouch ? ev.touches[0] : ev;
+      const dx = pt.clientX - _dragState.startX;
+      const dy = pt.clientY - _dragState.startY;
+      if(!_dragState.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)){
+        _dragState.moved = true;
+        if(_dragState.mode==='drag') _dragState.node.classList.add('dragging');
+      }
+      if(!_dragState.moved) return;
+      const ds = _dragState;
+      if(ds.target === 'bg'){
+        if(ds.mode === 'drag'){
+          const nx = ds.origX + dx;
+          const ny = ds.origY + dy;
+          ds.node.style.left = nx + 'px';
+          ds.node.style.top = ny + 'px';
+          ds.curX = nx; ds.curY = ny;
+        } else if(ds.mode === 'resize'){
+          let nw = ds.origW, nh = ds.origH, nx = ds.origX, ny = ds.origY;
+          if(ds.handleDir === 'br'){ nw = ds.origW + dx; nh = ds.origH + dy; }
+          else if(ds.handleDir === 'bl'){ nw = ds.origW - dx; nh = ds.origH + dy; nx = ds.origX + dx; }
+          else if(ds.handleDir === 'tr'){ nw = ds.origW + dx; nh = ds.origH - dy; ny = ds.origY + dy; }
+          else if(ds.handleDir === 'tl'){ nw = ds.origW - dx; nh = ds.origH - dy; nx = ds.origX + dx; ny = ds.origY + dy; }
+          nw = Math.max(100, Math.min(3000, nw));
+          nh = Math.max(100, Math.min(3000, nh));
+          ds.node.style.width = nw + 'px';
+          ds.node.style.height = nh + 'px';
+          ds.node.style.left = nx + 'px';
+          ds.node.style.top = ny + 'px';
+          ds.curW = nw; ds.curH = nh; ds.curX = nx; ds.curY = ny;
+        }
+        if(isTouch) ev.preventDefault();
+        return;
+      }
+      if(ds.mode === 'drag'){
+        if(!editMode){ ds.moved=false; ds.node.classList.remove('dragging'); return; } // dragging requires edit mode
+        const w = ds.node.offsetWidth, h = ds.node.offsetHeight;
+        const maxX = Math.max(0, ds.mapRect.width - w);
+        const maxY = Math.max(0, ds.mapRect.height - h);
+        const nx = Math.max(0, Math.min(maxX, ds.origX + dx));
+        const ny = Math.max(0, Math.min(maxY, ds.origY + dy));
+        ds.node.style.left = nx + 'px';
+        ds.node.style.top = ny + 'px';
+        ds.curX = nx; ds.curY = ny;
+      } else if(ds.mode === 'resize'){
+        let nw = ds.origW, nh = ds.origH, nx = ds.origX, ny = ds.origY;
+        if(ds.handleDir === 'br'){ nw = ds.origW + dx; nh = ds.origH + dy; }
+        else if(ds.handleDir === 'bl'){ nw = ds.origW - dx; nh = ds.origH + dy; nx = ds.origX + dx; }
+        else if(ds.handleDir === 'tr'){ nw = ds.origW + dx; nh = ds.origH - dy; ny = ds.origY + dy; }
+        else if(ds.handleDir === 'tl'){ nw = ds.origW - dx; nh = ds.origH - dy; nx = ds.origX + dx; ny = ds.origY + dy; }
+        nw = Math.max(30, Math.min(400, nw));
+        nh = Math.max(30, Math.min(400, nh));
+        ds.node.style.width = nw + 'px';
+        ds.node.style.height = nh + 'px';
+        ds.node.style.left = nx + 'px';
+        ds.node.style.top = ny + 'px';
+        ds.curW = nw; ds.curH = nh; ds.curX = nx; ds.curY = ny;
+      } else if(ds.mode === 'rotate'){
+        const rect = ds.node.getBoundingClientRect();
+        const cx = rect.left + rect.width/2;
+        const cy = rect.top + rect.height/2;
+        const ang = Math.atan2(pt.clientY - cy, pt.clientX - cx) * 180 / Math.PI + 90;
+        ds.curRot = Math.round(ang);
+        ds.node.style.transform = `rotate(${ds.curRot}deg)`;
+      }
+      if(isTouch) ev.preventDefault();
+    };
+    const onUp = ()=>{
+      if(!_dragState) return;
+      const ds = _dragState;
+      _dragState = null;
+      ds.node.classList.remove('dragging');
+      if(ds.target === 'bg'){
+        if(ds.moved){
+          ds.floorObj.bgX = Math.round(ds.curX);
+          ds.floorObj.bgY = Math.round(ds.curY);
+          ds.floorObj.bgW = Math.round(ds.curW);
+          ds.floorObj.bgH = Math.round(ds.curH);
+          if(MK_DATA.saveFloors) MK_DATA.saveFloors();
+          renderTables();
+        }
+        return;
+      }
+      if(ds.moved){
+        if(ds.mode === 'drag'){
+          ds.tbl.x = Math.round(ds.curX); ds.tbl.y = Math.round(ds.curY);
+        } else if(ds.mode === 'resize'){
+          ds.tbl.x = Math.round(ds.curX); ds.tbl.y = Math.round(ds.curY);
+          ds.tbl.w = Math.round(ds.curW); ds.tbl.h = Math.round(ds.curH);
+        } else if(ds.mode === 'rotate'){
+          ds.tbl.rot = ds.curRot;
+        }
+        MK_DATA.saveTables();
+        renderTables();
+      } else {
+        selectTable(ds.id);
+      }
+    };
+    map.addEventListener('mousedown', onDown);
+    map.addEventListener('touchstart', onDown, {passive:false});
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, {passive:false});
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
+    document.addEventListener('touchcancel', onUp);
+  }
+
+  let _clipboardTbl = null;
+  let _kbdSetup = false;
+  function _setupKbd(){
+    if(_kbdSetup) return;
+    _kbdSetup = true;
+    document.addEventListener('keydown', (e)=>{
+      const tag = e.target && e.target.tagName;
+      if(tag && /^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+      if(e.target && e.target.isContentEditable) return;
+      const map = document.getElementById('tv-map');
+      if(!map || map.offsetParent===null) return;
+      const k = (e.key||'').toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+      if(mod && k==='c' && selTable){
+        const tbl = MK_DATA.TABLES.find(t=>t.id===selTable);
+        if(tbl){
+          _clipboardTbl = JSON.parse(JSON.stringify(tbl));
+          if(MKO && MKO.toast) MKO.toast(STATE.lang==='ar'?'نُسخت الطاولة':'Table copied');
+          e.preventDefault();
+        }
+      } else if(mod && k==='v' && _clipboardTbl){
+        const prefix = currentFloor;
+        let n = MK_DATA.TABLES.filter(t=>t.floor===currentFloor).length + 1;
+        let newId;
+        do { newId = prefix + String(n).padStart(2,'0'); n++; } while(MK_DATA.TABLES.find(t=>t.id===newId) && n < 9999);
+        const clone = JSON.parse(JSON.stringify(_clipboardTbl));
+        clone.id = newId;
+        clone.floor = currentFloor;
+        clone.x = (clone.x||0) + 20;
+        clone.y = (clone.y||0) + 20;
+        MK_DATA.TABLES.push(clone);
+        MK_DATA.saveTables();
+        selTable = newId;
+        renderTables();
+        if(MKO && MKO.toast) MKO.toast(`✓ ${newId}`);
+        e.preventDefault();
+      }
+    });
+  }
+
+  const FLOOR_BLUEPRINT_FALLBACK = { F1: 'blueprint-f1.png', F2: 'blueprint-f2.png' };
+  function _floorBlueprint(floorId){
+    const f = (MK_DATA.FLOORS||[]).find(x=>x.id===floorId);
+    if(f && f.blueprint) return f.blueprint;
+    return FLOOR_BLUEPRINT_FALLBACK[floorId] || '';
+  }
+
   function renderTables(){
     renderFloorTabs();
     const L = T_();
     const map = document.getElementById('tv-map');
+    const bp = _floorBlueprint(currentFloor);
+    map.style.backgroundImage = '';
+    const floorObj = (MK_DATA.FLOORS||[]).find(x=>x.id===currentFloor);
+    let bgHtml = '';
+    if(bp){
+      const bpRotate = (floorObj && floorObj.blueprintRotate) || 0;
+      const bpFlipH = (floorObj && floorObj.blueprintFlipH) || false;
+      const bpFlipV = (floorObj && floorObj.blueprintFlipV) || false;
+      const tfs = [];
+      if(bpRotate) tfs.push(`rotate(${bpRotate}deg)`);
+      if(bpFlipH) tfs.push('scaleX(-1)');
+      if(bpFlipV) tfs.push('scaleY(-1)');
+      const tfStr = tfs.length ? tfs.join(' ') : 'none';
+      const bgX = (floorObj && floorObj.bgX) != null ? floorObj.bgX : 0;
+      const bgY = (floorObj && floorObj.bgY) != null ? floorObj.bgY : 0;
+      const bgW = (floorObj && floorObj.bgW) || 1100;
+      const bgH = (floorObj && floorObj.bgH) || 650;
+      const handles = `<span class="resize-handle tl"></span><span class="resize-handle tr"></span><span class="resize-handle bl"></span><span class="resize-handle br"></span>`;
+      bgHtml = `<div class="tv-map-bg" data-bg="1" style="left:${bgX}px;top:${bgY}px;width:${bgW}px;height:${bgH}px;background-image:url('${bp}');background-size:100% 100%;transform:${tfStr}">${handles}</div>`;
+    }
+    map.classList.toggle('editing', editMode);
     const floorTbls = MK_DATA.TABLES.filter(t=>t.floor===currentFloor);
-    map.innerHTML = floorTbls.map(tbl=>{
+    const tblHtml = floorTbls.map(tbl=>{
       const s = STATE.onlineTables[tbl.id] || {status:'free'};
       const cls = ['tbl-node', tbl.shape, s.status, selTable===tbl.id?'sel':''].filter(Boolean).join(' ');
-      const style = `left:${tbl.x}px;top:${tbl.y}px`;
+      const styles = [`left:${tbl.x}px`, `top:${tbl.y}px`];
+      if(tbl.w) styles.push(`width:${tbl.w}px`);
+      if(tbl.h) styles.push(`height:${tbl.h}px`);
+      if(tbl.rot) styles.push(`transform:rotate(${tbl.rot}deg)`);
       const seatLbl = tbl.label || (tbl.seats+'');
-      return `<div class="${cls}" style="${style}" onclick="MKV.selectTable('${tbl.id}')">
+      const handles = `<span class="resize-handle tl"></span><span class="resize-handle tr"></span><span class="resize-handle bl"></span><span class="resize-handle br"></span><span class="rotate-handle"></span>`;
+      return `<div class="${cls}" style="${styles.join(';')}" data-tid="${tbl.id}">
         <div>${tbl.id}</div>
         <div class="ts">${seatLbl==='Bar'||seatLbl==='Patio'?seatLbl:tbl.seats+' '+L.seats}</div>
+        ${handles}
       </div>`;
     }).join('');
+    map.innerHTML = bgHtml + tblHtml;
+    const editBtn = document.getElementById('tv-edit-btn');
+    if(editBtn) editBtn.classList.toggle('active', editMode);
+    _attachDragHandlers(map);
+    _setupKbd();
 
     // Stats for current floor
     let free=0,occ=0,res=0,dirty=0;
@@ -77,6 +331,7 @@
         <button onclick="MKV.actTransfer('${tbl.id}')">↔ ${L.transfer}</button>
         <button onclick="MKV.actMerge('${tbl.id}')">⤵ ${L.merge}</button>
         <button onclick="MKV.openEditTable('${tbl.id}')">✏ ${STATE.lang==='ar'?'تعديل':'Edit'}</button>
+        <button onclick="MKV.showTableQR('${tbl.id}')" style="background:#1a5e38;color:#fff;border-color:#1a5e38">⬛ QR</button>
       </div>`;
   }
 
@@ -85,8 +340,120 @@
   function cleanTable(id){ STATE.onlineTables[id]={status:'free'}; MK.audit('table.clean',id); renderTables(); }
   function checkin(id){ STATE.onlineTables[id]={status:'occupied',orderId:'TX-'+String(parseInt(STATE.order.id.replace(/\D/g,''))+101).padStart(5,'0')}; MK.audit('table.checkin',id); renderTables(); }
   function openTableOrder(id){ STATE.order.table=id; STATE.view='order'; MK.bus.emit('nav','order'); }
-  function actTransfer(id){ const to = prompt(STATE.lang==='ar'?'انقل إلى (مثال: T02)':'Transfer to (e.g. T02)'); if(!to || !STATE.onlineTables[to]) return; STATE.onlineTables[to]=STATE.onlineTables[id]; STATE.onlineTables[id]={status:'dirty'}; selTable=to; MK.audit('table.transfer',{from:id,to}); MKO.toast(`↔ ${id}→${to}`); renderTables(); }
-  function actMerge(id){ const to = prompt(STATE.lang==='ar'?'ادمج مع (مثال: T02)':'Merge with (e.g. T02)'); if(!to) return; MKO.toast(`⤵ ${id}+${to}`); MK.audit('table.merge',{a:id,b:to}); }
+
+  async function showTableQR(tableId){
+    const ar = STATE.lang==='ar';
+    const modal = document.getElementById('qr-modal');
+    const body  = document.getElementById('qr-modal-body');
+    if(!modal||!body) return;
+    body.innerHTML = `<div style="text-align:center;padding:24px;color:#9aa5a0">${ar?'جارٍ إنشاء الرمز…':'Generating QR…'}</div>`;
+    modal.classList.add('show');
+    try {
+      const authHeaders = (typeof cashierHeaders === 'function')
+        ? cashierHeaders()
+        : { 'x-cashier-token': (window.cashierToken||'') };
+      // 1) create/refresh token for this table
+      const tokRes = await fetch('/api/table-tokens', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', ...authHeaders },
+        body: JSON.stringify({ tableNum: tableId })
+      });
+      if(!tokRes.ok) throw new Error('token http '+tokRes.status);
+      const tokData = await tokRes.json();
+      if(!tokData.token) throw new Error('token missing');
+      const token = tokData.token;
+      // 2) build the URL the customer will land on
+      const base = window.location.origin;
+      const customerUrl = `${base}/?t=${token}&table=${encodeURIComponent(tableId)}`;
+      // 3) fetch QR image from server
+      const qrRes = await fetch(`/api/qr-image?url=${encodeURIComponent(customerUrl)}`, { headers: authHeaders });
+      if(!qrRes.ok) throw new Error('qr http '+qrRes.status);
+      const qrData = await qrRes.json();
+      if(!qrData.dataUrl) throw new Error('no dataUrl');
+      body.innerHTML = `
+        <div style="text-align:center;padding:16px">
+          <div style="font-size:13px;font-weight:900;color:#111;margin-bottom:8px">${ar?'طاولة':'Table'} ${tableId}</div>
+          <img src="${qrData.dataUrl}" style="width:200px;height:200px;border-radius:8px;border:2px solid #e6ebe7">
+          <div style="font-size:10px;color:#9aa5a0;margin-top:8px;word-break:break-all;max-width:240px;margin-inline:auto">${customerUrl}</div>
+          <button onclick="MKV._printQR('${tableId}','${qrData.dataUrl}')" style="margin-top:14px;background:#1a5e38;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:900;cursor:pointer">${ar?'طباعة':'Print QR'}</button>
+        </div>`;
+    } catch(e) {
+      body.innerHTML = `<div style="text-align:center;padding:24px;color:#ef4444">${ar?'فشل إنشاء QR':'Failed to generate QR'}</div>`;
+    }
+  }
+
+  function _printQR(tableId, dataUrl){
+    const ar = STATE.lang==='ar';
+    const w = window.open('','_blank','width=400,height=500');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>QR ${tableId}</title>
+      <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;background:#fff}
+      h2{margin:0 0 12px;font-size:18px}img{width:220px;height:220px}p{font-size:12px;color:#666;margin-top:8px}</style></head>
+      <body><h2>Mr. Kim's Café</h2><p>${ar?'طاولة':'Table'} ${tableId}</p><img src="${dataUrl}"><p>${ar?'امسح للطلب':'Scan to order'}</p></body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(()=>w.print(), 300);
+  }
+
+  function _pickTablePanel(fromId, mode){
+    const ar = STATE.lang==='ar';
+    const title = mode==='transfer'
+      ? (ar?'انقل إلى':'Transfer to')
+      : (ar?'ادمج مع':'Merge with');
+    const candidates = MK_DATA.TABLES.filter(t=>{
+      if(t.id===fromId) return false;
+      const s = STATE.onlineTables[t.id]||{status:'free'};
+      return mode==='transfer' ? s.status==='free' : s.status==='occupied';
+    });
+    const m = document.getElementById('tv-mgmt');
+    if(!m) return;
+    m.classList.remove('hidden');
+    if(!candidates.length){
+      m.innerHTML = `<h4>${title}</h4><div style="padding:12px;color:#9aa5a0;font-size:12px">${ar?'لا توجد طاولات مناسبة':'No eligible tables'}</div><div class="mactions"><button onclick="MKV.closeMgmt()">✕</button></div>`;
+      return;
+    }
+    const buttons = candidates.map(t=>{
+      const s = STATE.onlineTables[t.id]||{status:'free'};
+      const label = t.label?` · ${t.label}`:'';
+      return `<button class="prim" style="margin:3px;min-width:88px" onclick="MKV.confirm${mode==='transfer'?'Transfer':'Merge'}('${fromId}','${t.id}')">${t.id}${label} <span style="opacity:.7;font-size:10px">${t.floor}</span></button>`;
+    }).join('');
+    m.innerHTML = `<h4>${title} (${fromId})</h4><div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 0">${buttons}</div><div class="mactions"><button onclick="MKV.closeMgmt()">${ar?'إلغاء':'Cancel'}</button></div>`;
+  }
+
+  function actTransfer(id){
+    const s = STATE.onlineTables[id];
+    if(!s || s.status!=='occupied'){ MKO.toast(STATE.lang==='ar'?'الطاولة غير مشغولة':'Table not occupied','warn'); return; }
+    _pickTablePanel(id, 'transfer');
+  }
+  function confirmTransfer(fromId, toId){
+    const src = STATE.onlineTables[fromId];
+    const dst = STATE.onlineTables[toId];
+    if(!src || src.status!=='occupied' || (dst && dst.status!=='free')){
+      MKO.toast(STATE.lang==='ar'?'تعذر النقل':'Transfer failed','err'); closeMgmt(); return;
+    }
+    STATE.onlineTables[toId] = {...src};
+    STATE.onlineTables[fromId] = {status:'dirty'};
+    selTable = toId;
+    MK.audit('table.transfer',{from:fromId,to:toId});
+    MKO.toast(`↔ ${fromId}→${toId}`,'ok');
+    closeMgmt(); renderTables();
+  }
+  function actMerge(id){
+    const s = STATE.onlineTables[id];
+    if(!s || s.status!=='occupied'){ MKO.toast(STATE.lang==='ar'?'الطاولة غير مشغولة':'Table not occupied','warn'); return; }
+    _pickTablePanel(id, 'merge');
+  }
+  function confirmMerge(a, b){
+    const sa = STATE.onlineTables[a], sb = STATE.onlineTables[b];
+    if(!sa || !sb || sa.status!=='occupied' || sb.status!=='occupied'){
+      MKO.toast(STATE.lang==='ar'?'تعذر الدمج':'Merge failed','err'); closeMgmt(); return;
+    }
+    const mergedOrder = sa.orderId || sb.orderId;
+    STATE.onlineTables[a] = {status:'occupied', orderId: mergedOrder, mergedWith:[...(sa.mergedWith||[]), b]};
+    STATE.onlineTables[b] = {status:'dirty'};
+    MK.audit('table.merge',{primary:a, absorbed:b, orderId: mergedOrder});
+    MKO.toast(`⤵ ${a}+${b}`,'ok');
+    closeMgmt(); renderTables();
+  }
 
   // ================== TABLE / FLOOR MANAGEMENT ==================
   function closeMgmt(){
@@ -107,8 +474,8 @@
         <div><label>${STATE.lang==='ar'?'شكل':'Shape'}</label><select id="tf-shape">${shapeOpts}</select></div>
       </div>
       <div class="mrow">
-        <div><label>X</label><input id="tf-x" type="number" value="${tbl?tbl.x:100}" min="0" max="950"/></div>
-        <div><label>Y</label><input id="tf-y" type="number" value="${tbl?tbl.y:100}" min="0" max="360"/></div>
+        <div><label>X</label><input id="tf-x" type="number" value="${tbl?tbl.x:100}" min="0" max="1080"/></div>
+        <div><label>Y</label><input id="tf-y" type="number" value="${tbl?tbl.y:100}" min="0" max="630"/></div>
       </div>
       <div class="mactions">
         <button class="save" onclick="MKV.${isEdit?`saveTable('${tbl.id}')`:'saveNewTable()'}">✓ ${STATE.lang==='ar'?'حفظ':'Save'}</button>
@@ -171,17 +538,99 @@
     MKO.toast(`🗑 ${id}`);
   }
 
+  function _uploadBlueprint(id, input){
+    const file = input.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const f = MK_DATA.FLOORS.find(x=>x.id===id); if(!f) return;
+      f.blueprint = e.target.result;
+      MK_DATA.saveFloors();
+      _renderFloorMgmt();
+      if(currentFloor===id) renderTables();
+      MKO.toast('✓');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function _clearBlueprint(id){
+    const f = MK_DATA.FLOORS.find(x=>x.id===id); if(!f) return;
+    delete f.blueprint;
+    MK_DATA.saveFloors();
+    _renderFloorMgmt();
+    if(currentFloor===id) renderTables();
+    MKO.toast('🗑');
+  }
+
+  function _onBpModeChange(id){
+    const sel = document.getElementById('fbpmode-'+id);
+    const sliderRow = document.getElementById('fbpzoom-row-'+id);
+    if(!sel || !sliderRow) return;
+    sliderRow.style.display = sel.value === 'custom' ? 'flex' : 'none';
+  }
+
+  function _rotateBlueprint(id, deg){
+    const f = MK_DATA.FLOORS.find(x=>x.id===id); if(!f) return;
+    f.blueprintRotate = (((f.blueprintRotate||0) + deg) % 360 + 360) % 360;
+    MK_DATA.saveFloors();
+    _renderFloorMgmt();
+    if(currentFloor===id) renderTables();
+  }
+
+  function _flipBlueprint(id, axis){
+    const f = MK_DATA.FLOORS.find(x=>x.id===id); if(!f) return;
+    if(axis==='H') f.blueprintFlipH = !f.blueprintFlipH;
+    else f.blueprintFlipV = !f.blueprintFlipV;
+    MK_DATA.saveFloors();
+    _renderFloorMgmt();
+    if(currentFloor===id) renderTables();
+  }
+
   function _renderFloorMgmt(){
     const m=document.getElementById('tv-mgmt'); if(!m) return;
+    const isAr = STATE.lang==='ar';
     m.innerHTML=`
-      <h4>${STATE.lang==='ar'?'إدارة الطوابق':'Manage Floors'}</h4>
-      ${MK_DATA.FLOORS.map(f=>`
-        <div class="floor-row">
-          <input id="flen-${f.id}" value="${f.name_en}" placeholder="English"/>
-          <input id="flar-${f.id}" value="${f.name_ar}" placeholder="عربي"/>
-          <button class="fl-save" onclick="MKV.saveFloor('${f.id}')">✓</button>
-          <button class="fl-del" onclick="MKV.deleteFloor('${f.id}')">🗑</button>
-        </div>`).join('')}
+      <h4>${isAr?'إدارة الطوابق':'Manage Floors'}</h4>
+      ${MK_DATA.FLOORS.map(f=>{
+        const imgSrc = f.blueprint || (f.id==='F1'?'blueprint-f1.png':f.id==='F2'?'blueprint-f2.png':'');
+        const mode = f.blueprintMode || 'contain';
+        const zoom = f.blueprintZoom || 100;
+        const rotate = f.blueprintRotate || 0;
+        const flipH = !!f.blueprintFlipH;
+        const flipV = !!f.blueprintFlipV;
+        return `
+        <div class="floor-row floor-row-full">
+          <div class="floor-row-names">
+            <input id="flen-${f.id}" value="${f.name_en}" placeholder="English"/>
+            <input id="flar-${f.id}" value="${f.name_ar}" placeholder="عربي"/>
+            <button class="fl-save" onclick="MKV.saveFloor('${f.id}')">✓</button>
+            <button class="fl-del" onclick="MKV.deleteFloor('${f.id}')">🗑</button>
+          </div>
+          <div class="floor-bg-row">
+            ${imgSrc?`<img src="${imgSrc}" class="floor-bp-thumb"/>`:`<span class="floor-bp-empty"></span>`}
+            <input type="file" id="fbp-${f.id}" accept="image/*" style="display:none" onchange="MKV._uploadBlueprint('${f.id}',this)"/>
+            <button class="fl-save" onclick="document.getElementById('fbp-${f.id}').click()" title="${isAr?'تغيير الصورة':'Change image'}">🖼</button>
+            ${f.blueprint?`<button class="fl-del" onclick="MKV._clearBlueprint('${f.id}')" title="${isAr?'إزالة':'Remove'}">✕</button>`:''}
+            <select id="fbpmode-${f.id}" onchange="MKV._onBpModeChange('${f.id}')">
+              <option value="contain" ${mode==='contain'?'selected':''}>Fit</option>
+              <option value="cover" ${mode==='cover'?'selected':''}>Cover</option>
+              <option value="100% 100%" ${mode==='100% 100%'?'selected':''}>Stretch</option>
+              <option value="custom" ${mode==='custom'?'selected':''}>Custom %</option>
+            </select>
+          </div>
+          <div class="floor-bg-row">
+            <button class="fl-btn-icon" onclick="MKV._rotateBlueprint('${f.id}',-90)" title="Rotate left">↺</button>
+            <button class="fl-btn-icon" onclick="MKV._rotateBlueprint('${f.id}',90)" title="Rotate right">↻</button>
+            <span style="font-size:10px;font-weight:800;color:#6b7a6e;min-width:28px">${rotate}°</span>
+            <button class="fl-btn-icon${flipH?' active':''}" onclick="MKV._flipBlueprint('${f.id}','H')" title="Flip horizontal">↔</button>
+            <button class="fl-btn-icon${flipV?' active':''}" onclick="MKV._flipBlueprint('${f.id}','V')" title="Flip vertical">↕</button>
+            <span style="font-size:10px;color:#9aa5a0;margin-left:2px">${isAr?'تدوير / قلب':'Rotate / Flip'}</span>
+          </div>
+          <div class="floor-zoom-row" id="fbpzoom-row-${f.id}" style="display:${mode==='custom'?'flex':'none'}">
+            <input type="range" id="fbpzoom-${f.id}" min="10" max="300" value="${zoom}" style="flex:1" oninput="document.getElementById('fbpzoom-lbl-${f.id}').textContent=this.value+'%'"/>
+            <span id="fbpzoom-lbl-${f.id}" style="min-width:38px;font-size:10px;font-weight:800;color:#367d4d">${zoom}%</span>
+          </div>
+        </div>`;
+      }).join('')}
       <div class="fl-sep">
         <h4>${STATE.lang==='ar'?'إضافة طابق':'Add Floor'}</h4>
         <input id="fl-new-en" placeholder="English name" style="margin-bottom:4px"/>
@@ -190,6 +639,11 @@
           <button class="save" onclick="MKV.addFloor()">+ ${STATE.lang==='ar'?'إضافة':'Add'}</button>
           <button onclick="MKV.closeMgmt()">✕ ${STATE.lang==='ar'?'إغلاق':'Close'}</button>
         </div>
+      </div>
+      <div class="fl-sep">
+        <h4>${STATE.lang==='ar'?'إعادة ضبط التخطيط':'Reset Layout'}</h4>
+        <div style="font-size:11px;color:#5a6660;margin-bottom:6px">${STATE.lang==='ar'?'يستعيد جميع الطاولات والطوابق إلى التصميم الأصلي':'Restore all tables and floors to original blueprint'}</div>
+        <button class="del" style="width:100%" onclick="MKV.resetLayout()">⟲ ${STATE.lang==='ar'?'إعادة ضبط':'Reset to Default'}</button>
       </div>`;
   }
 
@@ -204,7 +658,12 @@
     const f=MK_DATA.FLOORS.find(x=>x.id===id); if(!f) return;
     f.name_en=document.getElementById('flen-'+id).value.trim()||f.name_en;
     f.name_ar=document.getElementById('flar-'+id).value.trim()||f.name_ar;
+    const modeEl=document.getElementById('fbpmode-'+id);
+    if(modeEl) f.blueprintMode=modeEl.value;
+    const zoomEl=document.getElementById('fbpzoom-'+id);
+    if(zoomEl) f.blueprintZoom=parseInt(zoomEl.value)||100;
     MK_DATA.saveFloors(); renderFloorTabs();
+    if(currentFloor===id) renderTables();
     MKO.toast('✓');
   }
 
@@ -231,43 +690,107 @@
     MKO.toast('🗑');
   }
 
+  function resetLayout(){
+    if(!confirm(STATE.lang==='ar'?'إعادة ضبط جميع الطاولات والطوابق إلى التصميم الأصلي؟ سيتم فقدان أي تغييرات.':'Reset all tables and floors to original blueprint? Any changes will be lost.')) return;
+    MK_DATA.resetFloorsToSeed();
+    MK_DATA.resetTablesToSeed();
+    selTable=null;
+    currentFloor = MK_DATA.FLOORS[0].id;
+    renderFloorTabs(); _renderFloorMgmt(); renderTables();
+    MKO.toast('⟲ '+(STATE.lang==='ar'?'تم':'Reset'));
+  }
+
   // ================== KDS VIEW ==================
+  // Station routing: C/I/T/S (drinks) -> barista, D/F (desserts/food) -> kitchen
+  function kdsStation(sku){
+    if(!sku) return 'other';
+    const p = String(sku).charAt(0).toUpperCase();
+    if(p==='C'||p==='I'||p==='T'||p==='S') return 'barista';
+    if(p==='D'||p==='F') return 'kitchen';
+    return 'other';
+  }
+  function kdsStationBadge(st){
+    if(st==='barista') return '<span class="kds-st kds-st-bar" title="Barista">☕</span>';
+    if(st==='kitchen') return '<span class="kds-st kds-st-kit" title="Kitchen">🍳</span>';
+    return '';
+  }
+  function kdsSetFilter(f){
+    STATE.kdsFilter = f;
+    document.querySelectorAll('.kds-filter-tab').forEach(el=>{
+      el.classList.toggle('active', el.dataset.f===f);
+    });
+    renderKDS();
+  }
+  function _kdsItems(k){
+    const raw = k.lines || k.items || [];
+    return raw.map(i => ({
+      sku: i.sku || '',
+      name: i.name || '',
+      q: i.q || i.qty || 1,
+      mods: i.mods || (Array.isArray(i.modsLabel) ? i.modsLabel.join(' · ') : '') || ''
+    }));
+  }
+  function _kdsActive(){
+    return (MK_DATA.TXNS||[]).filter(t =>
+      t && (t.status==='incoming' || t.status==='preparing' || t.status==='ready')
+      && !String(t.id||'').startsWith('RF-')
+    );
+  }
   function renderKDS(){
     const L = T_();
+    const filter = STATE.kdsFilter || 'all';
     const colIncoming = document.getElementById('kds-incoming');
     const colPrep = document.getElementById('kds-preparing');
     const colReady = document.getElementById('kds-ready');
-    const incoming = STATE.kdsQueue.filter(k=>k.status==='incoming');
-    const prep = STATE.kdsQueue.filter(k=>k.status==='preparing');
-    const ready = STATE.kdsQueue.filter(k=>k.status==='ready');
+    if(!colIncoming || !colPrep || !colReady) return;
+    const matchesFilter = (k) => {
+      if(filter==='all') return true;
+      return _kdsItems(k).some(i => kdsStation(i.sku)===filter);
+    };
+    const active = _kdsActive().filter(matchesFilter);
+    const incoming = active.filter(k=>k.status==='incoming');
+    const prep = active.filter(k=>k.status==='preparing');
+    const ready = active.filter(k=>k.status==='ready');
     const card = (k)=>{
+      const items = _kdsItems(k);
       const age = Math.max(0, Math.round((Date.now()-new Date(k.at).getTime())/60000));
       const urg = age >= 5;
-      const lines = k.items.map(i=>`<div class="kl"><div class="kn">${i.q}× ${i.name}</div>${i.mods?`<div class="km">${i.mods}</div>`:''}</div>`).join('');
+      const lines = items.map(i=>{
+        const st = kdsStation(i.sku);
+        const dim = (filter!=='all' && st!==filter) ? 'kl-dim' : '';
+        return `<div class="kl ${dim}"><div class="kn">${kdsStationBadge(st)}${i.q}× ${i.name}</div>${i.mods?`<div class="km">${i.mods}</div>`:''}</div>`;
+      }).join('');
       const nextAct = k.status==='incoming'?`<button class="kds-bump" onclick="MKV.kdsAdvance('${k.id}')">▶ ${L.preparing}</button>`:
                       k.status==='preparing'?`<button class="kds-bump" onclick="MKV.kdsAdvance('${k.id}')">✓ ${L.ready}</button>`:
                       `<button class="kds-bump" onclick="MKV.kdsAdvance('${k.id}')">🎉 ${L.bump}</button>`;
+      const meta = [];
+      if (k.customerName) meta.push(`👤 ${k.customerName}`);
+      if (k.customerPhone) meta.push(`📞 ${k.customerPhone}`);
+      const metaHtml = meta.length ? `<div class="km" style="font-size:11px;color:#555;margin:2px 0 4px">${meta.join(' · ')}</div>` : '';
+      const stations = new Set(items.map(i=>kdsStation(i.sku)));
+      const stHdr = [...stations].filter(s=>s!=='other').map(kdsStationBadge).join('');
       return `<div class="kds-card ${urg?'urgent':''}">
         <div class="kh">
           <div><span class="kid">${k.id}</span> <span class="kt">· ${k.table||'—'}</span></div>
-          <span class="age">${age}m</span>
+          <span>${stHdr}<span class="age">${age}m</span></span>
         </div>
+        ${metaHtml}
         ${lines}${nextAct}
       </div>`;
     };
     colIncoming.innerHTML = incoming.map(card).join('') || `<div style="color:#555;text-align:center;padding:20px;font-size:11px">—</div>`;
     colPrep.innerHTML = prep.map(card).join('') || `<div style="color:#555;text-align:center;padding:20px;font-size:11px">—</div>`;
     colReady.innerHTML = ready.map(card).join('') || `<div style="color:#555;text-align:center;padding:20px;font-size:11px">—</div>`;
-    document.getElementById('kds-ct-i').textContent = incoming.length;
-    document.getElementById('kds-ct-p').textContent = prep.length;
-    document.getElementById('kds-ct-r').textContent = ready.length;
+    const ci = document.getElementById('kds-ct-i'); if(ci) ci.textContent = incoming.length;
+    const cp = document.getElementById('kds-ct-p'); if(cp) cp.textContent = prep.length;
+    const cr = document.getElementById('kds-ct-r'); if(cr) cr.textContent = ready.length;
   }
 
   function kdsAdvance(id){
-    const k = STATE.kdsQueue.find(x=>x.id===id); if(!k) return;
+    const k = (MK_DATA.TXNS||[]).find(x=>x.id===id); if(!k) return;
     if(k.status==='incoming') k.status='preparing';
     else if(k.status==='preparing') k.status='ready';
-    else { STATE.kdsQueue = STATE.kdsQueue.filter(x=>x.id!==id); MK.audit('kds.complete',id); }
+    else { k.status='done'; MK.audit('kds.complete',id); }
     renderKDS();
   }
 
@@ -304,17 +827,40 @@
     document.getElementById('inv-k-low').textContent = lowCt;
     document.getElementById('inv-k-out').textContent = outCt;
   }
+  async function _adjustInv(id, change_type, quantity, reason){
+    const headers = (typeof window!=='undefined' && typeof window.cashierHeaders==='function')
+      ? window.cashierHeaders() : {};
+    const r = await fetch('/api/inventory/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ ingredient_id: id, change_type, quantity, reason })
+    });
+    if(!r.ok) throw new Error('adjust failed: '+r.status);
+    if (MK_DATA.loadInventory) await MK_DATA.loadInventory(headers);
+    renderInv();
+  }
   function invReceive(k){
     const inv = INV.find(x=>x.k===k);
+    if(!inv || inv.id == null){ MKO.toast('⚠ no id','warn'); return; }
     const v = prompt(STATE.lang==='ar'?`كمية الاستلام (${inv.unit}):`:`Receive qty (${inv.unit}):`, '');
     const n = parseFloat(v); if(!n||n<=0) return;
-    inv.qty += n; MK.audit('inv.receive',{k,qty:n}); MKO.toast(`➕ ${n} ${inv.unit}`); renderInv();
+    _adjustInv(inv.id, 'in', n, 'cashier receive').then(()=>{
+      MK.audit('inv.receive',{id:inv.id,qty:n});
+      MKO.toast(`➕ ${n} ${inv.unit}`);
+    }).catch(()=> MKO.toast('⚠ save failed','warn'));
   }
   function invAdjust(k){
     const inv = INV.find(x=>x.k===k);
+    if(!inv || inv.id == null){ MKO.toast('⚠ no id','warn'); return; }
     const v = prompt(STATE.lang==='ar'?`الكمية الفعلية (${inv.unit}):`:`Actual qty (${inv.unit}):`, inv.qty);
     const n = parseFloat(v); if(isNaN(n)||n<0) return;
-    const delta = n-inv.qty; inv.qty = n; MK.audit('inv.adjust',{k,delta}); MKO.toast(`✏ ${inv.qty} ${inv.unit}`); renderInv();
+    const delta = n - (Number(inv.qty)||0);
+    if (delta === 0) return;
+    const change_type = delta > 0 ? 'in' : 'out';
+    _adjustInv(inv.id, change_type, Math.abs(delta), 'cashier adjust').then(()=>{
+      MK.audit('inv.adjust',{id:inv.id,delta});
+      MKO.toast(`✏ ${n} ${inv.unit}`);
+    }).catch(()=> MKO.toast('⚠ save failed','warn'));
   }
   function invExport(kind){
     const rows = [['SKU','Name (EN)','Name (AR)','Qty','Unit','Min','Cost','Value IQD','Status']];
@@ -326,17 +872,26 @@
   }
 
   // ================== RESERVATIONS VIEW ==================
+  function _resWhen(r){
+    if(r.at) return r.at;
+    if(r.date && r.time) return r.date+'T'+r.time;
+    if(r.date) return r.date+'T00:00';
+    return new Date().toISOString();
+  }
+  function _resName(r){ return r.name || r.name_ar || r.name_en || '—'; }
   function renderReservations(){
     const L = T_();
     const res = document.getElementById('rv-res');
-    RESERVATIONS.sort((a,b)=> new Date(a.at) - new Date(b.at));
+    RESERVATIONS.sort((a,b)=> new Date(_resWhen(a)) - new Date(_resWhen(b)));
     res.innerHTML = RESERVATIONS.map(r=>{
-      const time = fmtTime(r.at);
+      const when = _resWhen(r);
+      const time = r.time || fmtTime(when);
+      const tblOrNotes = r.table || r.notes || '';
       return `<div class="rs-card res">
-        <div class="tm"><div class="hh">${time}</div><div class="am">${r.party}${L.seats.charAt(0)}</div></div>
+        <div class="tm"><div class="hh">${time}</div><div class="am">${r.party||1}${L.seats.charAt(0)}</div></div>
         <div>
-          <div class="m1">${r.name_ar}</div>
-          <div class="m2">${r.phone} · ${r.table} · ${L[r.status]||r.status}</div>
+          <div class="m1">${_resName(r)}</div>
+          <div class="m2">${r.phone||'—'}${tblOrNotes?' · '+tblOrNotes:''} · ${L[r.status]||r.status||''}</div>
         </div>
         <div class="mact">
           <button class="prim" onclick="MKV.seatRes('${r.id}')">✓ ${L.seat}</button>
@@ -382,17 +937,156 @@
   function acceptPickup(id){
     const idx = PICKUPS.findIndex(x=>x.id===id); if(idx<0) return;
     const p = PICKUPS[idx];
-    // Push to KDS
-    STATE.kdsQueue.unshift({
+    MK_DATA.TXNS.unshift({
       id: 'PK-'+id.slice(2), table:'PICKUP', at: new Date().toISOString(), status:'incoming',
-      items: p.items.map(i=>{const it = MENU.find(m=>m.sku===i.sku); return {name: it?itemName(it):i.sku, q:i.q};})
+      lines: p.items.map(i=>{const it = MENU.find(m=>m.sku===i.sku); return {sku:i.sku, name: it?itemName(it):i.sku, q:i.q};})
     });
     PICKUPS.splice(idx,1);
     MK.audit('pickup.accept',id); MKO.toast('✓ '+id+' → '+t('kitchen'),'ok'); renderReservations();
+    if(STATE.view==='kds' || STATE.view==='kitchen') renderKDS();
   }
   function rejectPickup(id){
     const idx = PICKUPS.findIndex(x=>x.id===id); if(idx<0) return;
     PICKUPS.splice(idx,1); MK.audit('pickup.reject',id); renderReservations();
+  }
+
+  // ================== ONLINE ORDERS VIEW ==================
+  function _onlineHeaders(){
+    try { return (typeof cashierHeaders === 'function') ? cashierHeaders() : {}; } catch(_) { return {}; }
+  }
+  function _onlineItemName(i){
+    if(i.name) return i.name;
+    const it = MENU.find(m=>m.sku===i.sku);
+    return it ? itemName(it) : (i.sku || '?');
+  }
+  function _arrivalCountdown(arrivalTime){
+    if(!arrivalTime) return null;
+    const L = T_();
+    const ms = new Date(arrivalTime).getTime() - Date.now();
+    const mins = Math.round(ms/60000);
+    if(mins < 0) return { text: Math.abs(mins)+'m '+L.overdue, urgent:true };
+    return { text: mins+' '+L.minutesLeft, urgent: mins <= 5 };
+  }
+  function renderOnlineOrders(){
+    const L = T_();
+    const grid = document.getElementById('online-orders-list');
+    if(!grid) return;
+    const list = (MK_DATA.ONLINE_ORDERS||[]).filter(o=>o.status==='new');
+    const ct = document.getElementById('oo-ct');
+    if(ct) ct.textContent = list.length;
+    if(!list.length){
+      grid.innerHTML = `<div style="text-align:center;color:#9aa5a0;font-weight:700;font-size:12px;padding:40px;background:#fff;border-radius:8px;grid-column:1/-1">📱 ${L.noOnlineOrders}</div>`;
+      return;
+    }
+    const TYPE_MAP = {
+      dine:   { label:'DINE IN',   icon:'🍽️', cls:'t-dine'   },
+      pickup: { label:'PICK UP',   icon:'🥡', cls:'t-pickup' },
+      take:   { label:'TAKE OUT',  icon:'🛍️', cls:'t-take'   },
+      deli:   { label:'DELIVERY',  icon:'🛵', cls:'t-deli'   }
+    };
+    grid.innerHTML = list.map(o=>{
+      const time = fmtTime(o.at);
+      const items = (o.items||[]).map(i=>{
+        const qty = i.qty || i.q || 1;
+        const size = i.size ? `<span class="oo-size">${i.size}</span>` : '';
+        const price = (i.price!=null) ? `<div class="oo-line-price">${fmtNum(i.price*qty)} IQD</div>` : '';
+        return `<div class="oo-line">
+          <div class="oo-line-left">
+            <span class="oo-qty">${qty}×</span>
+            <span class="oo-line-name">${_onlineItemName(i)}</span>
+          </div>
+          <div class="oo-line-right">${size}${price}</div>
+        </div>`;
+      }).join('');
+      const tp = TYPE_MAP[o.type] || { label:(o.type||'ONLINE').toUpperCase(), icon:'📱', cls:'' };
+      const cd = (o.type==='pickup') ? _arrivalCountdown(o.arrival_time) : null;
+      const cdHtml = cd ? `<div class="oo-cd ${cd.urgent?'urg':''}">⏰ ${L.arrivalTime}: <b>${fmtTime(o.arrival_time)}</b> · <b>${cd.text}</b></div>` : '';
+      const tableNum = o.table_num || o.table || o.tableNo || o.tableNum;
+      const tableHtml = (o.type==='dine' && tableNum) ? `<div class="oo-meta oo-table-row"><span class="oo-meta-k">🪑 TABLE</span><span class="oo-meta-v oo-table-v">${tableNum}</span></div>` : '';
+      const name = o.customer_name || '—';
+      const phone = o.customer_phone || '—';
+      return `<div class="oo-card ${cd&&cd.urgent?'urgent':''}">
+        <div class="oo-banner ${tp.cls}">
+          <span class="oo-banner-type">${tp.icon} ${tp.label}</span>
+          <span class="oo-banner-id">#${o.num||o.id}</span>
+        </div>
+        <div class="oo-top">
+          <span class="oo-time">🕒 ${time}</span>
+        </div>
+        ${tableHtml}
+        <div class="oo-meta"><span class="oo-meta-k">👤 NAME</span><span class="oo-meta-v">${name}</span></div>
+        <div class="oo-meta"><span class="oo-meta-k">📞 PHONE</span><span class="oo-meta-v">${phone}</span></div>
+        ${cdHtml}
+        <div class="oo-items">${items}</div>
+        <div class="oo-tot">${fmtNum(o.total||0)} IQD</div>
+        <div class="oo-act">
+          <button class="prim" onclick="MKV.acceptOnlineOrder('${o.id}')">✓ ${L.accept}</button>
+          <button class="rej" onclick="MKV.rejectOnlineOrder('${o.id}')">✕ ${L.reject}</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  async function acceptOnlineOrder(id){
+    const arr = MK_DATA.ONLINE_ORDERS||[];
+    const idx = arr.findIndex(x=>x.id===id); if(idx<0) return;
+    const o = arr[idx];
+    const L = T_();
+    try {
+      const r = await fetch('/api/orders/'+encodeURIComponent(id)+'/status', {
+        method:'PUT',
+        headers:{'Content-Type':'application/json', ..._onlineHeaders()},
+        body: JSON.stringify({status:'making'})
+      });
+      if(!r.ok){ MKO.toast('✕ '+L.accept+' failed','err'); return; }
+    } catch(e){ MKO.toast('✕ network','err'); return; }
+    const _tn = o.table_num || o.table || o.tableNo || o.tableNum;
+    let _tableLabel;
+    if (o.type === 'pickup') _tableLabel = 'PICKUP';
+    else if (o.type === 'dine' && _tn) _tableLabel = '🪑 TABLE ' + _tn;
+    else if (o.type === 'dine') _tableLabel = 'DINE IN';
+    else _tableLabel = (o.type || 'ONLINE').toUpperCase();
+    const _kdsId = 'PK-'+String(id).slice(-5);
+    const _existing = (MK_DATA.TXNS||[]).find(t=>t.id===id);
+    const _entry = {
+      id: _existing ? id : _kdsId,
+      table: _tableLabel,
+      at: o.at || new Date().toISOString(),
+      status: 'incoming',
+      type: o.type,
+      tableNum: _tn || null,
+      customerName: o.customer_name || null,
+      customerPhone: o.customer_phone || null,
+      orderNum: o.num || null,
+      lines: (o.items||[]).map(i=>({sku:i.sku||'', name:_onlineItemName(i)+(i.size?` (${i.size})`:''), q: i.qty || i.q || 1}))
+    };
+    if(_existing){ Object.assign(_existing, _entry); }
+    else { MK_DATA.TXNS.unshift(_entry); }
+    arr.splice(idx,1);
+    audit('online.accept', id);
+    MKO.toast('✓ '+(o.num||id)+' → '+t('kitchen'),'ok');
+    renderOnlineOrders();
+    if(typeof updateOnlineBadge==='function') try{updateOnlineBadge();}catch(_){}
+    if(STATE.view==='kds') renderKDS();
+  }
+  async function rejectOnlineOrder(id){
+    const L = T_();
+    const arr = MK_DATA.ONLINE_ORDERS||[];
+    const idx = arr.findIndex(x=>x.id===id); if(idx<0) return;
+    const o = arr[idx];
+    if(!confirm((L.reject||'Reject')+' '+(o.num||id)+'?')) return;
+    try {
+      const r = await fetch('/api/orders/'+encodeURIComponent(id)+'/status', {
+        method:'PUT',
+        headers:{'Content-Type':'application/json', ..._onlineHeaders()},
+        body: JSON.stringify({status:'cancelled'})
+      });
+      if(!r.ok){ MKO.toast('✕ '+L.reject+' failed','err'); return; }
+    } catch(e){ MKO.toast('✕ network','err'); return; }
+    arr.splice(idx,1);
+    audit('online.reject', id);
+    MKO.toast('✕ '+(o.num||id),'warn');
+    renderOnlineOrders();
+    if(typeof updateOnlineBadge==='function') try{updateOnlineBadge();}catch(_){}
   }
 
   // ================== CUSTOMERS VIEW ==================
@@ -434,9 +1128,21 @@
 
   // ================== REPORTS VIEW ==================
   let rptRange = '1'; // 1=today, 7, 30
+  let _rptLoading = false;
 
-  function renderReports(){
+  function _reportsHeaders(){
+    try { return (typeof cashierHeaders === 'function') ? cashierHeaders() : {}; } catch(_) { return {}; }
+  }
+
+  async function renderReports(){
     const L = T_();
+    // Pull real data from server before rendering. Better empty-but-real than fake.
+    if(typeof MK_DATA.loadTxns === 'function' && !_rptLoading){
+      _rptLoading = true;
+      try { await MK_DATA.loadTxns(parseInt(rptRange)||1, _reportsHeaders()); }
+      catch(_){ /* keep current TXNS on transient failure */ }
+      finally { _rptLoading = false; }
+    }
     const cutoff = Date.now() - parseInt(rptRange)*86400000;
     const txns = MK_DATA.TXNS.filter(tx=> new Date(tx.at).getTime() >= cutoff);
     const today = new Date(); today.setHours(0,0,0,0);
@@ -498,7 +1204,10 @@
   }
   function setRange(r){ rptRange = r; renderReports(); }
 
-  function rptExport(kind){
+  async function rptExport(kind){
+    if(typeof MK_DATA.loadTxns === 'function'){
+      try { await MK_DATA.loadTxns(parseInt(rptRange)||1, _reportsHeaders()); } catch(_){}
+    }
     const cutoff = Date.now() - parseInt(rptRange)*86400000;
     const txns = MK_DATA.TXNS.filter(tx=> new Date(tx.at).getTime() >= cutoff);
     // Build multi-sheet
@@ -666,7 +1375,7 @@
       body.innerHTML=`<div class="refund-msg" style="color:var(--mk-red)">Not found: ${esc(q)}</div>`;
       btn.disabled=true; _refundTxId=null; return;
     }
-    if(tx.refunded==='full'){
+    if(tx.refunded===true || tx.refunded==='full'){
       body.innerHTML=`<div class="refund-msg" style="color:var(--mk-orange)">Already fully refunded</div>`;
       btn.disabled=true; _refundTxId=null; return;
     }
@@ -683,36 +1392,61 @@
     btn.disabled = false;
   }
 
-  function processRefund(){
-    if(!_refundTxId) return;
+  let _refundBusy = false;
+  async function processRefund(){
+    if(!_refundTxId || _refundBusy) return;
     const tx = MK_DATA.TXNS.find(t=>t.id===_refundTxId);
     if(!tx) return;
     const checks = document.querySelectorAll('#refund-modal-body input[type=checkbox]:checked');
     if(!checks.length){ MKO.toast(t('findOrder')+' — '+t('confirm'),'warn'); return; }
     const indices = Array.from(checks).map(c=>parseInt(c.value));
     const lines = indices.map(i=>tx.lines[i]);
-    // Restore inventory
-    lines.forEach(l=> restoreIngredients({...l, opts:l.opts||{}}));
-    // Mark refunded lines
-    tx.refundedLines = [...(tx.refundedLines||[]), ...indices];
-    tx.refunded = tx.refundedLines.length >= tx.lines.length ? 'full' : 'partial';
-    // Create RF- transaction
     const rfTotal = lines.reduce((s,l)=>s+(l.price*l.q),0);
-    const rfId = 'RF-'+_refundTxId.replace(/^TX-/,'');
-    MK_DATA.TXNS.unshift({
-      id: rfId,
-      at: new Date().toISOString(),
-      type: 'refund',
-      refundOf: _refundTxId,
-      cashier: STATE.user.name,
-      lines: lines.map(l=>({...l})),
-      sub: -rfTotal, tax: 0, total: -rfTotal,
-      payment: tx.payment
-    });
-    audit('refund', {id:rfId, refundOf:_refundTxId, total:rfTotal, lines:indices});
-    document.getElementById('refund-modal').classList.remove('show');
-    MKO.toast('↩ '+t('refund')+' '+fmtNum(rfTotal)+' IQD','ok');
-    MK.bus.emit('orders.updated');
+    const remaining = (tx.lines||[]).length - ((tx.refundedLines||[]).length + indices.length);
+    const isFull = remaining <= 0;
+
+    const btn = document.getElementById('refund-confirm-btn');
+    _refundBusy = true;
+    if(btn) btn.disabled = true;
+    try {
+      const r = await fetch('/api/orders/'+encodeURIComponent(_refundTxId)+'/refund', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', ..._reportsHeaders() },
+        body: JSON.stringify({
+          lines: lines.map(l=>({ name:l.name, qty:l.q, price:l.price })),
+          total: rfTotal,
+          full: isFull
+        })
+      });
+      if(!r.ok){
+        const err = await r.json().catch(()=>({}));
+        MKO.toast('✕ '+(err.error || t('refund')+' failed'), 'err');
+        return;
+      }
+      const data = await r.json();
+      // Update local TXN state to mirror server outcome until next loadTxns refresh.
+      tx.refundedLines = [...(tx.refundedLines||[]), ...indices];
+      tx.refunded = isFull ? 'full' : 'partial';
+      MK_DATA.TXNS.unshift({
+        id: data.refund_id || ('RF-'+Date.now().toString(36).toUpperCase()),
+        at: new Date().toISOString(),
+        type: 'refund',
+        refundOf: _refundTxId,
+        cashier: (STATE.user && STATE.user.name) || '',
+        lines: lines.map(l=>({...l})),
+        sub: -rfTotal, tax: 0, total: -rfTotal,
+        payment: tx.payment
+      });
+      audit('refund', { id:data.refund_id, refundOf:_refundTxId, total:rfTotal, lines:indices, full:isFull });
+      document.getElementById('refund-modal').classList.remove('show');
+      MKO.toast('↩ '+t('refund')+' '+fmtNum(rfTotal)+' IQD','ok');
+      MK.bus.emit('orders.updated');
+    } catch (e) {
+      MKO.toast('✕ Network error','err');
+    } finally {
+      _refundBusy = false;
+      if(btn) btn.disabled = false;
+    }
   }
 
   // ================== HELPERS ==================
@@ -720,15 +1454,17 @@
 
   // ================== PUBLIC ==================
   window.MKV = {
-    renderTables, selectTable, setFloor, seatTable, clearTable, cleanTable, checkin, openTableOrder, actTransfer, actMerge,
+    renderTables, selectTable, setFloor, toggleEditMode, seatTable, clearTable, cleanTable, checkin, openTableOrder, actTransfer, actMerge, confirmTransfer, confirmMerge,
     openAddTable, openEditTable, saveNewTable, saveTable, deleteTable,
-    openManageFloors, saveFloor, addFloor, deleteFloor, closeMgmt,
-    renderKDS, kdsAdvance,
+    openManageFloors, saveFloor, addFloor, deleteFloor, closeMgmt, resetLayout, _uploadBlueprint, _clearBlueprint, _onBpModeChange, _rotateBlueprint, _flipBlueprint,
+    renderKDS, kdsAdvance, kdsSetFilter,
     renderInv, invReceive, invAdjust, invExport,
     renderReservations, seatRes, cancelRes, acceptPickup, rejectPickup,
+    renderOnlineOrders, acceptOnlineOrder, rejectOnlineOrder,
     renderCustomers, setCustQ, custExport,
     renderReports, setRange, rptExport, exportAll,
     openShiftClose, updateShiftCalc, confirmShiftClose,
-    openRefund, findRefundOrder, processRefund
+    openRefund, findRefundOrder, processRefund,
+    showTableQR, _printQR
   };
 })();
