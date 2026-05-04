@@ -1049,6 +1049,13 @@ function buildWorkforceAskPrompt(agent, history) {
     if (m.role === 'user') return `[사장 질문]\n${m.content}`;
     return `[${agent.role_ko} 답변]\n${m.content}`;
   });
+  // GUARD: Wrap user prompts in code fences to prevent injection
+  const guardedTurns = turns.map((turn, idx) => {
+    if (history[idx].role === 'user') {
+      return turn.replace('[사장 질문]\n', `[사장 질문]\n\`\`\`\n`).replace(/\n\n(?=\[|$)/, '\n\`\`\`\n\n');
+    }
+    return turn;
+  });
   const built = buildAskPrompt(team, []);
   const userTask = [
     `# 1:1 즉석 회의 — ${agent.role_ko} (${agent.role_en})`,
@@ -1061,7 +1068,7 @@ function buildWorkforceAskPrompt(agent, history) {
     team.focus,
     '',
     '## 대화 기록 (시간순)',
-    turns.join('\n\n') || '(첫 질문)',
+    guardedTurns.join('\n\n') || '(첫 질문)',
     '',
     '## 응답 규칙',
     `- 한국어, 150~350 단어`,
@@ -1084,9 +1091,11 @@ app.post('/api/workforce/chat/start', requireWorkforce, (req, res) => {
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
   const team = getAgentTeam(agent.team_id);
   if (!team) return res.status(400).json({ error: 'team mapping broken' });
-  const meetingId = insertMeeting('ask', [agent.team_id], `[${agentId}] ${prompt.slice(0, 60)}`);
-  insertMessage(meetingId, 'user', null, prompt);
-  const built = buildWorkforceAskPrompt(agent, [{ role: 'user', content: prompt }]);
+  // GUARD: Wrap user prompt in code fences to prevent injection
+  const guardedPrompt = `\`\`\`\n${prompt}\n\`\`\``;
+  const meetingId = insertMeeting('ask', [agent.team_id], `[${agentId}] ${prompt.slice(0, 60)}`, req.workforceToken);
+  insertMessage(meetingId, 'user', null, guardedPrompt);
+  const built = buildWorkforceAskPrompt(agent, [{ role: 'user', content: guardedPrompt }]);
   setImmediate(() => processMeetingAsync(meetingId, 'ask', [team], [built]));
   res.json({ meeting_id: meetingId, agent_id: agentId });
 });
@@ -1105,7 +1114,9 @@ app.post('/api/workforce/chat/:id/message', requireWorkforce, (req, res) => {
   if (meeting.status === 'running') return res.status(409).json({ error: 'previous turn still running' });
   const team = getAgentTeam(agent.team_id);
   if (!team) return res.status(400).json({ error: 'team mapping broken' });
-  insertMessage(id, 'user', null, prompt);
+  // GUARD: Wrap user prompt in code fences to prevent injection
+  const guardedPrompt = `\`\`\`\n${prompt}\n\`\`\``;
+  insertMessage(id, 'user', null, guardedPrompt);
   setMeetingStatus(id, 'running', null);
   const history = getMeetingMessages(id).map(m => ({ role: m.role, content: m.content }));
   const built = buildWorkforceAskPrompt(agent, history);
@@ -1134,8 +1145,10 @@ app.post('/api/workforce/meeting/start', requireWorkforce, (req, res) => {
   const teamIds = [...new Set(agents.map(a => a.team_id))];
   const teams = teamIds.map(getAgentTeam);
   if (teams.some(t => !t)) return res.status(400).json({ error: 'team mapping broken' });
+  // GUARD: Wrap user topic in code fences to prevent injection
+  const guardedTopic = `\`\`\`\n${topic}\n\`\`\``;
   const meetingId = insertMeeting('multi', teamIds, topic, req.workforceToken);
-  insertMessage(meetingId, 'user', null, topic);
+  insertMessage(meetingId, 'user', null, guardedTopic);
   const built = teams.map(t => buildMeetingPrompt(t, topic, teams));
   setImmediate(() => processMeetingAsync(meetingId, 'multi', teams, built));
   res.json({ meeting_id: meetingId });
@@ -1156,6 +1169,25 @@ app.get('/api/workforce/meetings', requireWorkforce, (req, res) => {
       updated_at: r.updated_at,
       created_by_token: r.created_by_token,
     })),
+  });
+});
+
+// Get individual meeting with permission check
+app.get('/api/workforce/meeting/:id', requireWorkforce, (req, res) => {
+  const id = asString(req.params.id, 64);
+  const row = db.prepare(`SELECT * FROM agent_meetings WHERE id=? AND created_by_token=?`).get(id, req.workforceToken);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  const messages = db.prepare(`SELECT role, team_id, content, created_at FROM agent_meeting_messages WHERE meeting_id=? ORDER BY created_at ASC, id ASC`).all(id);
+  res.json({
+    id: row.id,
+    type: row.type,
+    team_ids: JSON.parse(row.team_ids),
+    topic: row.topic,
+    status: row.status,
+    error: row.error,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    messages: messages.map(m => ({ role: m.role, team_id: m.team_id, content: m.content, created_at: m.created_at })),
   });
 });
 
