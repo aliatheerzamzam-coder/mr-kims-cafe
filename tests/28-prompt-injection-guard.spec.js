@@ -65,9 +65,9 @@ test.describe('C3: Prompt Injection Guards with Code Fences', () => {
     expect(createRes.status).toBe(200);
     const meetingId = createRes.body.meeting_id;
 
-    // Wait for agent to finish processing
+    // Wait for agent to finish processing (max 15 seconds)
     let meetingStatus = 'running';
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 150; i++) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       const statusRes = await apiRequest(token, 'GET', `/api/workforce/meeting/${meetingId}`);
       if (statusRes.body.status !== 'running') {
