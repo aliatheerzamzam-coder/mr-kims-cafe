@@ -268,15 +268,17 @@ function ActiveRoom({ meetingId, onClose }: { meetingId: string; onClose: () => 
 
   useEffect(() => {
     let cancelled = false;
-    let timer: number | null = null;
+    const timerRef = { current: null as number | null };
 
     async function tick() {
+      if (cancelled) return;
       try {
         const m = await Workforce.getMeeting(meetingId);
         if (cancelled) return;
         setMeeting(m);
         if (m.status === 'running') {
-          timer = window.setTimeout(tick, 2000);
+          if (timerRef.current != null) window.clearTimeout(timerRef.current);
+          timerRef.current = window.setTimeout(tick, 2000);
         }
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : '폴링 실패');
@@ -286,7 +288,7 @@ function ActiveRoom({ meetingId, onClose }: { meetingId: string; onClose: () => 
     const t2 = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
       cancelled = true;
-      if (timer != null) window.clearTimeout(timer);
+      if (timerRef.current != null) window.clearTimeout(timerRef.current);
       window.clearInterval(t2);
     };
   }, [meetingId]);
