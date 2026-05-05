@@ -162,6 +162,18 @@
     }
     .order-item-row:last-child { border: none; }
     .item-name { font-weight: 700; }
+    .item-size-badge {
+      display: inline-block;
+      background: var(--green-pale);
+      color: var(--green-dark);
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 1px 8px;
+      border-radius: 999px;
+      margin-inline-start: 6px;
+      letter-spacing: 0.04em;
+      vertical-align: middle;
+    }
     .item-qty  { color: var(--green); font-weight: 900; direction: ltr; unicode-bidi: plaintext; }
 
     .order-total-row {
@@ -821,7 +833,7 @@
         ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.customer_phone)}</span>` : ''}${arrivalBadge}</div>`
         : '';
       const itemsHtml = order.items.map(i =>
-        `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span></span><span class="item-qty">×${esc(String(i.qty))}</span></div>`
+        `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span>${i.size ? ` <span class="item-size-badge">${esc(String(i.size))}</span>` : ''}</span><span class="item-qty">×${esc(String(i.qty))}</span></div>`
       ).join('');
 
       const safeId = esc(order.id);
@@ -967,7 +979,7 @@
 <div>النوع: ${typeStr}</div>
 <div style="border-top:1px dashed #000;margin:8px 0;"></div>`;
     o.items.forEach(i => {
-      html += `<div style="display:flex;justify-content:space-between;"><span>${esc(i.emoji)} ${esc(i.nameAr || i.name)} ×${esc(String(i.qty))}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
+      html += `<div style="display:flex;justify-content:space-between;"><span>${esc(i.emoji)} ${esc(i.nameAr || i.name)}${i.size ? ` (${esc(String(i.size))})` : ''} ×${esc(String(i.qty))}</span><span>${(i.price*i.qty).toLocaleString()} IQD</span></div>`;
     });
     html += `<div style="border-top:1px dashed #000;margin:8px 0;"></div>
 <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>الإجمالي</span><span>${o.total.toLocaleString()} IQD</span></div>
@@ -1226,7 +1238,7 @@
     const rows = [...data].sort((a,b) => b.timestamp - a.timestamp).map(o => {
       const time = new Date(o.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
       const typeStr = o.type === 'dine' ? `🪑 طاولة ${esc(o.table_num)}` : `🏃 ${esc(o.customer_name||'')}`;
-      const itemsList = o.items.map(i => `${esc(i.emoji)} ${esc(i.nameAr||i.name)} ×${i.qty}`).join('<br>');
+      const itemsList = o.items.map(i => `${esc(i.emoji)} ${esc(i.nameAr||i.name)}${i.size ? ` (${esc(String(i.size))})` : ''} ×${i.qty}`).join('<br>');
       return `<tr>
         <td style="font-weight:900;">#${o.num}</td>
         <td>${time}</td>
