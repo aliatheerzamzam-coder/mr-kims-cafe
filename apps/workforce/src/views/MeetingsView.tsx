@@ -63,9 +63,10 @@ function Hub({ onOpen }: { onOpen: (id: string) => void }) {
   }
 
   useEffect(() => {
+    let mounted = true;
     refresh();
-    const id = window.setInterval(refresh, 5000);
-    return () => window.clearInterval(id);
+    const id = window.setInterval(() => { if (mounted) refresh(); }, 5000);
+    return () => { mounted = false; window.clearInterval(id); };
   }, []);
 
   async function start() {
