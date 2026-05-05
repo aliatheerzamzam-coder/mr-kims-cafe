@@ -153,6 +153,7 @@ function Hub({ onOpen }: { onOpen: (id: string) => void }) {
                   key={a.id}
                   onClick={() => toggle(a.id)}
                   className="lift"
+                  aria-pressed={on}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -166,11 +167,23 @@ function Hub({ onOpen }: { onOpen: (id: string) => void }) {
                   }}
                 >
                   <Avatar initials={a.initials} background={colorFor(a)} size="sm" />
-                  <span style={{ fontWeight: on ? 800 : 600 }}>{a.role_ko}</span>
+                  <span style={{ fontWeight: on ? 800 : 600 }}>
+                    {a.role_ko}
+                    {on && <span aria-hidden style={{ marginLeft: 4, fontWeight: 900 }}>✓</span>}
+                  </span>
                 </button>
               );
             })}
           </div>
+          {(() => {
+            const teams = new Set(picked.map(id => AGENTS.find(a => a.id === id)?.team));
+            if (teams.size < picked.length) return (
+              <div style={{fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-soft)', marginTop: 8}}>
+                ※ 같은 팀에서 여러 명 선택해도 응답은 팀당 1회입니다 / Same-team duplicates produce one reply per team
+              </div>
+            );
+            return null;
+          })()}
         </div>
 
         {err && (
@@ -305,7 +318,7 @@ function ActiveRoom({ meetingId, onClose }: { meetingId: string; onClose: () => 
         </div>
         {meeting && (
           <Chip>
-            {receivedReplies} / {expectedReplies} 응답
+            팀 응답 {receivedReplies} / {expectedReplies}
           </Chip>
         )}
       </header>
@@ -398,7 +411,7 @@ function ActiveRoom({ meetingId, onClose }: { meetingId: string; onClose: () => 
             {meeting && meeting.status === 'running' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--mk-green-glow)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '10px 0' }}>
                 <span className="caret" style={{ height: '0.8em', width: '0.4em' }} />
-                응답 수집 중… ({receivedReplies}/{expectedReplies})
+                팀 응답 수집 중… ({receivedReplies}/{expectedReplies})
               </div>
             )}
 
