@@ -1324,6 +1324,7 @@
     } catch (_) {}
   }
 
+  let _resFlashHideTimer = null;
   function showNewReservationFlash(r) {
     playReservationSound();
     document.getElementById('res-flash-name').textContent    = `👤 ${r.name}`;
@@ -1333,8 +1334,22 @@
     document.getElementById('res-flash-table').textContent   = r.table_num ? `🪑 Table: ${r.table_num}` : '';
     const flash = document.getElementById('res-flash');
     flash.classList.add('show');
-    setTimeout(() => flash.classList.remove('show'), 6000);
+    // 새 알림이 들어오면 기존 타이머 리셋해서 10초부터 다시 카운트
+    if (_resFlashHideTimer) clearTimeout(_resFlashHideTimer);
+    _resFlashHideTimer = setTimeout(() => flash.classList.remove('show'), 10000);
   }
+  // 클릭하면 즉시 닫힘 (수동 dismiss)
+  document.addEventListener('DOMContentLoaded', () => {
+    const flash = document.getElementById('res-flash');
+    if (flash) {
+      flash.style.cursor = 'pointer';
+      flash.title = 'Click to dismiss';
+      flash.addEventListener('click', () => {
+        flash.classList.remove('show');
+        if (_resFlashHideTimer) { clearTimeout(_resFlashHideTimer); _resFlashHideTimer = null; }
+      });
+    }
+  });
 
   /* ─── Print receipt ─── */
   function printReceipt(id) {
