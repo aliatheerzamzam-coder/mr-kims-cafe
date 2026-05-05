@@ -27,16 +27,16 @@
 
   /* ---------- Foreground ---------- */
   --fg:       #e8efe9;
-  --fg-mid:   #9aa8a0;
-  --fg-soft:  #6c7872;
-  --fg-faint: #4a544f;
+  --fg-mid:   #c5d2c8;
+  --fg-soft:  #9aa8a0;
+  --fg-faint: #6c7872;
 
   /* ---------- Status ---------- */
   --st-online:   #5dd388;
   --st-busy:     #f5a623;
   --st-thinking: #60a5fa;
-  --st-offline:  #4a544f;
-  --st-danger:   #f47171;
+  --st-offline:  #7a8a80;
+  --st-danger:   #ff8f8f;
 
   /* ---------- Type ---------- */
   --font-sans: 'Nunito', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
