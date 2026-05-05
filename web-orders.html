@@ -498,6 +498,193 @@
       transition: background 0.2s;
     }
     .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+    /* ─── Header toolbar (theme/lang toggles) ─── */
+    .header-tools {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .icon-toggle {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+      min-width: 44px;
+      min-height: 36px;
+    }
+    .icon-toggle:hover { background: rgba(255,255,255,0.28); }
+
+    /* Pickup countdown pill */
+    .pickup-countdown {
+      display: inline-block;
+      margin-inline-start: 8px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      direction: ltr;
+      unicode-bidi: plaintext;
+      vertical-align: middle;
+    }
+    .pickup-countdown.soon  { background: #fef9c3; color: #92400e; }
+    .pickup-countdown.now   { background: #fee2e2; color: #b91c1c; animation: blink 1.2s ease infinite; }
+    .pickup-countdown.late  { background: #b91c1c; color: #fff; animation: blink 0.9s ease infinite; }
+    .pickup-countdown.later { background: var(--green-pale); color: var(--green-dark); }
+
+    /* Confirm-pending state for "Done" button (double-tap guard) */
+    .btn-action.confirm-pending {
+      background: var(--orange) !important;
+      color: #fff !important;
+      animation: pulse 1.4s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.5); }
+      50%      { box-shadow: 0 0 0 8px rgba(217,119,6,0); }
+    }
+
+    /* ─── Dark mode tokens (manual toggle via [data-theme="dark"]) ─── */
+    [data-theme="dark"] {
+      --green:       #4ea96a;
+      --green-dark:  #3a8b54;
+      --green-pale:  #1f3a2a;
+      --red:         #f87171;
+      --orange:      #fbbf24;
+      --white:       #1a1f1c;
+      --off-white:   #232927;
+      --text-dark:   #e8efea;
+      --text-mid:    #a8b3ad;
+      --text-soft:   #6b7872;
+      --shadow-sm: 0 4px 16px rgba(0,0,0,0.45);
+      --shadow-md: 0 8px 32px rgba(0,0,0,0.55);
+    }
+    [data-theme="dark"] body { background: #0e1411; color: var(--text-dark); }
+    [data-theme="dark"] .stats-bar { background: #1a201d; border-bottom-color: #2a322e; }
+    [data-theme="dark"] .stat-card { background: #232927; }
+    [data-theme="dark"] .filter-btn {
+      background: #1a201d;
+      border-color: #2e3833;
+      color: var(--text-mid);
+    }
+    [data-theme="dark"] .order-card { background: #1a201d; box-shadow: var(--shadow-sm); }
+    [data-theme="dark"] .order-item-row { border-bottom-color: #2a322e; }
+    [data-theme="dark"] .badge-dine    { background: #1e3a8a; color: #bfdbfe; }
+    [data-theme="dark"] .badge-pickup  { background: #4d3a0e; color: #fde68a; }
+    [data-theme="dark"] .btn-done { background: #2e3833; color: var(--text-mid); }
+    [data-theme="dark"] .btn-done:hover { background: #3a463f; }
+    [data-theme="dark"] .btn-print { background: transparent; }
+    [data-theme="dark"] .btn-cancel { background: #2a1414; color: #f87171; border-color: #5a1f1f !important; }
+    [data-theme="dark"] .btn-cancel:hover { background: #3a1818; }
+    [data-theme="dark"] .page-tab { color: var(--text-soft); }
+    [data-theme="dark"] .page-tab:hover { background: rgba(78,169,106,0.12); color: var(--green); }
+    [data-theme="dark"] .page-tab.active { background: var(--white); }
+    [data-theme="dark"] .history-bar input[type="date"],
+    [data-theme="dark"] .history-bar input[type="text"],
+    [data-theme="dark"] input[type="text"],
+    [data-theme="dark"] input[type="password"],
+    [data-theme="dark"] input[type="date"],
+    [data-theme="dark"] select {
+      background: #232927;
+      color: var(--text-dark);
+      border-color: #2e3833;
+    }
+    [data-theme="dark"] .history-table th { background: #1a201d; color: var(--text-soft); }
+    [data-theme="dark"] .history-table tr:hover td { background: rgba(78,169,106,0.08); }
+    [data-theme="dark"] .login-box { background: #1a201d; color: var(--text-dark); }
+    [data-theme="dark"] .login-box h2 { color: var(--green); }
+    [data-theme="dark"] .login-box p { color: var(--text-soft); }
+    [data-theme="dark"] #loginOverlay { background: rgba(0,0,0,0.65); }
+    [data-theme="dark"] .item-size-badge { background: #1f3a2a; color: #a7e0bc; }
+    [data-theme="dark"] .empty-state { color: var(--text-soft); }
+    [data-theme="dark"] .new-res-flash { background: #1a201d; color: var(--text-dark); border-color: var(--green); }
+
+    /* ─── Mobile responsive ─── */
+    @media (max-width: 768px) {
+      .header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+      .header-title { font-size: 1.05rem; }
+      .header-meta  { font-size: 0.75rem; }
+      .header-tools { gap: 6px; flex: 1 1 100%; justify-content: flex-end; }
+      .icon-toggle, .btn-logout { padding: 8px 12px; font-size: 0.78rem; }
+
+      .stats-bar { padding: 10px 14px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .stat-card { min-width: 84px; padding: 8px 12px; flex: 0 0 auto; }
+      .stat-num   { font-size: 1.25rem; }
+      .stat-label { font-size: 0.68rem; }
+
+      .page-tabs {
+        padding: 10px 14px 0;
+        gap: 4px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+      }
+      .page-tab {
+        padding: 9px 14px;
+        font-size: 0.82rem;
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      .filter-bar { padding: 12px 14px 0; gap: 6px; flex-wrap: wrap; }
+      .filter-btn { padding: 9px 14px; font-size: 0.82rem; min-height: 40px; }
+
+      .orders-grid {
+        grid-template-columns: 1fr;
+        padding: 12px 14px;
+        gap: 12px;
+      }
+      .order-card-header { padding: 14px 14px 10px; }
+      .order-info        { padding: 10px 14px; }
+      .order-items       { padding: 10px 14px; }
+      .order-total-row   { padding: 10px 14px; }
+      .order-actions     { padding: 10px 14px 14px; gap: 6px; }
+      .btn-action {
+        font-size: 0.85rem;
+        padding: 12px 10px;
+        min-height: 44px;
+      }
+      .btn-cancel {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1rem;
+      }
+
+      .history-bar { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+      .history-bar input[type="date"],
+      .history-bar input[type="text"],
+      .history-bar select { font-size: 0.88rem; padding: 9px 12px; min-height: 40px; }
+
+      .history-table th, .history-table td { padding: 8px 10px; font-size: 0.78rem; }
+
+      .login-box { width: calc(100% - 32px); max-width: none; padding: 24px 22px; }
+      .login-box input { font-size: 1rem; padding: 14px 14px; min-height: 48px; }
+      .login-box button { font-size: 1rem; padding: 14px; min-height: 48px; }
+
+      .new-order-flash { font-size: 0.88rem; padding: 12px 22px; top: 70px; }
+      .new-res-flash   { width: calc(100% - 24px); inset-inline-end: 12px; }
+    }
+
+    @media (max-width: 480px) {
+      .header-title { font-size: 0.95rem; }
+      .stat-card    { min-width: 72px; padding: 7px 10px; }
+      .stat-num     { font-size: 1.05rem; }
+      .order-num    { font-size: 1rem; }
+      .item-name    { font-size: 0.92rem; }
+    }
+
+    /* Tap targets — ensure 44px minimum on touch devices */
+    @media (hover: none) and (pointer: coarse) {
+      .filter-btn, .btn-action, .btn-cancel, .icon-toggle,
+      .btn-logout, .page-tab, .header-sound { min-height: 44px; }
+    }
   </style>
 </head>
 <body>
@@ -532,11 +719,13 @@
     <div class="header-title">🌐 Online Orders & Reservations / الطلبات والحجوزات</div>
     <div class="header-meta" id="header-time"></div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;">
-    <span style="font-size:0.78rem;opacity:0.8;">مباشر<span class="conn-dot" id="conn-dot"></span></span>
+  <div class="header-tools">
+    <span style="font-size:0.78rem;opacity:0.8;" data-i="live">مباشر<span class="conn-dot" id="conn-dot"></span></span>
     <span class="cashier-badge" id="cashier-badge"></span>
-    <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 الصوت: تشغيل</button>
-    <button class="btn-logout" onclick="doCashierLogout()">Logout / خروج</button>
+    <button class="icon-toggle" onclick="toggleTheme()" id="theme-btn" title="Theme" aria-label="Toggle theme">🌙</button>
+    <button class="icon-toggle" onclick="toggleLang()" id="lang-btn" title="Language" aria-label="Toggle language">EN</button>
+    <button class="header-sound" onclick="toggleSound()" id="sound-btn">🔔 <span data-i="sound_on">الصوت: تشغيل</span></button>
+    <button class="btn-logout" onclick="doCashierLogout()" data-i="logout">Logout / خروج</button>
   </div>
 </div>
 
@@ -572,10 +761,10 @@
 <!-- ── Tab: Current Orders ── -->
 <div class="tab-pane active" id="pane-orders">
   <div class="filter-bar">
-    <button class="filter-btn active" onclick="setFilter('all',this)">الكل</button>
-    <button class="filter-btn" onclick="setFilter('new',this)">🟠 جديد</button>
-    <button class="filter-btn" onclick="setFilter('making',this)">🟢 قيد التحضير</button>
-    <button class="filter-btn" onclick="setFilter('done',this)">✅ مكتمل</button>
+    <button class="filter-btn active" data-filter="all"    onclick="setFilter('all',this)">الكل</button>
+    <button class="filter-btn"        data-filter="new"    onclick="setFilter('new',this)">🟠 جديد</button>
+    <button class="filter-btn"        data-filter="making" onclick="setFilter('making',this)">🟢 قيد التحضير</button>
+    <button class="filter-btn"        data-filter="done"   onclick="setFilter('done',this)">✅ مكتمل</button>
   </div>
   <div class="orders-grid" id="orders-grid"></div>
 </div>
@@ -794,8 +983,123 @@
 
   function toggleSound() {
     soundOn = !soundOn;
-    document.getElementById('sound-btn').textContent = soundOn ? '🔔 الصوت: تشغيل' : '🔕 الصوت: إيقاف';
+    refreshSoundLabel();
   }
+  function refreshSoundLabel() {
+    const btn = document.getElementById('sound-btn');
+    if (!btn) return;
+    const span = btn.querySelector('[data-i]');
+    const onText  = I18N[currentLang].sound_on;
+    const offText = I18N[currentLang].sound_off;
+    btn.firstChild.textContent = soundOn ? '🔔 ' : '🔕 ';
+    if (span) span.textContent = soundOn ? onText : offText;
+  }
+
+  /* ─── Theme toggle (light/dark) ─── */
+  let currentTheme = localStorage.getItem('web_orders_theme') || 'light';
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+  }
+  function toggleTheme() {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('web_orders_theme', currentTheme);
+    applyTheme();
+  }
+
+  /* ─── Language toggle (ar/en) ─── */
+  const I18N = {
+    ar: {
+      live: 'مباشر',
+      sound_on: 'الصوت: تشغيل',
+      sound_off: 'الصوت: إيقاف',
+      logout: 'خروج',
+      tab_orders: '📋 الطلبات الحالية',
+      tab_history: '🗂️ سجل الطلبات',
+      tab_reservations: '📅 الحجوزات',
+      tab_stamps: '☕ الطوابع',
+      tab_qr: '🪑 QR الطاولات',
+      filter_all: 'الكل',
+      filter_new: '🟠 جديد',
+      filter_making: '🟢 قيد التحضير',
+      filter_done: '✅ مكتمل',
+      stat_new: 'جديد',
+      stat_making: 'قيد التحضير',
+      stat_done: 'مكتمل اليوم',
+      stat_total: 'إجمالي اليوم (IQD)',
+      btn_start_making: '✓ بدء التحضير',
+      btn_done: '✅ تم التسليم',
+      btn_done_confirm: '⚠️ اضغط مرة أخرى للتأكيد',
+      total_label: 'الإجمالي',
+      pickup: 'استلام',
+      table: 'طاولة',
+      empty_orders: 'لا توجد طلبات حالياً',
+    },
+    en: {
+      live: 'Live',
+      sound_on: 'Sound: On',
+      sound_off: 'Sound: Off',
+      logout: 'Logout',
+      tab_orders: '📋 Current Orders',
+      tab_history: '🗂️ Order History',
+      tab_reservations: '📅 Reservations',
+      tab_stamps: '☕ Stamps',
+      tab_qr: '🪑 Table QR',
+      filter_all: 'All',
+      filter_new: '🟠 New',
+      filter_making: '🟢 Preparing',
+      filter_done: '✅ Done',
+      stat_new: 'New',
+      stat_making: 'Preparing',
+      stat_done: 'Done today',
+      stat_total: 'Today total (IQD)',
+      btn_start_making: '✓ Start preparing',
+      btn_done: '✅ Mark done',
+      btn_done_confirm: '⚠️ Tap again to confirm',
+      total_label: 'Total',
+      pickup: 'Pickup',
+      table: 'Table',
+      empty_orders: 'No orders right now',
+    }
+  };
+  let currentLang = localStorage.getItem('web_orders_lang') || 'ar';
+  function applyLang() {
+    const dict = I18N[currentLang];
+    document.documentElement.setAttribute('lang', currentLang);
+    document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+    const btn = document.getElementById('lang-btn');
+    if (btn) btn.textContent = currentLang === 'ar' ? 'EN' : 'AR';
+    // tabs
+    const setText = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = dict[key] || el.textContent; };
+    setText('tab-orders', 'tab_orders');
+    setText('tab-history', 'tab_history');
+    setText('tab-reservations', 'tab_reservations');
+    setText('tab-stamps', 'tab_stamps');
+    setText('tab-qr', 'tab_qr');
+    // filter buttons (by data-filter attribute, fallback to text match)
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      const f = b.getAttribute('data-filter');
+      if (f && dict['filter_' + f]) b.textContent = dict['filter_' + f];
+    });
+    // stat labels
+    const statLabels = document.querySelectorAll('.stat-label');
+    const statKeys = ['stat_new','stat_making','stat_done','stat_total'];
+    statLabels.forEach((el, i) => { if (statKeys[i] && dict[statKeys[i]]) el.textContent = dict[statKeys[i]]; });
+    // logout / live / sound
+    document.querySelectorAll('[data-i]').forEach(el => {
+      const k = el.getAttribute('data-i');
+      if (dict[k]) el.textContent = dict[k];
+    });
+    refreshSoundLabel();
+    if (typeof renderOrders === 'function') renderOrders();
+  }
+  function toggleLang() {
+    currentLang = currentLang === 'ar' ? 'en' : 'ar';
+    localStorage.setItem('web_orders_lang', currentLang);
+    applyLang();
+  }
+  const t = (key) => (I18N[currentLang][key] || key);
 
   /* ─── Stats ─── */
   function updateStats() {
@@ -807,6 +1111,29 @@
   }
 
   /* ─── Render current orders ─── */
+  // 픽업 카운트다운 — arrival_time(HH:MM) 기준 남은/지난 분 표시
+  function pickupCountdown(arrivalTime) {
+    if (!arrivalTime) return '';
+    const m = String(arrivalTime).match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return '';
+    const now = new Date();
+    const baghdadNow = new Date(now.getTime() + 3*3600*1000);
+    const arrivalMs = Date.UTC(
+      baghdadNow.getUTCFullYear(),
+      baghdadNow.getUTCMonth(),
+      baghdadNow.getUTCDate(),
+      parseInt(m[1], 10), parseInt(m[2], 10), 0
+    );
+    const nowMs = baghdadNow.getTime();
+    const diffMin = Math.round((arrivalMs - nowMs) / 60000);
+    let cls, label;
+    if (diffMin > 15)        { cls = 'later'; label = `+${diffMin}m`; }
+    else if (diffMin > 5)    { cls = 'soon';  label = `${diffMin}m`; }
+    else if (diffMin > -2)   { cls = 'now';   label = diffMin === 0 ? 'NOW' : (diffMin > 0 ? `${diffMin}m` : `-${-diffMin}m`); }
+    else                     { cls = 'late';  label = `LATE ${-diffMin}m`; }
+    return `<span class="pickup-countdown ${cls}" title="${esc(arrivalTime)}">⏱ ${label}</span>`;
+  }
+
   function renderOrders() {
     const grid = document.getElementById('orders-grid');
     const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
@@ -815,63 +1142,110 @@
     if (sorted.length === 0) {
       grid.innerHTML = `<div class="empty-state">
         <div class="empty-icon">☕</div>
-        <div>لا توجد طلبات حالياً</div>
+        <div>${esc(t('empty_orders'))}</div>
       </div>`;
       updateStats();
       return;
     }
 
+    const locale = currentLang === 'ar' ? 'ar-IQ' : 'en-GB';
     grid.innerHTML = sorted.map(order => {
-      const time = new Date(order.timestamp).toLocaleTimeString('ar-IQ', {hour:'2-digit', minute:'2-digit'});
+      const time = new Date(order.timestamp).toLocaleTimeString(locale, {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
       const typeBadge = order.type === 'dine'
-        ? `<span class="order-type-badge badge-dine">🪑 طاولة ${esc(order.table_num)}</span>`
-        : `<span class="order-type-badge badge-pickup">🏃 استلام</span>`;
-      const arrivalBadge = order.arrival_time
-        ? `&nbsp; ⏱ ${esc(order.arrival_time)}`
+        ? `<span class="order-type-badge badge-dine">🪑 ${esc(t('table'))} ${esc(order.table_num)}</span>`
+        : `<span class="order-type-badge badge-pickup">🏃 ${esc(t('pickup'))}</span>`;
+      const countdown = order.type !== 'dine' ? pickupCountdown(order.arrival_time) : '';
+      const arrivalText = order.arrival_time
+        ? `&nbsp; ⏱ <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.arrival_time)}</span>`
         : '';
       const info = order.customer_name
-        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.customer_phone)}</span>` : ''}${arrivalBadge}</div>`
+        ? `<div class="order-info">👤 <strong>${esc(order.customer_name)}</strong>${order.customer_phone ? ` &nbsp; 📞 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(order.customer_phone)}</span>` : ''}${arrivalText}</div>`
         : '';
-      const itemsHtml = order.items.map(i =>
-        `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(i.nameAr || i.name)}</span>${i.size ? ` <span class="item-size-badge">${esc(String(i.size))}</span>` : ''}</span><span class="item-qty">×${esc(String(i.qty))}</span></div>`
-      ).join('');
+      const itemsHtml = order.items.map(i => {
+        const name = currentLang === 'ar' ? (i.nameAr || i.name) : (i.name || i.nameAr);
+        return `<div class="order-item-row"><span>${esc(i.emoji)} <span class="item-name">${esc(name)}</span>${i.size ? ` <span class="item-size-badge">${esc(String(i.size))}</span>` : ''}</span><span class="item-qty">×${esc(String(i.qty))}</span></div>`;
+      }).join('');
 
       const safeId = esc(order.id);
       const actionBtns = order.status === 'new'
-        ? `<button class="btn-action btn-making" id="btn-${safeId}" onclick="setStatus('${safeId}','making')">✓ بدء التحضير</button>`
+        ? `<button class="btn-action btn-making" id="btn-${safeId}" onclick="setStatus('${safeId}','making')">${esc(t('btn_start_making'))}</button>`
         : order.status === 'making'
-        ? `<button class="btn-action btn-done" id="btn-${safeId}" onclick="setStatus('${safeId}','done')">✅ تم التسليم</button>`
+        ? `<button class="btn-action btn-done" id="btn-${safeId}" data-confirm-state="0" onclick="confirmDone('${safeId}', this)">${esc(t('btn_done'))}</button>`
         : order.status === 'cancelled'
-        ? `<span style="color:#e53e3e;font-size:0.85rem;font-weight:700;">❌ ملغي</span>`
-        : `<span style="color:#aaa;font-size:0.85rem;font-weight:700;">✅ مكتمل</span>`;
+        ? `<span style="color:#e53e3e;font-size:0.85rem;font-weight:700;">❌ ${currentLang === 'ar' ? 'ملغي' : 'Cancelled'}</span>`
+        : `<span style="color:#aaa;font-size:0.85rem;font-weight:700;">✅ ${currentLang === 'ar' ? 'مكتمل' : 'Done'}</span>`;
 
       const cancelBtn = (order.status === 'new' || order.status === 'making')
-        ? `<button class="btn-cancel" id="cancel-${safeId}" onclick="cancelOrder('${safeId}')" title="إلغاء الطلب">✕</button>`
+        ? `<button class="btn-cancel" id="cancel-${safeId}" onclick="cancelOrder('${safeId}')" title="${currentLang === 'ar' ? 'إلغاء الطلب' : 'Cancel order'}">✕</button>`
         : '';
 
       return `<div class="order-card status-${order.status}" id="card-${safeId}">
         <div class="order-card-header">
           <span class="order-num">#${order.num}</span>
-          <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
             ${typeBadge}
+            ${countdown}
             <span class="order-time">${time}</span>
           </div>
         </div>
         ${info}
         <div class="order-items">${itemsHtml}</div>
         <div class="order-total-row">
-          <span>الإجمالي</span>
+          <span>${esc(t('total_label'))}</span>
           <span class="order-total-amount">${order.total.toLocaleString()} IQD</span>
         </div>
         <div class="order-actions">
           ${actionBtns}
-          <button class="btn-action btn-print" onclick="printReceipt('${safeId}')" title="طباعة">🖨️</button>
+          <button class="btn-action btn-print" onclick="printReceipt('${safeId}')" title="${currentLang === 'ar' ? 'طباعة' : 'Print'}">🖨️</button>
           ${cancelBtn}
         </div>
       </div>`;
     }).join('');
 
     updateStats();
+  }
+
+  // 1초마다 카드 시간/카운트다운 갱신 (전체 재렌더는 비싸서 분/초만 갱신)
+  let _liveTickHandle = null;
+  function startLiveTick() {
+    if (_liveTickHandle) clearInterval(_liveTickHandle);
+    _liveTickHandle = setInterval(() => {
+      if (currentTab !== 'orders') return;
+      // 픽업 카운트다운 갱신만 — 더 가벼운 부분 업데이트
+      document.querySelectorAll('.order-card').forEach(card => {
+        const id = card.id.replace(/^card-/, '');
+        const o = orders.find(x => x.id === id);
+        if (!o || o.type === 'dine') return;
+        const old = card.querySelector('.pickup-countdown');
+        const fresh = pickupCountdown(o.arrival_time);
+        if (!fresh) return;
+        if (old) old.outerHTML = fresh;
+      });
+    }, 1000);
+  }
+
+  // Double-tap-to-confirm guard for "Done"
+  function confirmDone(id, btn) {
+    const state = btn.getAttribute('data-confirm-state') || '0';
+    if (state === '0') {
+      btn.setAttribute('data-confirm-state', '1');
+      btn.classList.add('confirm-pending');
+      const original = btn.textContent;
+      btn.dataset.original = original;
+      btn.textContent = t('btn_done_confirm');
+      // 5초 안에 다시 안 누르면 원상 복귀
+      setTimeout(() => {
+        if (btn.getAttribute('data-confirm-state') === '1') {
+          btn.setAttribute('data-confirm-state', '0');
+          btn.classList.remove('confirm-pending');
+          btn.textContent = btn.dataset.original || t('btn_done');
+        }
+      }, 5000);
+      return;
+    }
+    btn.classList.remove('confirm-pending');
+    btn.setAttribute('data-confirm-state', '0');
+    setStatus(id, 'done');
   }
 
   /* ─── API: إلغاء الطلب ─── */
@@ -1017,34 +1391,61 @@
         listEl.innerHTML = '<div style="color:#aaa;padding:32px;text-align:center;grid-column:1/-1;">لا توجد حجوزات في هذا التاريخ</div>';
         return;
       }
-      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888' };
-      const statusLabel = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل' };
-      listEl.innerHTML = data.map(r => `
-        <div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.07);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span dir="ltr" style="font-weight:900;font-size:1rem;unicode-bidi:plaintext;">${esc(r.time)}</span>
+      const statusColor = { pending:'#f59e0b', confirmed:'#367d4d', cancelled:'#e53e3e', completed:'#888', no_show:'#b91c1c' };
+      const statusLabelAr = { pending:'قيد الانتظار', confirmed:'مؤكد', cancelled:'ملغي', completed:'اكتمل', no_show:'لم يحضر' };
+      const statusLabelEn = { pending:'Pending',     confirmed:'Confirmed', cancelled:'Cancelled', completed:'Arrived', no_show:'No-show' };
+      const statusLabel = currentLang === 'ar' ? statusLabelAr : statusLabelEn;
+      const labels = currentLang === 'ar'
+        ? { confirm:'✅ تأكيد', cancel:'✕ إلغاء', arrived:'☑ وصل', noShow:'🚷 لم يحضر', guests:'ضيوف' }
+        : { confirm:'✅ Confirm', cancel:'✕ Cancel', arrived:'☑ Arrived', noShow:'🚷 No-show', guests:'guests' };
+      // 현지 시간(Baghdad) 기준 분 차이
+      function resCountdown(timeStr) {
+        const m = String(timeStr || '').match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return '';
+        const baghdadNow = new Date(Date.now() + 3*3600*1000);
+        const [hh, mm] = [parseInt(m[1],10), parseInt(m[2],10)];
+        const targetMs = Date.UTC(baghdadNow.getUTCFullYear(), baghdadNow.getUTCMonth(), baghdadNow.getUTCDate(), hh, mm, 0);
+        const diffMin = Math.round((targetMs - baghdadNow.getTime()) / 60000);
+        if (diffMin > 60)        return `<span class="pickup-countdown later">+${Math.round(diffMin/60)}h</span>`;
+        if (diffMin > 15)        return `<span class="pickup-countdown later">${diffMin}m</span>`;
+        if (diffMin > 5)         return `<span class="pickup-countdown soon">${diffMin}m</span>`;
+        if (diffMin > -5)        return `<span class="pickup-countdown now">${diffMin >= 0 ? `${diffMin}m` : `-${-diffMin}m`}</span>`;
+        return `<span class="pickup-countdown late">${currentLang==='ar'?'متأخر':'LATE'} ${-diffMin}m</span>`;
+      }
+      // 정렬: pending/confirmed 우선 + 시간 오름차순
+      const sortKey = s => s === 'pending' ? 0 : s === 'confirmed' ? 1 : 2;
+      data.sort((a,b) => sortKey(a.status) - sortKey(b.status) || String(a.time||'').localeCompare(String(b.time||'')));
+
+      listEl.innerHTML = data.map(r => {
+        const cd = (r.status === 'pending' || r.status === 'confirmed') ? resCountdown(r.time) : '';
+        return `
+        <div style="background:var(--white,#fff);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow-sm,0 2px 10px rgba(0,0,0,0.07));">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+            <span dir="ltr" style="font-weight:900;font-size:1rem;unicode-bidi:plaintext;">${esc(r.time)} ${cd}</span>
             <span style="background:${statusColor[r.status]||'#888'}22;color:${statusColor[r.status]||'#888'};
               border-radius:20px;padding:3px 12px;font-size:0.78rem;font-weight:800;">${statusLabel[r.status]||r.status}</span>
           </div>
-          <div style="font-size:0.88rem;color:#333;margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">📱 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(r.phone)}</span></div>
-          <div style="font-size:0.85rem;color:#666;margin-bottom:${r.notes?'8px':'4px'};">👥 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(String(r.party_size))}</span> guests</div>
-          ${r.notes ? `<div style="font-size:0.82rem;color:#888;background:#f9f9f9;padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
-          <div style="display:flex;gap:8px;margin-top:10px;">
+          <div style="font-size:0.88rem;color:var(--text-dark,#333);margin-bottom:4px;">👤 <strong>${esc(r.name)}</strong></div>
+          <div style="font-size:0.85rem;color:var(--text-mid,#666);margin-bottom:4px;">📱 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(r.phone)}</span></div>
+          <div style="font-size:0.85rem;color:var(--text-mid,#666);margin-bottom:${r.notes?'8px':'4px'};">👥 <span dir="ltr" style="unicode-bidi:plaintext;">${esc(String(r.party_size))}</span> ${labels.guests}</div>
+          ${r.notes ? `<div style="font-size:0.82rem;color:var(--text-soft,#888);background:var(--off-white,#f9f9f9);padding:6px 10px;border-radius:6px;margin-bottom:8px;">📝 ${esc(r.notes)}</div>` : ''}
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             ${r.status==='pending' ? `
               <button onclick="updateReservationStatus(${r.id},'confirmed')"
-                style="flex:1;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✅ تأكيد</button>
+                style="flex:1;min-width:100px;background:#367d4d;color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:40px;">${labels.confirm}</button>
               <button onclick="updateReservationStatus(${r.id},'cancelled')"
-                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
+                style="flex:1;min-width:100px;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:10px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:40px;">${labels.cancel}</button>
             ` : r.status==='confirmed' ? `
               <button onclick="updateReservationStatus(${r.id},'completed')"
-                style="flex:1;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">☑ وصل</button>
+                style="flex:1;min-width:100px;background:#e8f5ee;color:#367d4d;border:1.5px solid #d4e8d8;border-radius:8px;padding:10px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:40px;">${labels.arrived}</button>
+              <button onclick="markNoShow(${r.id})"
+                style="flex:1;min-width:100px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:10px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:40px;">${labels.noShow}</button>
               <button onclick="updateReservationStatus(${r.id},'cancelled')"
-                style="flex:1;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:8px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;">✕ إلغاء</button>
+                style="flex:0 0 auto;background:#fff5f5;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:0.82rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:40px;">${labels.cancel}</button>
             ` : ''}
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     } catch (e) {
       document.getElementById('reservations-list').innerHTML = '<div style="color:#e53e3e;padding:32px;text-align:center;grid-column:1/-1;">فشل تحميل البيانات</div>';
     }
@@ -1060,7 +1461,35 @@
       if (!res.ok) throw new Error();
       loadReservations();
     } catch (e) {
-      alert('فشل تحديث الحجز');
+      alert(currentLang === 'ar' ? 'فشل تحديث الحجز' : 'Failed to update reservation');
+    }
+  }
+
+  // 노쇼 처리: 서버는 'no_show' 상태가 없을 수 있어서 'cancelled'로 보내되,
+  // 우선 'no_show'로 시도하고 실패 시 'cancelled' 폴백.
+  async function markNoShow(id) {
+    const confirmMsg = currentLang === 'ar'
+      ? 'تأكيد عدم الحضور؟'
+      : 'Mark as no-show?';
+    if (!confirm(confirmMsg)) return;
+    try {
+      let res = await fetch(`/api/reservations/${id}/status`, {
+        method: 'PUT',
+        headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ status: 'no_show' })
+      });
+      if (!res.ok) {
+        // 서버가 no_show 미지원이면 cancelled 로 폴백
+        res = await fetch(`/api/reservations/${id}/status`, {
+          method: 'PUT',
+          headers: cashierHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ status: 'cancelled' })
+        });
+      }
+      if (!res.ok) throw new Error();
+      loadReservations();
+    } catch (e) {
+      alert(currentLang === 'ar' ? 'فشل تحديث الحجز' : 'Failed to update reservation');
     }
   }
 
@@ -1583,6 +2012,9 @@
   setInterval(loadOrders, 30000);
 
   /* ─── Init ─── */
+  applyTheme();
+  applyLang();
+  startLiveTick();
   document.getElementById('history-date').value = localDateStr();
   loadOrders();
   connectSSE();
