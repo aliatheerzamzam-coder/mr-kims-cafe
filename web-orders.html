@@ -1298,11 +1298,36 @@
     dot.className = 'conn-dot ' + state;
   }
 
-  function connectSSE() {
-    const es = new EventSource('/api/orders/stream');
-    es.onopen = () => setConnDot('online');
+  let _sseConn = null;
+  let _sseDelay = 2000;
+
+  async function connectSSE() {
+    if (_sseConn) { try { _sseConn.close(); } catch (_) {} _sseConn = null; }
+    if (!cashierToken) { setConnDot('offline'); return; }
+
+    // 현재 서버는 ticket 발급 절차를 요구함 (POST /api/orders/stream-ticket)
+    let ticket = '';
+    try {
+      const r = await fetch('/api/orders/stream-ticket', {
+        method: 'POST',
+        headers: { 'X-Cashier-Token': cashierToken }
+      });
+      if (!r.ok) throw new Error('ticket failed');
+      const j = await r.json();
+      ticket = j.ticket || '';
+    } catch (_) {
+      setConnDot('offline');
+      _sseDelay = Math.min(_sseDelay * 1.5, 30000);
+      setTimeout(connectSSE, _sseDelay);
+      return;
+    }
+
+    const es = new EventSource('/api/orders/stream?ticket=' + encodeURIComponent(ticket));
+    _sseConn = es;
+    es.onopen = () => { _sseDelay = 2000; setConnDot('online'); };
     es.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
+      let msg;
+      try { msg = JSON.parse(e.data); } catch (_) { return; }
       if (msg.type === 'connected') { setConnDot('online'); return; }
       if (msg.type === 'new_order') {
         const todayStr = localDateStr();
@@ -1312,6 +1337,7 @@
         }
         renderOrders();
         showNewOrderFlash();
+        try { playSound(); } catch (_) {}
       } else if (msg.type === 'order_updated') {
         const idx = orders.findIndex(o => o.id === msg.order.id);
         if (idx !== -1) { orders[idx] = msg.order; renderOrders(); }
@@ -1328,8 +1354,10 @@
     };
     es.onerror = () => {
       setConnDot('offline');
-      es.close();
-      setTimeout(connectSSE, 4000);
+      try { es.close(); } catch (_) {}
+      _sseConn = null;
+      _sseDelay = Math.min(_sseDelay * 1.5, 30000);
+      setTimeout(connectSSE, _sseDelay);
     };
   }
 
@@ -1369,6 +1397,9 @@
         sessionStorage.setItem('cashier_name', cashierName);
         document.getElementById('loginOverlay').style.display = 'none';
         updateCashierBadge();
+        // 로그인 직후 데이터 동기화 + SSE 재연결 (페이지 로드 시점엔 토큰이 없어서 실패했었음)
+        try { await loadOrders(); } catch (_) {}
+        try { connectSSE(); } catch (_) {}
       } else {
         err.textContent = d.error || 'Login failed / فشل تسجيل الدخول';
       }
