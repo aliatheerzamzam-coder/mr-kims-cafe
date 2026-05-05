@@ -268,6 +268,8 @@ try { db.exec('ALTER TABLE reservations ADD COLUMN table_num TEXT'); } catch (_)
 try { db.exec('ALTER TABLE ingredients ADD COLUMN expiry_date TEXT'); } catch (_) { }
 try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier TEXT'); } catch (_) { }
 try { db.exec("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'cashier'"); } catch (_) { }
+try { db.exec('ALTER TABLE orders ADD COLUMN inventory_settled INTEGER NOT NULL DEFAULT 0'); } catch (_) { }
+try { db.exec('ALTER TABLE orders ADD COLUMN settled_at INTEGER'); } catch (_) { }
 
 // ─── جدول الموردين (suppliers) ────────────────────────────────────────────────
 db.exec(`
@@ -1702,35 +1704,9 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
     const parsed = parseOrder(order);
     broadcastSSE({ type: 'order_updated', order: parsed });
 
-    // 주문 완료 시 레시피 기반 재고 자동 차감 (transitionedToDone 가드로 1회만 실행)
-    if (status === 'done' && transitionedToDone) {
-      try {
-        const orderItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-        for (const item of (orderItems || [])) {
-          const menuName = item.name;
-          const orderQty = item.qty || 1;
-          const recipeRows = db.prepare(
-            'SELECT r.ingredient_id, r.quantity, i.current_qty, i.capacity_ml, i.name_ko, i.unit FROM recipes r JOIN ingredients i ON r.ingredient_id=i.id WHERE r.menu_item=?'
-          ).all(menuName);
-          for (const row of recipeRows) {
-            let deduct;
-            if (row.capacity_ml > 0) {
-              // 레시피 quantity는 mL/g 단위, capacity_ml은 1단위당 mL/g
-              deduct = (row.quantity / row.capacity_ml) * orderQty;
-            } else {
-              // capacity 미설정 시 재료 단위 그대로 차감
-              deduct = row.quantity * orderQty;
-            }
-            applyStockDelta(row.ingredient_id, -deduct);
-            db.prepare(
-              'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
-            ).run(row.ingredient_id, row.name_ko, 'out', deduct, `주문 #${order.num} - ${menuName} x${orderQty}`);
-          }
-        }
-      } catch (de) {
-        console.error('재고 자동 차감 오류:', de);
-      }
-    }
+    // 자동 재고 차감 비활성화 — 일일 정산(/api/inventory/daily-settle)에서 일괄 처리.
+    // 사용자 결정: cashier.html POS와 web-orders.html 모두 done 시점에는 차감하지 않고,
+    // inventory_settled=0 으로 남겨둔 뒤 매일 저녁 정산 버튼에서 한꺼번에 차감한다.
 
     // عند الانتقال إلى "done": منح العميل المسجل طابعاً واحداً تلقائياً
     // 동시 호출에서도 transitionedToDone 가드로 1회만 실행됨
@@ -1870,22 +1846,24 @@ app.post('/api/orders/:id/refund', requireCashierOrAdmin, (req, res) => {
         }
       }
 
-      // إعادة المخزون عبر الوصفات
-      for (const ln of lines) {
-        const menuName = ln && ln.name;
-        const qty = Number(ln && (ln.qty ?? ln.quantity)) || 0;
-        if (!menuName || qty <= 0) continue;
-        const recipeRows = db.prepare(
-          'SELECT r.ingredient_id, r.quantity, i.current_qty, i.capacity_ml, i.name_ko, i.unit FROM recipes r JOIN ingredients i ON r.ingredient_id=i.id WHERE r.menu_item=?'
-        ).all(menuName);
-        for (const row of recipeRows) {
-          let restore;
-          if (row.capacity_ml > 0) restore = (row.quantity / row.capacity_ml) * qty;
-          else restore = row.quantity * qty;
-          applyStockDelta(row.ingredient_id, restore);
-          db.prepare(
-            'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
-          ).run(row.ingredient_id, row.name_ko, 'in', restore, `استرداد ${refundId} - ${menuName} x${qty}`);
+      // 정산 후(inventory_settled=1) 환불만 재고 복원. 정산 전이면 차감이 없었으므로 복원 X.
+      if (order.inventory_settled === 1) {
+        for (const ln of lines) {
+          const menuName = ln && ln.name;
+          const qty = Number(ln && (ln.qty ?? ln.quantity)) || 0;
+          if (!menuName || qty <= 0) continue;
+          const recipeRows = db.prepare(
+            'SELECT r.ingredient_id, r.quantity, i.current_qty, i.capacity_ml, i.name_ko, i.unit FROM recipes r JOIN ingredients i ON r.ingredient_id=i.id WHERE r.menu_item=?'
+          ).all(menuName);
+          for (const row of recipeRows) {
+            let restore;
+            if (row.capacity_ml > 0) restore = (row.quantity / row.capacity_ml) * qty;
+            else restore = row.quantity * qty;
+            applyStockDelta(row.ingredient_id, restore);
+            db.prepare(
+              'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+            ).run(row.ingredient_id, row.name_ko, 'in', restore, `استرداد ${refundId} - ${menuName} x${qty}`);
+          }
         }
       }
 
@@ -2539,6 +2517,85 @@ app.put('/api/inventory/history/:id', requireAuth, (req, res) => {
   db.prepare('UPDATE inventory_history SET change_type=?, quantity=?, reason=? WHERE id=?')
     .run(change_type, parseFloat(quantity), reason || '', id);
   res.json({ success: true });
+});
+
+// ─── DAILY INVENTORY SETTLEMENT ──────────────────────────────────────────────
+// 미정산(완료되었으나 재고 차감 전인) 주문 미리보기
+app.get('/api/inventory/pending-settlement', requireAuth, (req, res) => {
+  const date = typeof req.query.date === 'string' ? req.query.date : null;
+  let rows;
+  if (date) {
+    // Baghdad 시간(UTC+3) 기준 날짜 매칭
+    rows = db.prepare(
+      "SELECT * FROM orders WHERE status='done' AND inventory_settled=0 AND date((timestamp/1000)+3*3600,'unixepoch')=?"
+    ).all(date);
+  } else {
+    rows = db.prepare("SELECT * FROM orders WHERE status='done' AND inventory_settled=0").all();
+  }
+  res.json({
+    count: rows.length,
+    total_revenue: rows.reduce((s, r) => s + (Number(r.total) || 0), 0),
+    orders: rows.map(parseOrder)
+  });
+});
+
+// 일괄 정산: 미정산 done 주문에 대해 레시피 기반 재고 차감 + inventory_settled=1 마크
+app.post('/api/inventory/daily-settle', requireAuth, (req, res) => {
+  const date = req.body && typeof req.body.date === 'string' ? req.body.date : null;
+  const now = Date.now();
+  let processed = 0;
+  let totalRevenue = 0;
+  const ingredientDeducts = new Map(); // ingredient_id -> total deduct (요약용)
+
+  try {
+    const tx = db.transaction(() => {
+      let rows;
+      if (date) {
+        rows = db.prepare(
+          "SELECT * FROM orders WHERE status='done' AND inventory_settled=0 AND date((timestamp/1000)+3*3600,'unixepoch')=?"
+        ).all(date);
+      } else {
+        rows = db.prepare("SELECT * FROM orders WHERE status='done' AND inventory_settled=0").all();
+      }
+
+      for (const order of rows) {
+        const orderItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        for (const item of (orderItems || [])) {
+          const menuName = item && item.name;
+          const orderQty = Number(item && item.qty) || 1;
+          if (!menuName) continue;
+          const recipeRows = db.prepare(
+            'SELECT r.ingredient_id, r.quantity, i.capacity_ml, i.name_ko FROM recipes r JOIN ingredients i ON r.ingredient_id=i.id WHERE r.menu_item=?'
+          ).all(menuName);
+          for (const row of recipeRows) {
+            let deduct;
+            if (row.capacity_ml > 0) deduct = (row.quantity / row.capacity_ml) * orderQty;
+            else deduct = row.quantity * orderQty;
+            applyStockDelta(row.ingredient_id, -deduct);
+            db.prepare(
+              'INSERT INTO inventory_history (ingredient_id, ingredient_name, change_type, quantity, reason) VALUES (?,?,?,?,?)'
+            ).run(row.ingredient_id, row.name_ko, 'out', deduct, `Daily settle #${order.num} - ${menuName} x${orderQty}`);
+            ingredientDeducts.set(row.ingredient_id, (ingredientDeducts.get(row.ingredient_id) || 0) + deduct);
+          }
+        }
+        db.prepare('UPDATE orders SET inventory_settled=1, settled_at=? WHERE id=?').run(now, order.id);
+        processed += 1;
+        totalRevenue += Number(order.total) || 0;
+      }
+    });
+    tx();
+  } catch (e) {
+    console.error('daily-settle error:', e);
+    return res.status(500).json({ error: 'فشل التسوية اليومية / Daily settlement failed' });
+  }
+
+  res.json({
+    success: true,
+    processed,
+    total_revenue: totalRevenue,
+    ingredient_count: ingredientDeducts.size,
+    settled_at: now
+  });
 });
 
 // ─── RECIPES ─────────────────────────────────────────────────────────────────

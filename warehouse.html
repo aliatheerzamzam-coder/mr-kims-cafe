@@ -571,6 +571,20 @@ tr:hover td{background:#f8fbf9}
       <button id="saleBtn" class="btn btn-primary" onclick="submitSales()" data-i18n="btn_save_sales">✅ Save Sales & Deduct Stock</button>
     </div>
   </div>
+
+  <!-- 🌐 Web orders daily settlement -->
+  <div class="card" style="margin-top:.75rem">
+    <h3 style="margin-bottom:.4rem">🌐 Web Orders Daily Settlement</h3>
+    <p style="font-size:.83rem;color:var(--soft);margin-bottom:.75rem">
+      Deduct ingredients from completed website orders in one batch (recipe-based). Orders done via the Online Orders page accumulate here until you settle them — typically once per evening.
+    </p>
+    <div id="webSettlePreview" style="margin-bottom:.75rem;font-size:.9rem;color:var(--soft)">Click <em>Refresh Preview</em> to see pending web orders.</div>
+    <div class="btn-bar" style="margin-top:.5rem">
+      <button class="btn btn-outline btn-sm" onclick="loadWebSettlePreview()">🔄 Refresh Preview</button>
+      <button id="webSettleBtn" class="btn btn-primary" onclick="runDailySettle()" disabled>✅ Settle All Now</button>
+    </div>
+    <div id="webSettleMsg" style="margin-top:.5rem"></div>
+  </div>
 </div>
 
 <!-- ───────────── 6. 기록 ───────────── -->
@@ -3452,6 +3466,62 @@ function loadDaily() {
   }
   // 사이즈 레시피 로드 후 판매 그리드 렌더
   loadSizeRecipes().then(() => renderSizeSalesGrid());
+  // Auto-preview pending web orders for the selected date
+  if (typeof loadWebSettlePreview === 'function') loadWebSettlePreview();
+}
+
+// ── Web Orders Daily Settlement ──
+async function loadWebSettlePreview() {
+  const previewEl = document.getElementById('webSettlePreview');
+  const btn = document.getElementById('webSettleBtn');
+  if (!previewEl || !btn) return;
+  const date = document.getElementById('saleDate').value || '';
+  previewEl.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    const url = date
+      ? '/api/inventory/pending-settlement?date=' + encodeURIComponent(date)
+      : '/api/inventory/pending-settlement';
+    const resp = await apiFetch(url, { headers: hdr() });
+    if (!resp.ok) throw new Error('Failed to load preview');
+    const data = await resp.json();
+    if (data.count === 0) {
+      previewEl.innerHTML = 'No pending web orders for this date.';
+      btn.disabled = true;
+    } else {
+      const rev = Number(data.total_revenue || 0).toLocaleString();
+      previewEl.innerHTML = '<strong>' + data.count + '</strong> pending order(s) · Revenue: <strong>' + rev + ' IQD</strong>';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    previewEl.innerHTML = '<span style="color:#c43">Failed to load preview.</span>';
+    btn.disabled = true;
+  }
+}
+
+async function runDailySettle() {
+  const msgEl = document.getElementById('webSettleMsg');
+  const btn = document.getElementById('webSettleBtn');
+  if (!msgEl || !btn) return;
+  if (!confirm('Settle all pending web orders and deduct stock now?')) return;
+  const date = document.getElementById('saleDate').value || '';
+  btn.disabled = true;
+  msgEl.textContent = '';
+  try {
+    const resp = await apiFetch('/api/inventory/daily-settle', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify(date ? { date: date } : {})
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Settlement failed');
+    msgEl.innerHTML = '<span style="color:#2d7a3d">✅ Settled ' + data.processed + ' order(s) · ' + data.ingredient_count + ' ingredient(s) updated.</span>';
+    loadWebSettlePreview();
+    if (typeof loadIngredients === 'function') loadIngredients(false);
+  } catch (e) {
+    msgEl.innerHTML = '<span style="color:#c43">❌ ' + (e && e.message ? e.message : 'Failed') + '</span>';
+    btn.disabled = false;
+  }
 }
 
 function addSaleRow() {
