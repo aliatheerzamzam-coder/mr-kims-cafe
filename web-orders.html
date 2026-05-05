@@ -1606,7 +1606,9 @@
       const data = await res.json();
       if (!res.ok) { msgEl.textContent = data.error || 'فشل منح الطابع'; return; }
       msgEl.style.color = '#367d4d';
-      msgEl.textContent = `✅ تم منح الطابع! الإجمالي: ${data.total_earned} طابع`;
+      msgEl.textContent = currentLang === 'ar'
+        ? `✅ تم منح الطابع! متاح للاستخدام: ${data.available} طابع`
+        : `✅ Stamp granted! Available: ${data.available}`;
       document.getElementById('stamp-earn-phone').value = '';
       document.getElementById('stamp-earn-order').value = '';
     } catch (e) {
