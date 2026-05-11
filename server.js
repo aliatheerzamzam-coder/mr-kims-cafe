@@ -69,7 +69,7 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR
   || (process.env.RAILWAY_VOLUME_MOUNT_PATH
     ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'uploads')
     : path.join(__dirname, 'uploads'));
-try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (_) { }
+try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) { console.warn('[boot] mkdir UPLOAD_DIR failed', UPLOAD_DIR, e.message); }
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -259,17 +259,176 @@ db.exec(`
   );
 `);
 
+// ─── helper: idempotent ALTER TABLE ADD COLUMN ─────────────────────────────
+// SQLite يرمي "duplicate column name" إذا كان العمود موجوداً بالفعل (طبيعي).
+// أي خطأ آخر يُسجَّل في console.warn حتى يمكن متابعته.
+function tryAlter(sql) {
+  try { db.exec(sql); console.log('[migrate]', sql); }
+  catch (e) {
+    if (!/duplicate column name/i.test(e.message)) {
+      console.warn('[migrate] failed', sql, e.message);
+    }
+  }
+}
+
 // ترحيل قاعدة البيانات للتوافق مع الإصدارات القديمة
-try { db.exec("ALTER TABLE cashiers ADD COLUMN role TEXT NOT NULL DEFAULT 'cashier'"); } catch (_) { }
-try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)'); } catch (_) { }
-try { db.exec('ALTER TABLE orders ADD COLUMN arrival_time TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE orders ADD COLUMN cashier_name TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE reservations ADD COLUMN table_num TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN expiry_date TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier TEXT'); } catch (_) { }
-try { db.exec("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'cashier'"); } catch (_) { }
-try { db.exec('ALTER TABLE orders ADD COLUMN inventory_settled INTEGER NOT NULL DEFAULT 0'); } catch (_) { }
-try { db.exec('ALTER TABLE orders ADD COLUMN settled_at INTEGER'); } catch (_) { }
+tryAlter("ALTER TABLE cashiers ADD COLUMN role TEXT NOT NULL DEFAULT 'cashier'");
+tryAlter('ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)');
+tryAlter('ALTER TABLE orders ADD COLUMN arrival_time TEXT');
+tryAlter('ALTER TABLE orders ADD COLUMN cashier_name TEXT');
+tryAlter('ALTER TABLE reservations ADD COLUMN table_num TEXT');
+tryAlter('ALTER TABLE ingredients ADD COLUMN expiry_date TEXT');
+tryAlter('ALTER TABLE ingredients ADD COLUMN supplier TEXT');
+tryAlter("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'cashier'");
+tryAlter('ALTER TABLE orders ADD COLUMN inventory_settled INTEGER NOT NULL DEFAULT 0');
+// Sprint 2.7+ — per-category emoji rendered as the circle on customer-site tiles
+// and in POS settings list. Optional (NULL → default 📋 in client).
+tryAlter('ALTER TABLE menu_categories ADD COLUMN icon TEXT');
+tryAlter('ALTER TABLE menu_items_v2 ADD COLUMN is_new INTEGER NOT NULL DEFAULT 0');
+tryAlter('ALTER TABLE menu_items_v2 ADD COLUMN is_best INTEGER NOT NULL DEFAULT 0');
+tryAlter('ALTER TABLE menu_items_v2 ADD COLUMN is_signature INTEGER NOT NULL DEFAULT 0');
+tryAlter('ALTER TABLE orders ADD COLUMN settled_at INTEGER');
+
+// ─── Sprint 1: roles, audit_log, cashiers extensions ─────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS roles (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    code        TEXT NOT NULL UNIQUE,
+    name_en     TEXT NOT NULL,
+    name_ar     TEXT NOT NULL,
+    permissions TEXT NOT NULL DEFAULT '{}',
+    is_system   INTEGER NOT NULL DEFAULT 0,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id        INTEGER,
+    actor_name      TEXT,
+    actor_role      TEXT,
+    approver_id     INTEGER,
+    approver_name   TEXT,
+    reason          TEXT,
+    action          TEXT NOT NULL,
+    target_type     TEXT,
+    target_id       TEXT,
+    before_json     TEXT,
+    after_json      TEXT,
+    ip              TEXT,
+    at              INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at DESC);
+  CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_log(actor_id, at DESC);
+  CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action, at DESC);
+`);
+
+// extend cashiers with Sprint 1 columns
+tryAlter('ALTER TABLE cashiers ADD COLUMN email TEXT');
+tryAlter('ALTER TABLE cashiers ADD COLUMN phone TEXT');
+tryAlter('ALTER TABLE cashiers ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
+tryAlter('ALTER TABLE cashiers ADD COLUMN must_change_pw INTEGER NOT NULL DEFAULT 0');
+tryAlter('ALTER TABLE cashiers ADD COLUMN role_id INTEGER REFERENCES roles(id)');
+tryAlter('ALTER TABLE cashiers ADD COLUMN created_by INTEGER');
+tryAlter('ALTER TABLE cashiers ADD COLUMN updated_at INTEGER');
+tryAlter('ALTER TABLE cashiers ADD COLUMN last_login_at INTEGER');
+tryAlter('ALTER TABLE audit_log ADD COLUMN reason TEXT');
+
+// ─── Sprint 2: menu data model (categories first, items/modifiers/sets later) ─
+//
+// Design notes:
+//   * `code` is the stable identifier carried into menu_prices, recipes,
+//     daily_sales, etc. Changing the code is forbidden after creation;
+//     display names (name_en/name_ar/name_ko) can be edited freely.
+//   * Categories support sort order, color, and active flag (soft-disable).
+//   * `kind` on menu_items_v2 distinguishes 'single' from 'set' so the order
+//     screen can render set components when user picks a set item.
+//   * Modifier groups (size, milk, syrup, …) are reusable across many items
+//     via M:N table `menu_item_modifiers`. Each option carries a price_delta_iqd.
+//   * Sold-out is a runtime flag on menu_items_v2 (changes broadcast via SSE).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS menu_categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    code        TEXT NOT NULL UNIQUE,
+    name_en     TEXT NOT NULL,
+    name_ar     TEXT NOT NULL DEFAULT '',
+    name_ko     TEXT NOT NULL DEFAULT '',
+    color       TEXT,
+    sort_order  INTEGER NOT NULL DEFAULT 100,
+    active      INTEGER NOT NULL DEFAULT 1,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS menu_items_v2 (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    code          TEXT NOT NULL UNIQUE,
+    name_en       TEXT NOT NULL,
+    name_ar       TEXT NOT NULL DEFAULT '',
+    name_ko       TEXT NOT NULL DEFAULT '',
+    emoji         TEXT,
+    photo_url     TEXT,
+    category_id   INTEGER,
+    base_price    REAL NOT NULL DEFAULT 0,
+    kind          TEXT NOT NULL DEFAULT 'single', -- 'single' | 'set'
+    active        INTEGER NOT NULL DEFAULT 1,
+    sold_out      INTEGER NOT NULL DEFAULT 0,
+    sort_order    INTEGER NOT NULL DEFAULT 100,
+    description   TEXT,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_mi_v2_cat ON menu_items_v2(category_id, sort_order);
+  CREATE INDEX IF NOT EXISTS idx_mi_v2_active ON menu_items_v2(active, sort_order);
+
+  CREATE TABLE IF NOT EXISTS menu_modifier_groups (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    code          TEXT NOT NULL UNIQUE,
+    name_en       TEXT NOT NULL,
+    name_ar       TEXT NOT NULL DEFAULT '',
+    name_ko       TEXT NOT NULL DEFAULT '',
+    selection     TEXT NOT NULL DEFAULT 'single', -- 'single' | 'multi'
+    required      INTEGER NOT NULL DEFAULT 0,
+    sort_order    INTEGER NOT NULL DEFAULT 100,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS menu_modifier_options (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id        INTEGER NOT NULL,
+    code            TEXT NOT NULL,
+    name_en         TEXT NOT NULL,
+    name_ar         TEXT NOT NULL DEFAULT '',
+    name_ko         TEXT NOT NULL DEFAULT '',
+    price_delta_iqd INTEGER NOT NULL DEFAULT 0,
+    is_default      INTEGER NOT NULL DEFAULT 0,
+    sort_order      INTEGER NOT NULL DEFAULT 100,
+    UNIQUE(group_id, code),
+    FOREIGN KEY (group_id) REFERENCES menu_modifier_groups(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS menu_item_modifiers (
+    item_id    INTEGER NOT NULL,
+    group_id   INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 100,
+    PRIMARY KEY (item_id, group_id),
+    FOREIGN KEY (item_id) REFERENCES menu_items_v2(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES menu_modifier_groups(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS menu_set_components (
+    set_item_id        INTEGER NOT NULL,
+    component_item_id  INTEGER NOT NULL,
+    quantity           INTEGER NOT NULL DEFAULT 1,
+    sort_order         INTEGER NOT NULL DEFAULT 100,
+    PRIMARY KEY (set_item_id, component_item_id),
+    FOREIGN KEY (set_item_id)       REFERENCES menu_items_v2(id) ON DELETE CASCADE,
+    FOREIGN KEY (component_item_id) REFERENCES menu_items_v2(id) ON DELETE CASCADE
+  );
+`);
 
 // ─── جدول الموردين (suppliers) ────────────────────────────────────────────────
 db.exec(`
@@ -286,14 +445,14 @@ db.exec(`
 `);
 
 // ─── أعمدة جديدة لجدول المواد (ingredients) ──────────────────────────────────
-try { db.exec('ALTER TABLE ingredients ADD COLUMN origin TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN market_name TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN qty_per_box REAL'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN num_boxes REAL'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN market_price REAL'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN received_date TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN image_path TEXT'); } catch (_) { }
-try { db.exec('ALTER TABLE ingredients ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL'); } catch (_) { }
+tryAlter('ALTER TABLE ingredients ADD COLUMN origin TEXT');
+tryAlter('ALTER TABLE ingredients ADD COLUMN market_name TEXT');
+tryAlter('ALTER TABLE ingredients ADD COLUMN qty_per_box REAL');
+tryAlter('ALTER TABLE ingredients ADD COLUMN num_boxes REAL');
+tryAlter('ALTER TABLE ingredients ADD COLUMN market_price REAL');
+tryAlter('ALTER TABLE ingredients ADD COLUMN received_date TEXT');
+tryAlter('ALTER TABLE ingredients ADD COLUMN image_path TEXT');
+tryAlter('ALTER TABLE ingredients ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL');
 
 // ─── ترحيل: الموردون النصيون القدماء → جدول suppliers ─────────────────────────
 try {
@@ -597,6 +756,275 @@ if (!db.prepare("SELECT id FROM order_counter WHERE id=1").get()) {
   db.prepare("INSERT INTO order_counter (id, value) VALUES (1, 1)").run();
 }
 
+// ─── Sprint 1: seed system roles with default permission matrix ──────────────
+// permission codes (38) — frozen list. UI editor toggles boolean fields and
+// numeric limit fields here. Codes ending with _limit/_max are numeric (IQD or %),
+// codes ending with _count_limit are integers (per day), all others boolean.
+const PERMISSION_CODES = [
+  // cash & drawer
+  'cash_drawer_open_no_sale', 'cash_deposit', 'cash_withdraw', 'change_payment_method',
+  // orders & refunds
+  'void_before_payment', 'void_after_payment', 'refund', 'refund_max_iqd',
+  'reopen_closed_order', 'transfer_order', 'merge_split_orders', 'kitchen_recall',
+  'comp_item', 'assign_to_other_cashier',
+  // discounts
+  'discount_percent', 'discount_percent_max', 'discount_fixed', 'discount_fixed_max_iqd',
+  'discount_employee_meal', 'discount_daily_count_limit', 'price_override',
+  'gift_voucher_issue', 'tip_adjust',
+  // shifts
+  'open_shift', 'close_shift', 'close_shift_force', 'view_other_cashier_sales',
+  // customers & stamps
+  'customer_data_view', 'customer_data_edit', 'customer_delete', 'stamp_manual_grant',
+  // menu & inventory
+  'menu_edit', 'menu_sold_out_toggle', 'inventory_edit', 'inventory_count',
+  // reports & data
+  'view_basic_reports', 'view_advanced_reports', 'view_cost_margin', 'view_payroll',
+  'export_data',
+  // admin only (locked, not toggleable for non-owner)
+  'settings_change', 'staff_manage', 'role_manage', 'view_audit_log',
+  'manage_pg_keys', 'database_export', 'factory_reset'
+];
+
+const ROLE_DEFAULTS = {
+  owner: {
+    name_en: 'Owner', name_ar: 'المالك',
+    perms: Object.fromEntries(PERMISSION_CODES.map(c => {
+      if (c.endsWith('_max') || c.endsWith('_max_iqd')) return [c, 100];
+      if (c === 'discount_daily_count_limit') return [c, 999];
+      return [c, true];
+    }).concat([
+      ['discount_percent_max', 100],
+      ['discount_fixed_max_iqd', 999999999],
+      ['refund_max_iqd', 999999999],
+      ['discount_daily_count_limit', 999]
+    ]))
+  },
+  manager: {
+    name_en: 'Manager', name_ar: 'مدير',
+    perms: {
+      cash_drawer_open_no_sale: true, cash_deposit: true, cash_withdraw: true,
+      change_payment_method: true,
+      void_before_payment: true, void_after_payment: true, refund: true, refund_max_iqd: 50000,
+      reopen_closed_order: true, transfer_order: true, merge_split_orders: true,
+      kitchen_recall: true, comp_item: true, assign_to_other_cashier: true,
+      discount_percent: true, discount_percent_max: 30, discount_fixed: true,
+      discount_fixed_max_iqd: 20000, discount_employee_meal: true,
+      discount_daily_count_limit: 50, price_override: true,
+      gift_voucher_issue: true, tip_adjust: true,
+      open_shift: true, close_shift: true, close_shift_force: true,
+      view_other_cashier_sales: true,
+      customer_data_view: true, customer_data_edit: true, customer_delete: false,
+      stamp_manual_grant: true,
+      menu_edit: true, menu_sold_out_toggle: true, inventory_edit: true, inventory_count: true,
+      view_basic_reports: true, view_advanced_reports: true, view_cost_margin: true,
+      view_payroll: true, export_data: true,
+      // admin-only locked: false
+      settings_change: false, staff_manage: false, role_manage: false,
+      view_audit_log: true, manage_pg_keys: false, database_export: false, factory_reset: false
+    }
+  },
+  cashier: {
+    name_en: 'Cashier', name_ar: 'كاشير',
+    perms: {
+      cash_drawer_open_no_sale: false, cash_deposit: false, cash_withdraw: false,
+      change_payment_method: false,
+      void_before_payment: true, void_after_payment: false, refund: false, refund_max_iqd: 0,
+      reopen_closed_order: false, transfer_order: true, merge_split_orders: false,
+      kitchen_recall: false, comp_item: false, assign_to_other_cashier: false,
+      discount_percent: true, discount_percent_max: 10, discount_fixed: false,
+      discount_fixed_max_iqd: 0, discount_employee_meal: false,
+      discount_daily_count_limit: 5, price_override: false,
+      gift_voucher_issue: false, tip_adjust: false,
+      open_shift: true, close_shift: true, close_shift_force: false,
+      view_other_cashier_sales: false,
+      customer_data_view: true, customer_data_edit: false, customer_delete: false,
+      stamp_manual_grant: false,
+      menu_edit: false, menu_sold_out_toggle: true, inventory_edit: false, inventory_count: false,
+      view_basic_reports: true, view_advanced_reports: false, view_cost_margin: false,
+      view_payroll: false, export_data: false,
+      settings_change: false, staff_manage: false, role_manage: false,
+      view_audit_log: false, manage_pg_keys: false, database_export: false, factory_reset: false
+    }
+  },
+  barista: {
+    name_en: 'Barista', name_ar: 'باريستا',
+    perms: {
+      cash_drawer_open_no_sale: false, cash_deposit: false, cash_withdraw: false,
+      change_payment_method: false,
+      void_before_payment: false, void_after_payment: false, refund: false, refund_max_iqd: 0,
+      reopen_closed_order: false, transfer_order: false, merge_split_orders: false,
+      kitchen_recall: false, comp_item: false, assign_to_other_cashier: false,
+      discount_percent: false, discount_percent_max: 0, discount_fixed: false,
+      discount_fixed_max_iqd: 0, discount_employee_meal: false,
+      discount_daily_count_limit: 0, price_override: false,
+      gift_voucher_issue: false, tip_adjust: false,
+      open_shift: false, close_shift: false, close_shift_force: false,
+      view_other_cashier_sales: false,
+      customer_data_view: false, customer_data_edit: false, customer_delete: false,
+      stamp_manual_grant: false,
+      menu_edit: false, menu_sold_out_toggle: true, inventory_edit: false, inventory_count: false,
+      view_basic_reports: false, view_advanced_reports: false, view_cost_margin: false,
+      view_payroll: false, export_data: false,
+      settings_change: false, staff_manage: false, role_manage: false,
+      view_audit_log: false, manage_pg_keys: false, database_export: false, factory_reset: false
+    }
+  }
+};
+
+// idempotent role seed (only inserts missing system roles, never overwrites edits)
+{
+  const now = Date.now();
+  const insRole = db.prepare(`INSERT INTO roles
+    (code, name_en, name_ar, permissions, is_system, created_at, updated_at)
+    VALUES (?,?,?,?,1,?,?)`);
+  for (const [code, def] of Object.entries(ROLE_DEFAULTS)) {
+    const existing = db.prepare('SELECT id FROM roles WHERE code=?').get(code);
+    if (!existing) {
+      insRole.run(code, def.name_en, def.name_ar, JSON.stringify(def.perms), now, now);
+    }
+  }
+}
+
+// migrate existing cashiers.role (TEXT) → cashiers.role_id (FK)
+{
+  const rows = db.prepare("SELECT id, role FROM cashiers WHERE role_id IS NULL").all();
+  for (const c of rows) {
+    const code = (c.role === 'owner' || c.role === 'manager' || c.role === 'barista') ? c.role : 'cashier';
+    const r = db.prepare('SELECT id FROM roles WHERE code=?').get(code);
+    if (r) db.prepare('UPDATE cashiers SET role_id=? WHERE id=?').run(r.id, c.id);
+  }
+}
+
+// ─── Sprint 2.1: seed default categories matching legacy hardcoded MENU codes ─
+// These are the same 6 codes (hot/ice/tea/smo/des/foo) the frontend already uses,
+// imported once so settings UI has something to edit and so future menu items
+// can FK into a category. The seed is idempotent — only inserts missing codes.
+// Sprint 2.7: 12 categories matching customer site (index.js menuData keys).
+// Codes are kebab-case to match the customer-site `data-cat` attributes so
+// /api/menu/public can be consumed directly without translation.
+const CATEGORY_DEFAULTS = [
+  { code: 'hot-coffee',  name_en: 'Hot Coffee',   name_ar: 'قهوة ساخنة',  name_ko: '핫 커피',         icon: '☕',  color: '#8b4513', sort_order: 10 },
+  { code: 'cold-coffee', name_en: 'Cold Coffee',  name_ar: 'قهوة باردة', name_ko: '아이스 커피',     icon: '🧊',  color: '#4682b4', sort_order: 20 },
+  { code: 'matcha',      name_en: 'Matcha',       name_ar: 'ماتشا',       name_ko: '말차',             icon: '🍵',  color: '#228b22', sort_order: 30 },
+  { code: 'hot-tea',     name_en: 'Hot Tea',      name_ar: 'شاي ساخن',    name_ko: '핫 티',            icon: '🫖',  color: '#a0522d', sort_order: 40 },
+  { code: 'smoothie',    name_en: 'Smoothie',     name_ar: 'سموثي',       name_ko: '스무디',           icon: '🥤',  color: '#dc143c', sort_order: 50 },
+  { code: 'frappe',      name_en: 'Frappé',       name_ar: 'فرابيه',      name_ko: '프라페',           icon: '🧋',  color: '#9370db', sort_order: 60 },
+  { code: 'milkshake',   name_en: 'Milkshake',    name_ar: 'ميلك شيك',    name_ko: '밀크쉐이크',       icon: '🥛',  color: '#deb887', sort_order: 70 },
+  { code: 'mojito',      name_en: 'Mojito',       name_ar: 'موهيتو',      name_ko: '모히토',           icon: '🌿',  color: '#3cb371', sort_order: 80 },
+  { code: 'yogurt',      name_en: 'Yogurt',       name_ar: 'يوغرت',       name_ko: '요거트',           icon: '🍦',  color: '#ffd700', sort_order: 90 },
+  { code: 'pastry',      name_en: 'Pastry',       name_ar: 'معجنات',      name_ko: '페이스트리',       icon: '🥐',  color: '#cd853f', sort_order: 100 },
+  { code: 'dessert',     name_en: 'Dessert',      name_ar: 'حلويات',      name_ko: '디저트',           icon: '🍰',  color: '#daa520', sort_order: 110 },
+  { code: 'food',        name_en: 'Food',         name_ar: 'مأكولات',     name_ko: '푸드',             icon: '🍽️',  color: '#ff8c00', sort_order: 120 }
+];
+{
+  const now = Date.now();
+  // One-time cleanup: remove the 6 legacy 3-letter codes (hot/ice/tea/smo/des/foo)
+  // ONLY if they have zero items linked. After Sprint 2.7 we use kebab-case codes
+  // matching the customer site. If owner manually added items under legacy codes,
+  // skip the delete to avoid losing data — they'll just see both.
+  const LEGACY_CODES = ['hot', 'ice', 'tea', 'smo', 'des', 'foo'];
+  for (const lc of LEGACY_CODES) {
+    const row = db.prepare('SELECT id FROM menu_categories WHERE code=?').get(lc);
+    if (!row) continue;
+    const used = db.prepare('SELECT COUNT(*) AS n FROM menu_items_v2 WHERE category_id=?').get(row.id).n;
+    if (used === 0) {
+      db.prepare('DELETE FROM menu_categories WHERE id=?').run(row.id);
+    }
+  }
+  // Seed defaults ONLY when the table is empty (first install). Once the owner
+  // has added/removed/renamed even one category, we leave the table alone —
+  // re-seeding would resurrect rows the owner deleted. (Sprint 2.7)
+  const existingCount = db.prepare('SELECT COUNT(*) AS n FROM menu_categories').get().n;
+  if (existingCount === 0) {
+    const ins = db.prepare(`INSERT INTO menu_categories
+      (code, name_en, name_ar, name_ko, icon, color, sort_order, active, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,1,?,?)`);
+    for (const c of CATEGORY_DEFAULTS) {
+      ins.run(c.code, c.name_en, c.name_ar, c.name_ko, c.icon, c.color, c.sort_order, now, now);
+    }
+  } else {
+    // Sprint 2.7+: backfill `icon` for default-coded rows that exist but have
+    // NULL icon (post-migration on databases seeded before the icon column
+    // was added). Idempotent and only touches rows where the owner has not
+    // already set an icon — never overwrites custom values.
+    const upd = db.prepare("UPDATE menu_categories SET icon=? WHERE code=? AND (icon IS NULL OR icon='')");
+    for (const c of CATEGORY_DEFAULTS) {
+      upd.run(c.icon, c.code);
+    }
+  }
+}
+
+// ─── Sprint 2.3: seed default modifier groups + options ──────────────────────
+// These mirror the legacy hardcoded option set in pos-data.js so the eventual
+// 2.7 migration of MENU items can hook into existing groups by code. Idempotent.
+const MODIFIER_GROUP_DEFAULTS = [
+  {
+    code: 'size', selection: 'single', required: 1, sort_order: 10,
+    name_en: 'Size', name_ar: 'الحجم', name_ko: '사이즈',
+    options: [
+      { code: 'reg',   name_en: 'Regular', name_ar: 'عادي',   name_ko: '레귤러', price_delta_iqd: 0,    is_default: 1, sort_order: 10 },
+      { code: 'venti', name_en: 'Venti',   name_ar: 'كبير',   name_ko: '벤티',   price_delta_iqd: 1000, is_default: 0, sort_order: 20 }
+    ]
+  },
+  {
+    code: 'temp', selection: 'single', required: 1, sort_order: 20,
+    name_en: 'Temperature', name_ar: 'الحرارة', name_ko: '온도',
+    options: [
+      { code: 'hot', name_en: 'Hot',  name_ar: 'ساخن',  name_ko: '핫',     price_delta_iqd: 0, is_default: 1, sort_order: 10 },
+      { code: 'ice', name_en: 'Iced', name_ar: 'مثلج',  name_ko: '아이스', price_delta_iqd: 0, is_default: 0, sort_order: 20 }
+    ]
+  },
+  {
+    code: 'milk', selection: 'single', required: 0, sort_order: 30,
+    name_en: 'Milk', name_ar: 'الحليب', name_ko: '우유',
+    options: [
+      { code: 'whole',  name_en: 'Whole milk',  name_ar: 'حليب كامل',     name_ko: '전유',     price_delta_iqd: 0,    is_default: 1, sort_order: 10 },
+      { code: 'oat',    name_en: 'Oat milk',    name_ar: 'حليب الشوفان',  name_ko: '오트밀크', price_delta_iqd: 1000, is_default: 0, sort_order: 20 },
+      { code: 'almond', name_en: 'Almond milk', name_ar: 'حليب اللوز',    name_ko: '아몬드',   price_delta_iqd: 1000, is_default: 0, sort_order: 30 },
+      { code: 'no',     name_en: 'No milk',     name_ar: 'بدون حليب',     name_ko: '우유 없음',price_delta_iqd: 0,    is_default: 0, sort_order: 40 }
+    ]
+  },
+  {
+    code: 'shot', selection: 'single', required: 0, sort_order: 40,
+    name_en: 'Espresso shots', name_ar: 'الشوتات', name_ko: '샷',
+    options: [
+      { code: 's1', name_en: '1 shot',  name_ar: 'شوت 1',  name_ko: '1샷', price_delta_iqd: 0,    is_default: 1, sort_order: 10 },
+      { code: 's2', name_en: '2 shots', name_ar: 'شوت 2',  name_ko: '2샷', price_delta_iqd: 1000, is_default: 0, sort_order: 20 },
+      { code: 's3', name_en: '3 shots', name_ar: 'شوت 3',  name_ko: '3샷', price_delta_iqd: 2000, is_default: 0, sort_order: 30 }
+    ]
+  },
+  {
+    code: 'syrup', selection: 'multi', required: 0, sort_order: 50,
+    name_en: 'Syrups', name_ar: 'الشراب', name_ko: '시럽',
+    options: [
+      { code: 'vanilla', name_en: 'Vanilla', name_ar: 'فانيلا',  name_ko: '바닐라', price_delta_iqd: 500, is_default: 0, sort_order: 10 },
+      { code: 'caramel', name_en: 'Caramel', name_ar: 'كراميل',  name_ko: '카라멜', price_delta_iqd: 500, is_default: 0, sort_order: 20 },
+      { code: 'hazel',   name_en: 'Hazelnut',name_ar: 'بندق',    name_ko: '헤이즐넛', price_delta_iqd: 500, is_default: 0, sort_order: 30 }
+    ]
+  }
+];
+{
+  // Same first-install-only policy as categories — once the owner has shaped
+  // their modifier groups in Settings, re-seeding would resurrect deleted rows.
+  const existingGroups = db.prepare('SELECT COUNT(*) AS n FROM menu_modifier_groups').get().n;
+  if (existingGroups === 0) {
+    const now = Date.now();
+    const insGroup = db.prepare(`INSERT INTO menu_modifier_groups
+      (code, name_en, name_ar, name_ko, selection, required, sort_order, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?)`);
+    const insOpt = db.prepare(`INSERT INTO menu_modifier_options
+      (group_id, code, name_en, name_ar, name_ko, price_delta_iqd, is_default, sort_order)
+      VALUES (?,?,?,?,?,?,?,?)`);
+    for (const g of MODIFIER_GROUP_DEFAULTS) {
+      const r = insGroup.run(g.code, g.name_en, g.name_ar, g.name_ko, g.selection, g.required, g.sort_order, now, now);
+      const gid = r.lastInsertRowid;
+      for (const o of g.options) {
+        insOpt.run(gid, o.code, o.name_en, o.name_ar, o.name_ko, o.price_delta_iqd, o.is_default, o.sort_order);
+      }
+    }
+  }
+}
+
 // ─── Workforce password seed (separate from admin) ───────────────────────────
 if (!db.prepare("SELECT value FROM settings WHERE key='workforce_pw'").get()) {
   const envPw = (process.env.WORKFORCE_INITIAL_PASSWORD || '').trim();
@@ -617,22 +1045,72 @@ const ADMIN_SESSION_TTL = 12 * 60 * 60 * 1000; // 12 ساعة
 
 function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'];
-  if (!token) return res.status(401).json({ error: 'يجب تسجيل دخول المدير' });
-  const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(token);
-  if (!row) return res.status(401).json({ error: 'يجب تسجيل دخول المدير' });
-  if (Date.now() - row.created_at > ADMIN_SESSION_TTL) {
-    db.prepare('DELETE FROM admin_sessions WHERE token=?').run(token);
-    return res.status(401).json({ error: 'انتهت الجلسة. يرجى تسجيل الدخول مجدداً' });
+  if (token) {
+    const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(token);
+    if (row) {
+      if (Date.now() - row.created_at > ADMIN_SESSION_TTL) {
+        db.prepare('DELETE FROM admin_sessions WHERE token=?').run(token);
+        return res.status(401).json({ error: 'انتهت الجلسة. يرجى تسجيل الدخول مجدداً' });
+      }
+      db.prepare('UPDATE admin_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
+      req.cashier = { id: 0, name: 'Admin', role: 'owner', role_id: null, permissions: getOwnerPermissions(), isAdmin: true };
+      return next();
+    }
   }
-  // جلسة منزلقة: يُجدَّد TTL عند كل استخدام
-  db.prepare('UPDATE admin_sessions SET created_at=? WHERE token=?').run(Date.now(), token);
-  next();
+  // Sprint 1: also accept a cashier token if its role is owner — owners can
+  // operate admin endpoints from the POS UI without a separate admin login.
+  const cashierToken = req.headers['x-cashier-token'];
+  if (cashierToken) {
+    const row = db.prepare('SELECT cs.*, c.id as cid, c.name, c.role, c.role_id, c.active FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
+    if (row && row.active !== 0 && (Date.now() - row.created_at) <= CASHIER_SESSION_TTL) {
+      const ctx = resolveCashierContext(row);
+      if (ctx.role === 'owner') {
+        db.prepare('UPDATE cashier_sessions SET created_at=? WHERE token=?').run(Date.now(), cashierToken);
+        req.cashier = { id: row.cid, name: row.name, role: 'owner', role_id: ctx.role_id, permissions: ctx.permissions, isAdmin: false };
+        return next();
+      }
+    }
+  }
+  return res.status(401).json({ error: 'يجب تسجيل دخول المدير' });
 }
 
 // تنظيف جلسات المدير المنتهية (كل ساعة)
 setInterval(() => {
   db.prepare('DELETE FROM admin_sessions WHERE created_at < ?').run(Date.now() - ADMIN_SESSION_TTL);
 }, 60 * 60 * 1000);
+
+// ─── Sprint 1: audit_log retention cron (1 year, runs every 24h) ─────────────
+const AUDIT_LOG_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
+function purgeOldAuditLog() {
+  const cutoff = Date.now() - AUDIT_LOG_RETENTION_MS;
+  db.prepare('DELETE FROM audit_log WHERE at < ?').run(cutoff);
+}
+purgeOldAuditLog();
+setInterval(purgeOldAuditLog, 24 * 60 * 60 * 1000);
+
+// ─── Sprint 1: audit_log writer (single insert helper) ───────────────────────
+const insertAuditStmt = db.prepare(`INSERT INTO audit_log
+  (actor_id, actor_name, actor_role, approver_id, approver_name, reason,
+   action, target_type, target_id, before_json, after_json, ip, at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+
+function writeAudit({ actor, approver, reason, action, target_type, target_id, before, after, ip }) {
+  insertAuditStmt.run(
+    actor?.id || null,
+    actor?.name || null,
+    actor?.role || null,
+    approver?.id || null,
+    approver?.name || null,
+    reason ? String(reason).slice(0, 500) : null,
+    String(action),
+    target_type || null,
+    target_id != null ? String(target_id) : null,
+    before != null ? JSON.stringify(before) : null,
+    after != null ? JSON.stringify(after) : null,
+    ip || null,
+    Date.now()
+  );
+}
 
 // ─── Workforce session (separate from admin, header: x-workforce-token) ──────
 const WORKFORCE_SESSION_TTL = 12 * 60 * 60 * 1000;
@@ -656,8 +1134,46 @@ setInterval(() => {
   db.prepare('DELETE FROM workforce_sessions WHERE created_at < ?').run(Date.now() - WORKFORCE_SESSION_TTL);
 }, 60 * 60 * 1000);
 
-// ─── جلسة الكاشير (TTL 12 ساعة) ──────────────────────────────────────────────
-const CASHIER_SESSION_TTL = 12 * 60 * 60 * 1000;
+// ─── جلسة الكاشير ────────────────────────────────────────────────────────────
+// Sprint 1: cashier sessions are *manual logout only* (no auto-expiry) per
+// owner request — overtime shifts can run past 12h. Keep a long safety TTL
+// (30d) so abandoned sessions still get garbage collected.
+const CASHIER_SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
+
+// Resolve role + parsed permissions for a cashier row (joins roles table).
+// Returns { role: code, role_id, permissions: {} } or sane defaults if missing.
+function resolveCashierContext(cashierRow) {
+  let role = 'cashier';
+  let role_id = cashierRow.role_id || null;
+  let permissions = {};
+  if (role_id) {
+    const r = db.prepare('SELECT code, permissions FROM roles WHERE id=?').get(role_id);
+    if (r) {
+      role = r.code;
+      try { permissions = JSON.parse(r.permissions || '{}'); } catch (_) { permissions = {}; }
+    }
+  } else if (cashierRow.role) {
+    role = cashierRow.role;
+    const r = db.prepare('SELECT id, permissions FROM roles WHERE code=?').get(role);
+    if (r) {
+      role_id = r.id;
+      try { permissions = JSON.parse(r.permissions || '{}'); } catch (_) { permissions = {}; }
+    }
+  }
+  return { role, role_id, permissions };
+}
+
+// Owner permission set (used when admin token authenticates — admin has every
+// permission). Loaded lazily once and cached in process memory; if owner role
+// permissions are edited via API, the cache is invalidated by ownerPermsCache=null.
+let ownerPermsCache = null;
+function getOwnerPermissions() {
+  if (ownerPermsCache) return ownerPermsCache;
+  const r = db.prepare("SELECT permissions FROM roles WHERE code='owner'").get();
+  try { ownerPermsCache = JSON.parse(r?.permissions || '{}'); } catch (_) { ownerPermsCache = {}; }
+  return ownerPermsCache;
+}
+function invalidateOwnerPermsCache() { ownerPermsCache = null; }
 
 function requireCashierOrAdmin(req, res, next) {
   // قبول رمز المدير أيضاً
@@ -667,21 +1183,41 @@ function requireCashierOrAdmin(req, res, next) {
     if (row && Date.now() - row.created_at <= ADMIN_SESSION_TTL) {
       db.prepare('UPDATE admin_sessions SET created_at=? WHERE token=?').run(Date.now(), adminToken);
       req.cashierName = 'مدير';
+      req.cashier = { id: 0, name: 'Admin', role: 'owner', role_id: null, permissions: getOwnerPermissions(), isAdmin: true };
       return next();
     }
   }
   // رمز الكاشير — الرأس فقط (SSE يستخدم تذاكر منفصلة عبر /api/orders/stream-ticket)
   const cashierToken = req.headers['x-cashier-token'];
   if (!cashierToken) return res.status(401).json({ error: 'تسجيل الدخول مطلوب' });
-  const row = db.prepare('SELECT cs.*, c.name FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
+  const row = db.prepare('SELECT cs.*, c.id as cid, c.name, c.role, c.role_id, c.active FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
   if (!row) return res.status(401).json({ error: 'تسجيل الدخول مطلوب' });
   if (Date.now() - row.created_at > CASHIER_SESSION_TTL) {
     db.prepare('DELETE FROM cashier_sessions WHERE token=?').run(cashierToken);
     return res.status(401).json({ error: 'انتهت الجلسة. يرجى تسجيل الدخول مجدداً' });
   }
+  if (row.active === 0) {
+    db.prepare('DELETE FROM cashier_sessions WHERE token=?').run(cashierToken);
+    return res.status(403).json({ error: 'الحساب معطّل' });
+  }
   db.prepare('UPDATE cashier_sessions SET created_at=? WHERE token=?').run(Date.now(), cashierToken);
   req.cashierName = row.name;
+  const ctx = resolveCashierContext(row);
+  req.cashier = { id: row.cid, name: row.name, role: ctx.role, role_id: ctx.role_id, permissions: ctx.permissions, isAdmin: false };
   next();
+}
+
+// Permission gate factory — wraps requireCashierOrAdmin to also enforce a
+// specific permission code. Use as: app.post('/x', requirePermission('refund'), handler).
+function requirePermission(code) {
+  return (req, res, next) => {
+    requireCashierOrAdmin(req, res, (err) => {
+      if (err) return next(err);
+      const v = req.cashier?.permissions?.[code];
+      if (v === true) return next();
+      return res.status(403).json({ error: 'permission_denied', missing: code });
+    });
+  };
 }
 
 // تنظيف جلسات الكاشير المنتهية (كل ساعة)
@@ -754,6 +1290,7 @@ function broadcastSSE(data) {
   });
   dead.forEach(res => {
     sseClients.delete(res);
+    // already-closed response; ignore
     try { res.end(); } catch (_) { }
   });
 }
@@ -824,6 +1361,26 @@ const ingredientImageUpload = multer({
   },
 });
 
+// Sprint 2.2: separate uploader for menu item photos (kept distinct from
+// ingredient photos so future moderation/CDN policies can differ).
+const menuItemImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = MIME_EXT[file.mimetype] || 'bin';
+      const itemId = parseInt(req.params.id, 10) || 'new';
+      const stamp  = Date.now();
+      const rand   = crypto.randomBytes(4).toString('hex');
+      cb(null, `menu-${itemId}-${stamp}-${rand}.${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_IMAGE_MIME.has(file.mimetype)) cb(null, true);
+    else cb(new Error('UNSUPPORTED_MIME'));
+  },
+});
+
 // ─── /workforce — AI Workforce Office SPA (apps/workforce/dist) ──────────────
 // Static assets first, then SPA catch-all so deep links (/workforce/approvals etc.)
 // resolve to index.html. Page itself is public; client fetches `/api/workforce/auth/me`
@@ -860,8 +1417,12 @@ const loginLimiter = rateLimit({
   skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
 });
 
+// Production: 5 attempts per 15 minutes — anti-bruteforce.
+// Test (NODE_ENV=test): 5 attempts per 1 second — bcrypt-verified loops of 6
+// requests still trip 429 (cumulative <1s), but recovers fast enough that
+// sibling tests get a fresh login window before the next describe runs.
 const workforceLoginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: process.env.NODE_ENV === 'test' ? 1000 : 15 * 60 * 1000,
   max: 5,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
@@ -1332,18 +1893,1220 @@ app.post('/api/cashier/login', loginLimiter, (req, res) => {
   const cashier = db.prepare('SELECT * FROM cashiers WHERE name=?').get(name.trim());
   if (!cashier || !verifyPassword(password, cashier.password))
     return res.status(401).json({ error: 'الاسم أو كلمة المرور غير صحيح' });
+  if (cashier.active === 0) return res.status(403).json({ error: 'الحساب معطّل' });
   // إعادة تشفير SHA-256 القديم إلى bcrypt
   if (!cashier.password.startsWith('$2')) {
     db.prepare('UPDATE cashiers SET password=? WHERE id=?').run(hashPassword(password), cashier.id);
   }
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO cashier_sessions (token, cashier_id, created_at) VALUES (?,?,?)').run(token, cashier.id, Date.now());
-  res.json({ success: true, token, name: cashier.name, role: cashier.role || 'cashier' });
+  db.prepare('UPDATE cashiers SET last_login_at=? WHERE id=?').run(Date.now(), cashier.id);
+  const ctx = resolveCashierContext(cashier);
+  writeAudit({
+    actor: { id: cashier.id, name: cashier.name, role: ctx.role },
+    action: 'auth.login', target_type: 'cashier', target_id: cashier.id,
+    ip: req.ip
+  });
+  res.json({
+    success: true, token,
+    id: cashier.id,
+    name: cashier.name,
+    role: ctx.role,
+    role_id: ctx.role_id,
+    permissions: ctx.permissions,
+    must_change_pw: cashier.must_change_pw === 1
+  });
 });
 
 app.post('/api/cashier/logout', (req, res) => {
-  db.prepare('DELETE FROM cashier_sessions WHERE token=?').run(req.headers['x-cashier-token']);
+  const tok = req.headers['x-cashier-token'];
+  if (tok) {
+    const row = db.prepare('SELECT cashier_id FROM cashier_sessions WHERE token=?').get(tok);
+    if (row) {
+      const c = db.prepare('SELECT id, name, role FROM cashiers WHERE id=?').get(row.cashier_id);
+      if (c) writeAudit({ actor: c, action: 'auth.logout', target_type: 'cashier', target_id: c.id, ip: req.ip });
+    }
+    db.prepare('DELETE FROM cashier_sessions WHERE token=?').run(tok);
+  }
   res.json({ success: true });
+});
+
+// Cashier self-service: change own password (also clears must_change_pw flag).
+app.post('/api/cashier/change-password', requireCashierOrAdmin, (req, res) => {
+  if (req.cashier.isAdmin) return res.status(400).json({ error: 'استخدم تغيير كلمة مرور المدير' });
+  const { current_password, new_password } = req.body || {};
+  if (!current_password || !new_password) return res.status(400).json({ error: 'الحقول ناقصة' });
+  if (new_password.length < 6) return res.status(400).json({ error: 'يجب أن تكون 6 أحرف على الأقل' });
+  const c = db.prepare('SELECT * FROM cashiers WHERE id=?').get(req.cashier.id);
+  if (!c || !verifyPassword(current_password, c.password))
+    return res.status(401).json({ error: 'كلمة المرور الحالية غير صحيحة' });
+  db.prepare('UPDATE cashiers SET password=?, must_change_pw=0, updated_at=? WHERE id=?')
+    .run(hashPassword(new_password), Date.now(), c.id);
+  writeAudit({ actor: req.cashier, action: 'cashier.change_own_password', target_type: 'cashier', target_id: c.id, ip: req.ip });
+  res.json({ success: true });
+});
+
+// Get current authenticated user's profile (used by frontend to load permissions)
+app.get('/api/cashier/me', requireCashierOrAdmin, (req, res) => {
+  res.json({
+    id: req.cashier.id,
+    name: req.cashier.name,
+    role: req.cashier.role,
+    role_id: req.cashier.role_id,
+    permissions: req.cashier.permissions,
+    isAdmin: !!req.cashier.isAdmin
+  });
+});
+
+// ─── Sprint 1: manager override (inline approval, single-step UX) ────────────
+// A low-permission user (cashier) hitting a guarded action (refund, comp,
+// force-close shift, etc.) submits the action with `manager_override` inline:
+//   { name, password, reason }
+// The action handler calls validateManagerOverride() — if the manager exists,
+// password matches, account is active, and the manager holds the required
+// permission, the override succeeds and audit_log records actor + approver +
+// reason atomically with the action.
+//
+// Returns: { ok: true, approver: {id,name} } | { ok: false, error: '...' }
+function validateManagerOverride({ manager_name, manager_password, required_perm }) {
+  if (!manager_name || !manager_password) return { ok: false, error: 'manager_credentials_missing' };
+  const mgr = db.prepare('SELECT * FROM cashiers WHERE name=?').get(String(manager_name).trim());
+  if (!mgr || !verifyPassword(manager_password, mgr.password))
+    return { ok: false, error: 'manager_invalid_credentials' };
+  if (mgr.active === 0) return { ok: false, error: 'manager_account_disabled' };
+  const ctx = resolveCashierContext(mgr);
+  if (required_perm && ctx.permissions[required_perm] !== true)
+    return { ok: false, error: 'manager_lacks_permission' };
+  return { ok: true, approver: { id: mgr.id, name: mgr.name, role: ctx.role } };
+}
+
+// Convenience endpoint for the frontend modal to pre-validate manager
+// credentials without committing the action — used to show inline error
+// before the user is prompted again. Does NOT issue a token (action endpoints
+// re-validate inline). Records nothing — pure pre-check.
+app.post('/api/manager-validate', requireCashierOrAdmin, (req, res) => {
+  const { manager_name, manager_password, required_perm } = req.body || {};
+  const r = validateManagerOverride({ manager_name, manager_password, required_perm });
+  if (!r.ok) return res.status(401).json({ error: r.error });
+  res.json({ success: true, approver_name: r.approver.name, approver_role: r.approver.role });
+});
+
+// ─── Sprint 1: roles & permissions API (admin only) ──────────────────────────
+app.get('/api/admin/roles', requireAuth, (_req, res) => {
+  const rows = db.prepare('SELECT id, code, name_en, name_ar, permissions, is_system, created_at, updated_at FROM roles ORDER BY id').all();
+  res.json(rows.map(r => ({
+    ...r,
+    permissions: (() => { try { return JSON.parse(r.permissions || '{}'); } catch (_) { return {}; } })(),
+    is_system: r.is_system === 1
+  })));
+});
+
+// List of permission codes the UI can render — single source of truth.
+app.get('/api/admin/permission-codes', requireAuth, (_req, res) => {
+  res.json({ codes: PERMISSION_CODES });
+});
+
+app.put('/api/admin/roles/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const before = db.prepare('SELECT * FROM roles WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not found' });
+  const { name_en, name_ar, permissions } = req.body || {};
+  if (typeof permissions !== 'object' || permissions === null)
+    return res.status(400).json({ error: 'permissions must be object' });
+  // sanitize: only known permission codes
+  const clean = {};
+  for (const code of PERMISSION_CODES) {
+    if (code in permissions) clean[code] = permissions[code];
+  }
+  db.prepare('UPDATE roles SET name_en=COALESCE(?,name_en), name_ar=COALESCE(?,name_ar), permissions=?, updated_at=? WHERE id=?')
+    .run(name_en || null, name_ar || null, JSON.stringify(clean), Date.now(), id);
+  if (before.code === 'owner') invalidateOwnerPermsCache();
+  const after = db.prepare('SELECT * FROM roles WHERE id=?').get(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'role.update', target_type: 'role', target_id: id,
+    before: { name_en: before.name_en, name_ar: before.name_ar, permissions: JSON.parse(before.permissions || '{}') },
+    after:  { name_en: after.name_en,  name_ar: after.name_ar,  permissions: JSON.parse(after.permissions || '{}') },
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// ─── Sprint 1: staff management API (admin only) ─────────────────────────────
+app.get('/api/admin/staff', requireAuth, (_req, res) => {
+  const rows = db.prepare(`SELECT c.id, c.name, c.email, c.phone, c.active, c.must_change_pw,
+                                  c.role_id, r.code AS role, c.created_at, c.updated_at, c.last_login_at
+                           FROM cashiers c LEFT JOIN roles r ON r.id=c.role_id
+                           ORDER BY c.name`).all();
+  res.json(rows.map(r => ({ ...r, active: r.active !== 0, must_change_pw: r.must_change_pw === 1 })));
+});
+
+app.post('/api/admin/staff', requireAuth, (req, res) => {
+  const { name, password, role_id, email, phone, active } = req.body || {};
+  if (!name || !password) return res.status(400).json({ error: 'الاسم وكلمة المرور مطلوبان' });
+  if (password.length < 6) return res.status(400).json({ error: 'كلمة المرور 6 أحرف على الأقل' });
+  const role = role_id ? db.prepare('SELECT id, code FROM roles WHERE id=?').get(role_id)
+                       : db.prepare("SELECT id, code FROM roles WHERE code='cashier'").get();
+  if (!role) return res.status(400).json({ error: 'الدور غير صالح' });
+  try {
+    const now = Date.now();
+    const r = db.prepare(`INSERT INTO cashiers
+      (name, password, role, role_id, email, phone, active, must_change_pw, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,1,?,?)`).run(
+      name.trim(), hashPassword(password), role.code, role.id,
+      email || null, phone || null, active === false ? 0 : 1, now, now
+    );
+    writeAudit({
+      actor: req.cashier,
+      action: 'staff.create', target_type: 'cashier', target_id: r.lastInsertRowid,
+      after: { name: name.trim(), role: role.code, email: email || null, phone: phone || null },
+      ip: req.ip
+    });
+    res.json({ success: true, id: r.lastInsertRowid });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'الاسم موجود بالفعل' });
+    res.status(500).json({ error: 'فشل الإنشاء' });
+  }
+});
+
+app.put('/api/admin/staff/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const before = db.prepare('SELECT * FROM cashiers WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not found' });
+  const { name, role_id, email, phone, active } = req.body || {};
+  let role_code = before.role;
+  if (role_id != null) {
+    const r = db.prepare('SELECT id, code FROM roles WHERE id=?').get(role_id);
+    if (!r) return res.status(400).json({ error: 'الدور غير صالح' });
+    role_code = r.code;
+  }
+  db.prepare(`UPDATE cashiers SET
+    name=COALESCE(?,name),
+    role=?,
+    role_id=COALESCE(?,role_id),
+    email=?,
+    phone=?,
+    active=?,
+    updated_at=?
+    WHERE id=?`).run(
+    name ? name.trim() : null,
+    role_code,
+    role_id || null,
+    email !== undefined ? (email || null) : before.email,
+    phone !== undefined ? (phone || null) : before.phone,
+    active === undefined ? before.active : (active ? 1 : 0),
+    Date.now(),
+    id
+  );
+  // if deactivated, kill all sessions
+  if (active === false) db.prepare('DELETE FROM cashier_sessions WHERE cashier_id=?').run(id);
+  const after = db.prepare('SELECT * FROM cashiers WHERE id=?').get(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'staff.update', target_type: 'cashier', target_id: id,
+    before: { name: before.name, role: before.role, email: before.email, phone: before.phone, active: before.active === 1 },
+    after:  { name: after.name,  role: after.role,  email: after.email,  phone: after.phone,  active: after.active === 1 },
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+app.post('/api/admin/staff/:id/reset-password', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const c = db.prepare('SELECT id, name FROM cashiers WHERE id=?').get(id);
+  if (!c) return res.status(404).json({ error: 'not found' });
+  const { new_password } = req.body || {};
+  // generate if not supplied
+  const pw = (new_password && String(new_password).length >= 6)
+    ? String(new_password)
+    : crypto.randomBytes(9).toString('base64').replace(/[^A-Za-z0-9]/g,'').slice(0,10);
+  db.prepare('UPDATE cashiers SET password=?, must_change_pw=1, updated_at=? WHERE id=?')
+    .run(hashPassword(pw), Date.now(), id);
+  db.prepare('DELETE FROM cashier_sessions WHERE cashier_id=?').run(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'staff.reset_password', target_type: 'cashier', target_id: id,
+    ip: req.ip
+  });
+  res.json({ success: true, new_password: pw, must_change_pw: true });
+});
+
+app.delete('/api/admin/staff/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const c = db.prepare('SELECT id, name, role FROM cashiers WHERE id=?').get(id);
+  if (!c) return res.status(404).json({ error: 'not found' });
+  db.prepare('DELETE FROM cashier_sessions WHERE cashier_id=?').run(id);
+  db.prepare('DELETE FROM cashiers WHERE id=?').run(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'staff.delete', target_type: 'cashier', target_id: id,
+    before: { name: c.name, role: c.role },
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// ─── Sprint 1: store info & security settings (admin only) ───────────────────
+function readJsonSetting(key, fallback) {
+  const r = db.prepare('SELECT value FROM settings WHERE key=?').get(key);
+  if (!r) return fallback;
+  try { return JSON.parse(r.value); } catch (_) { return fallback; }
+}
+function writeJsonSetting(key, value) {
+  const json = JSON.stringify(value);
+  const exists = db.prepare('SELECT 1 FROM settings WHERE key=?').get(key);
+  if (exists) db.prepare('UPDATE settings SET value=? WHERE key=?').run(json, key);
+  else db.prepare('INSERT INTO settings (key, value) VALUES (?,?)').run(key, json);
+}
+
+const STORE_INFO_DEFAULT = {
+  name_en: "Mr. Kim's Cafe", name_ar: 'مستر كيمز',
+  address_en: '', address_ar: '',
+  phone: '', tax_id: '', logo_url: '',
+  hours: { mon:{open:'08:00',close:'23:00',closed:false},
+           tue:{open:'08:00',close:'23:00',closed:false},
+           wed:{open:'08:00',close:'23:00',closed:false},
+           thu:{open:'08:00',close:'23:00',closed:false},
+           fri:{open:'08:00',close:'23:00',closed:false},
+           sat:{open:'08:00',close:'23:00',closed:false},
+           sun:{open:'08:00',close:'23:00',closed:false} },
+  receipt_footer_en: 'Thank you!',
+  receipt_footer_ar: 'شكراً لزيارتكم'
+};
+const SECURITY_CFG_DEFAULT = {
+  // auto_logout_minutes: 0 = manual only (Sprint 1 owner decision)
+  auto_logout_minutes: 0,
+  login_max_attempts: 5,
+  login_lockout_minutes: 15
+};
+
+app.get('/api/admin/settings/store', requireAuth, (_req, res) => {
+  res.json(readJsonSetting('store_info', STORE_INFO_DEFAULT));
+});
+app.put('/api/admin/settings/store', requireAuth, (req, res) => {
+  const before = readJsonSetting('store_info', STORE_INFO_DEFAULT);
+  const next = { ...before, ...(req.body || {}) };
+  writeJsonSetting('store_info', next);
+  writeAudit({
+    actor: req.cashier,
+    action: 'settings.store.update', target_type: 'settings', target_id: 'store_info',
+    before, after: next, ip: req.ip
+  });
+  res.json({ success: true, value: next });
+});
+
+app.get('/api/admin/settings/security', requireAuth, (_req, res) => {
+  res.json(readJsonSetting('security_config', SECURITY_CFG_DEFAULT));
+});
+app.put('/api/admin/settings/security', requireAuth, (req, res) => {
+  const before = readJsonSetting('security_config', SECURITY_CFG_DEFAULT);
+  const next = { ...before, ...(req.body || {}) };
+  writeJsonSetting('security_config', next);
+  writeAudit({
+    actor: req.cashier,
+    action: 'settings.security.update', target_type: 'settings', target_id: 'security_config',
+    before, after: next, ip: req.ip
+  });
+  res.json({ success: true, value: next });
+});
+
+// ─── Sprint 1: audit log query (admin only, read-only — never deletable) ─────
+app.get('/api/admin/audit', requireAuth, (req, res) => {
+  const { from, to, actor_id, action, limit } = req.query;
+  const where = [];
+  const args = [];
+  if (from)      { where.push('at >= ?'); args.push(parseInt(from,10) || 0); }
+  if (to)        { where.push('at <= ?'); args.push(parseInt(to,10) || Date.now()); }
+  if (actor_id)  { where.push('actor_id = ?'); args.push(parseInt(actor_id,10)); }
+  if (action)    { where.push('action LIKE ?'); args.push(String(action) + '%'); }
+  const cap = Math.min(parseInt(limit,10) || 200, 1000);
+  const sql = `SELECT * FROM audit_log ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY at DESC LIMIT ${cap}`;
+  const rows = db.prepare(sql).all(...args);
+  res.json(rows.map(r => ({
+    ...r,
+    before: r.before_json ? safeJson(r.before_json) : null,
+    after:  r.after_json  ? safeJson(r.after_json)  : null
+  })));
+});
+function safeJson(s) { try { return JSON.parse(s); } catch (_) { return s; } }
+
+// ─── Sprint 2.1: menu category CRUD (admin / owner-cashier) ──────────────────
+// Permission: requires `menu_edit`. Owner-cashier passes via requireAuth's
+// owner-token shortcut. Other roles must hold menu_edit explicitly.
+function requireMenuEdit(req, res, next) {
+  requireAuth(req, res, (err) => {
+    if (err) return next(err);
+    if (req.cashier?.permissions?.menu_edit !== true)
+      return res.status(403).json({ error: 'permission_denied', missing: 'menu_edit' });
+    next();
+  });
+}
+
+app.get('/api/admin/menu/categories', requireAuth, (_req, res) => {
+  const rows = db.prepare('SELECT * FROM menu_categories ORDER BY sort_order, name_en').all();
+  res.json(rows.map(r => ({ ...r, active: r.active === 1 })));
+});
+
+app.post('/api/admin/menu/categories', requireMenuEdit, (req, res) => {
+  const { code, name_en, name_ar, name_ko, icon, color, sort_order, active } = req.body || {};
+  if (!code || !/^[a-z0-9_-]{2,32}$/.test(String(code))) {
+    return res.status(400).json({ error: 'invalid_code', detail: 'lowercase letters/digits/underscore/dash, 2–32 chars' });
+  }
+  if (!name_en || !String(name_en).trim()) {
+    return res.status(400).json({ error: 'name_en_required' });
+  }
+  // Sprint 2.7+ (D): name_ar is required for the customer-facing customer site
+  // (Iraq market is Arabic-first). Existing rows pre-validation may have empty
+  // name_ar; PUT can patch them. New POSTs must include it.
+  if (!name_ar || !String(name_ar).trim()) {
+    return res.status(400).json({ error: 'name_ar_required' });
+  }
+  try {
+    const now = Date.now();
+    const r = db.prepare(`INSERT INTO menu_categories
+      (code, name_en, name_ar, name_ko, icon, color, sort_order, active, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
+      String(code).trim(),
+      String(name_en).trim(),
+      String(name_ar).trim(),
+      name_ko ? String(name_ko).trim() : '',
+      icon ? String(icon).trim().slice(0, 8) : null,
+      color || null,
+      Number.isFinite(Number(sort_order)) ? Number(sort_order) : 100,
+      active === false ? 0 : 1,
+      now, now
+    );
+    writeAudit({
+      actor: req.cashier,
+      action: 'menu.category.create',
+      target_type: 'menu_category',
+      target_id: r.lastInsertRowid,
+      after: { code, name_en, name_ar, name_ko, icon, color, sort_order },
+      ip: req.ip
+    });
+    res.json({ success: true, id: r.lastInsertRowid });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'code_exists' });
+    res.status(500).json({ error: 'create_failed' });
+  }
+});
+
+app.put('/api/admin/menu/categories/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid_id' });
+  const before = db.prepare('SELECT * FROM menu_categories WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  // code is immutable — never updatable
+  const { name_en, name_ar, name_ko, icon, color, sort_order, active } = req.body || {};
+  if (name_en !== undefined && !String(name_en).trim())
+    return res.status(400).json({ error: 'name_en_required' });
+  // (D) name_ar can be patched but never to an empty string. Owners fixing the
+  // legacy empty-name_ar rows must provide a real Arabic name.
+  if (name_ar !== undefined && !String(name_ar).trim())
+    return res.status(400).json({ error: 'name_ar_required' });
+  db.prepare(`UPDATE menu_categories SET
+    name_en    = COALESCE(?, name_en),
+    name_ar    = COALESCE(?, name_ar),
+    name_ko    = COALESCE(?, name_ko),
+    icon       = COALESCE(?, icon),
+    color      = COALESCE(?, color),
+    sort_order = COALESCE(?, sort_order),
+    active     = COALESCE(?, active),
+    updated_at = ?
+    WHERE id=?`).run(
+    name_en !== undefined ? String(name_en).trim() : null,
+    name_ar !== undefined ? String(name_ar).trim() : null,
+    name_ko !== undefined ? String(name_ko).trim() : null,
+    icon    !== undefined ? (icon ? String(icon).trim().slice(0, 8) : '') : null,
+    color   !== undefined ? color   : null,
+    sort_order !== undefined && Number.isFinite(Number(sort_order)) ? Number(sort_order) : null,
+    active  !== undefined ? (active ? 1 : 0) : null,
+    Date.now(), id
+  );
+  const after = db.prepare('SELECT * FROM menu_categories WHERE id=?').get(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.category.update',
+    target_type: 'menu_category',
+    target_id: id,
+    before,
+    after,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/menu/categories/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const c = db.prepare('SELECT * FROM menu_categories WHERE id=?').get(id);
+  if (!c) return res.status(404).json({ error: 'not_found' });
+  // refuse delete if any menu_items_v2 rows reference this category
+  const used = db.prepare('SELECT COUNT(*) AS n FROM menu_items_v2 WHERE category_id=?').get(id).n;
+  if (used > 0) return res.status(409).json({ error: 'category_in_use', items: used });
+  db.prepare('DELETE FROM menu_categories WHERE id=?').run(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.category.delete',
+    target_type: 'menu_category',
+    target_id: id,
+    before: c,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// Public read endpoint — used by index.html (customer site) and cashier order
+// screen (Sprint 2.7). No permission gate: only returns active categories.
+app.get('/api/menu/categories', (_req, res) => {
+  const rows = db.prepare('SELECT id, code, name_en, name_ar, name_ko, icon, color, sort_order FROM menu_categories WHERE active=1 ORDER BY sort_order, name_en').all();
+  res.json(rows);
+});
+
+// Sprint 2.7: single-shot public menu bundle for the cashier order screen and
+// the customer-facing index.html. Returns everything needed to render menu UIs
+// without requiring multiple API round-trips. No auth — only active rows leak.
+//
+// Response shape:
+//   {
+//     categories: [{id, code, name_en, name_ar, name_ko, color, sort_order}, ...],
+//     items: [{
+//       id, code, name_en, name_ar, name_ko, emoji, photo_url,
+//       category_id, category_code, base_price, kind, sold_out, sort_order,
+//       description, modifier_group_ids: [int],
+//       components: [{item_id, code, name_en, ..., quantity}] | null
+//     }, ...],
+//     modifier_groups: [{id, code, name_en, name_ar, name_ko, selection,
+//                        required, sort_order, options: [{id, code, ...,
+//                        price_delta_iqd, is_default, sort_order}]}, ...]
+//   }
+app.get('/api/menu/public', (_req, res) => {
+  const categories = db.prepare(`
+    SELECT id, code, name_en, name_ar, name_ko, icon, color, sort_order
+    FROM menu_categories WHERE active=1
+    ORDER BY sort_order, name_en
+  `).all();
+
+  const itemRows = db.prepare(`
+    SELECT i.*, c.code AS category_code
+    FROM menu_items_v2 i
+    LEFT JOIN menu_categories c ON c.id = i.category_id
+    WHERE i.active = 1
+    ORDER BY i.sort_order, i.name_en
+  `).all();
+
+  const items = itemRows.map(r => {
+    const base = serializeMenuItem(r);
+    base.modifier_group_ids = getItemModifierGroupIds(r.id);
+    base.components = (r.kind === 'set') ? loadSetComponents(r.id) : null;
+    return base;
+  });
+
+  const groupRows = db.prepare(`
+    SELECT id FROM menu_modifier_groups ORDER BY sort_order, name_en
+  `).all();
+  const modifier_groups = groupRows.map(g => loadModifierGroup(g.id)).filter(Boolean);
+
+  res.json({ categories, items, modifier_groups });
+});
+
+// ─── Sprint 2.2: menu item CRUD (single items; modifiers/sets in 2.3-2.5) ────
+// Menu items live in menu_items_v2 (parallel to legacy hardcoded MENU array
+// in pos-data.js). The two coexist until Sprint 2.7 imports the legacy data.
+//
+// Identity rules:
+//   * id (PK) is the stable internal handle.
+//   * code is a human-readable unique string used for cross-table refs and
+//     can match a legacy SKU (e.g. 'C001'). code is editable until first sale.
+//   * name_en/name_ar/name_ko all required (en + at least one localized).
+//
+// Permission: menu_edit. Owner-cashier passes via requireAuth shortcut.
+
+function serializeMenuItem(row, opts = {}) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    code: row.code,
+    name_en: row.name_en,
+    name_ar: row.name_ar,
+    name_ko: row.name_ko,
+    emoji: row.emoji,
+    photo_url: row.photo_url,
+    category_id: row.category_id,
+    category_code: row.category_code || null,
+    base_price: row.base_price,
+    kind: row.kind,
+    active: row.active === 1,
+    sold_out: row.sold_out === 1,
+    sort_order: row.sort_order,
+    description: row.description,
+    is_new: row.is_new === 1,
+    is_best: row.is_best === 1,
+    is_signature: row.is_signature === 1,
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+app.get('/api/admin/menu/items', requireAuth, (req, res) => {
+  const { category_id } = req.query;
+  let sql = `SELECT i.*, c.code AS category_code FROM menu_items_v2 i
+             LEFT JOIN menu_categories c ON c.id = i.category_id`;
+  const args = [];
+  if (category_id) {
+    sql += ' WHERE i.category_id = ?';
+    args.push(parseInt(category_id, 10));
+  }
+  sql += ' ORDER BY i.sort_order, i.name_en';
+  const rows = db.prepare(sql).all(...args);
+  res.json(rows.map(r => serializeMenuItem(r)));
+});
+
+app.get('/api/admin/menu/items/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const row = db.prepare(`SELECT i.*, c.code AS category_code FROM menu_items_v2 i
+                          LEFT JOIN menu_categories c ON c.id = i.category_id
+                          WHERE i.id = ?`).get(id);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  res.json(serializeMenuItem(row));
+});
+
+app.post('/api/admin/menu/items', requireMenuEdit, (req, res) => {
+  const {
+    code, name_en, name_ar, name_ko, emoji, category_id,
+    base_price, kind, active, sort_order, description,
+    is_new, is_best, is_signature
+  } = req.body || {};
+  if (!code || !/^[A-Za-z0-9_]{2,32}$/.test(String(code))) {
+    return res.status(400).json({ error: 'invalid_code', detail: 'letters/digits/underscore, 2–32 chars' });
+  }
+  if (!name_en || !String(name_en).trim()) return res.status(400).json({ error: 'name_en_required' });
+  const price = Number(base_price);
+  if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: 'invalid_price' });
+  const safeKind = (kind === 'set') ? 'set' : 'single';
+
+  // verify category if supplied
+  let catId = null;
+  if (category_id != null) {
+    const c = db.prepare('SELECT id FROM menu_categories WHERE id=?').get(category_id);
+    if (!c) return res.status(400).json({ error: 'invalid_category' });
+    catId = c.id;
+  }
+
+  try {
+    const now = Date.now();
+    const r = db.prepare(`INSERT INTO menu_items_v2
+      (code, name_en, name_ar, name_ko, emoji, category_id, base_price,
+       kind, active, sold_out, sort_order, description,
+       is_new, is_best, is_signature, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?)`).run(
+      String(code).trim(),
+      String(name_en).trim(),
+      name_ar ? String(name_ar).trim() : '',
+      name_ko ? String(name_ko).trim() : '',
+      emoji || null,
+      catId,
+      price,
+      safeKind,
+      active === false ? 0 : 1,
+      Number.isFinite(Number(sort_order)) ? Number(sort_order) : 100,
+      description || null,
+      is_new ? 1 : 0,
+      is_best ? 1 : 0,
+      is_signature ? 1 : 0,
+      now, now
+    );
+    writeAudit({
+      actor: req.cashier,
+      action: 'menu.item.create',
+      target_type: 'menu_item',
+      target_id: r.lastInsertRowid,
+      after: { code, name_en, base_price: price, category_id: catId, kind: safeKind },
+      ip: req.ip
+    });
+    res.json({ success: true, id: r.lastInsertRowid });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'code_exists' });
+    console.error('menu.item.create failed:', e);
+    res.status(500).json({ error: 'create_failed' });
+  }
+});
+
+app.put('/api/admin/menu/items/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_items_v2 WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+
+  const {
+    code, name_en, name_ar, name_ko, emoji, category_id,
+    base_price, kind, active, sort_order, description,
+    is_new, is_best, is_signature
+  } = req.body || {};
+
+  // code change allowed but must match the format and be unique
+  let nextCode = before.code;
+  if (code !== undefined && code !== before.code) {
+    if (!/^[A-Za-z0-9_]{2,32}$/.test(String(code))) {
+      return res.status(400).json({ error: 'invalid_code' });
+    }
+    const dup = db.prepare('SELECT id FROM menu_items_v2 WHERE code=? AND id<>?').get(code, id);
+    if (dup) return res.status(400).json({ error: 'code_exists' });
+    nextCode = String(code).trim();
+  }
+  if (name_en !== undefined && !String(name_en).trim())
+    return res.status(400).json({ error: 'name_en_required' });
+  let priceArg = null;
+  if (base_price !== undefined) {
+    const p = Number(base_price);
+    if (!Number.isFinite(p) || p < 0) return res.status(400).json({ error: 'invalid_price' });
+    priceArg = p;
+  }
+  let catId = before.category_id;
+  if (category_id !== undefined) {
+    if (category_id == null) catId = null;
+    else {
+      const c = db.prepare('SELECT id FROM menu_categories WHERE id=?').get(category_id);
+      if (!c) return res.status(400).json({ error: 'invalid_category' });
+      catId = c.id;
+    }
+  }
+
+  db.prepare(`UPDATE menu_items_v2 SET
+    code = ?,
+    name_en      = COALESCE(?, name_en),
+    name_ar      = COALESCE(?, name_ar),
+    name_ko      = COALESCE(?, name_ko),
+    emoji        = ?,
+    category_id  = ?,
+    base_price   = COALESCE(?, base_price),
+    kind         = COALESCE(?, kind),
+    active       = COALESCE(?, active),
+    sort_order   = COALESCE(?, sort_order),
+    description  = ?,
+    is_new       = COALESCE(?, is_new),
+    is_best      = COALESCE(?, is_best),
+    is_signature = COALESCE(?, is_signature),
+    updated_at   = ?
+    WHERE id=?`).run(
+    nextCode,
+    name_en !== undefined ? String(name_en).trim() : null,
+    name_ar !== undefined ? String(name_ar||'').trim() : null,
+    name_ko !== undefined ? String(name_ko||'').trim() : null,
+    emoji !== undefined ? (emoji || null) : before.emoji,
+    catId,
+    priceArg,
+    kind !== undefined ? ((kind === 'set') ? 'set' : 'single') : null,
+    active !== undefined ? (active ? 1 : 0) : null,
+    sort_order !== undefined && Number.isFinite(Number(sort_order)) ? Number(sort_order) : null,
+    description !== undefined ? (description || null) : before.description,
+    is_new       !== undefined ? (is_new ? 1 : 0) : null,
+    is_best      !== undefined ? (is_best ? 1 : 0) : null,
+    is_signature !== undefined ? (is_signature ? 1 : 0) : null,
+    Date.now(),
+    id
+  );
+  const after = db.prepare('SELECT * FROM menu_items_v2 WHERE id=?').get(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.update',
+    target_type: 'menu_item',
+    target_id: id,
+    before, after,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// Sold-out toggle — separate endpoint so cashiers (with menu_sold_out_toggle
+// permission) can flip it without holding full menu_edit.
+app.post('/api/admin/menu/items/:id/sold-out', requireCashierOrAdmin, (req, res) => {
+  if (req.cashier?.permissions?.menu_sold_out_toggle !== true) {
+    return res.status(403).json({ error: 'permission_denied', missing: 'menu_sold_out_toggle' });
+  }
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_items_v2 WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  const { sold_out } = req.body || {};
+  const next = sold_out ? 1 : 0;
+  db.prepare('UPDATE menu_items_v2 SET sold_out=?, updated_at=? WHERE id=?').run(next, Date.now(), id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.sold_out',
+    target_type: 'menu_item',
+    target_id: id,
+    before: { sold_out: before.sold_out === 1 },
+    after:  { sold_out: next === 1 },
+    ip: req.ip
+  });
+  // SSE broadcast so all connected cashier screens update instantly
+  try { broadcastSSE({ type: 'menu_item_sold_out', id, sold_out: next === 1 }); } catch (_) {}
+  res.json({ success: true, sold_out: next === 1 });
+});
+
+// Photo upload (multipart) — replaces existing photo_url and removes the old
+// file if it lived inside UPLOAD_DIR.
+app.post('/api/admin/menu/items/:id/photo', requireMenuEdit, menuItemImageUpload.single('photo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'no_file' });
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_items_v2 WHERE id=?').get(id);
+  if (!before) {
+    try { fs.unlinkSync(req.file.path); } catch (_) {}
+    return res.status(404).json({ error: 'not_found' });
+  }
+  // delete old photo if it lives in UPLOAD_DIR (path traversal guard)
+  if (before.photo_url) {
+    try {
+      const oldPath = path.resolve(UPLOAD_DIR, path.basename(before.photo_url));
+      if (oldPath.startsWith(path.resolve(UPLOAD_DIR)) && fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    } catch (_) {}
+  }
+  const newUrl = '/uploads/' + req.file.filename;
+  db.prepare('UPDATE menu_items_v2 SET photo_url=?, updated_at=? WHERE id=?').run(newUrl, Date.now(), id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.photo',
+    target_type: 'menu_item',
+    target_id: id,
+    after: { photo_url: newUrl },
+    ip: req.ip
+  });
+  res.json({ success: true, photo_url: newUrl });
+});
+
+app.delete('/api/admin/menu/items/:id/photo', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_items_v2 WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  if (before.photo_url) {
+    try {
+      const p = path.resolve(UPLOAD_DIR, path.basename(before.photo_url));
+      if (p.startsWith(path.resolve(UPLOAD_DIR)) && fs.existsSync(p)) fs.unlinkSync(p);
+    } catch (_) {}
+  }
+  db.prepare('UPDATE menu_items_v2 SET photo_url=NULL, updated_at=? WHERE id=?').run(Date.now(), id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.photo.delete',
+    target_type: 'menu_item',
+    target_id: id,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/menu/items/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_items_v2 WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  // remove photo file if any
+  if (before.photo_url) {
+    try {
+      const p = path.resolve(UPLOAD_DIR, path.basename(before.photo_url));
+      if (p.startsWith(path.resolve(UPLOAD_DIR)) && fs.existsSync(p)) fs.unlinkSync(p);
+    } catch (_) {}
+  }
+  db.prepare('DELETE FROM menu_items_v2 WHERE id=?').run(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.delete',
+    target_type: 'menu_item',
+    target_id: id,
+    before,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// Public read — active items only, with category code joined for client filter.
+app.get('/api/menu/items', (_req, res) => {
+  const rows = db.prepare(`
+    SELECT i.id, i.code, i.name_en, i.name_ar, i.name_ko, i.emoji, i.photo_url,
+           i.category_id, c.code AS category_code, i.base_price, i.kind,
+           i.sold_out, i.sort_order, i.description
+    FROM menu_items_v2 i
+    LEFT JOIN menu_categories c ON c.id = i.category_id
+    WHERE i.active = 1
+    ORDER BY i.sort_order, i.name_en
+  `).all();
+  res.json(rows.map(r => ({ ...r, sold_out: r.sold_out === 1 })));
+});
+
+// ─── Sprint 2.3: modifier groups + options CRUD ──────────────────────────────
+// Each group has many options. Groups are reusable across many items
+// (the M:N table `menu_item_modifiers` is wired in Sprint 2.4).
+//
+// Helper: load a group with nested options (single query each, kept simple).
+function loadModifierGroup(id) {
+  const g = db.prepare('SELECT * FROM menu_modifier_groups WHERE id=?').get(id);
+  if (!g) return null;
+  const opts = db.prepare(`SELECT id, code, name_en, name_ar, name_ko,
+    price_delta_iqd, is_default, sort_order
+    FROM menu_modifier_options WHERE group_id=? ORDER BY sort_order, name_en`).all(id);
+  return {
+    ...g,
+    required: g.required === 1,
+    options: opts.map(o => ({ ...o, is_default: o.is_default === 1 }))
+  };
+}
+
+app.get('/api/admin/menu/modifier-groups', requireAuth, (_req, res) => {
+  const groups = db.prepare('SELECT id FROM menu_modifier_groups ORDER BY sort_order, name_en').all();
+  res.json(groups.map(g => loadModifierGroup(g.id)));
+});
+
+app.get('/api/admin/menu/modifier-groups/:id', requireAuth, (req, res) => {
+  const g = loadModifierGroup(parseInt(req.params.id, 10));
+  if (!g) return res.status(404).json({ error: 'not_found' });
+  res.json(g);
+});
+
+app.post('/api/admin/menu/modifier-groups', requireMenuEdit, (req, res) => {
+  const { code, name_en, name_ar, name_ko, selection, required, sort_order } = req.body || {};
+  if (!code || !/^[a-z0-9_]{2,32}$/.test(String(code)))
+    return res.status(400).json({ error: 'invalid_code' });
+  if (!name_en || !String(name_en).trim()) return res.status(400).json({ error: 'name_en_required' });
+  const sel = (selection === 'multi') ? 'multi' : 'single';
+  try {
+    const now = Date.now();
+    const r = db.prepare(`INSERT INTO menu_modifier_groups
+      (code, name_en, name_ar, name_ko, selection, required, sort_order, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?)`).run(
+      String(code).trim(), String(name_en).trim(),
+      name_ar ? String(name_ar).trim() : '', name_ko ? String(name_ko).trim() : '',
+      sel, required ? 1 : 0,
+      Number.isFinite(Number(sort_order)) ? Number(sort_order) : 100,
+      now, now
+    );
+    writeAudit({
+      actor: req.cashier,
+      action: 'menu.modifier_group.create',
+      target_type: 'menu_modifier_group',
+      target_id: r.lastInsertRowid,
+      after: { code, name_en, selection: sel, required: !!required },
+      ip: req.ip
+    });
+    res.json({ success: true, id: r.lastInsertRowid });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'code_exists' });
+    res.status(500).json({ error: 'create_failed' });
+  }
+});
+
+app.put('/api/admin/menu/modifier-groups/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_modifier_groups WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  const { name_en, name_ar, name_ko, selection, required, sort_order } = req.body || {};
+  if (name_en !== undefined && !String(name_en).trim())
+    return res.status(400).json({ error: 'name_en_required' });
+  const sel = selection !== undefined ? ((selection === 'multi') ? 'multi' : 'single') : null;
+  db.prepare(`UPDATE menu_modifier_groups SET
+    name_en    = COALESCE(?, name_en),
+    name_ar    = COALESCE(?, name_ar),
+    name_ko    = COALESCE(?, name_ko),
+    selection  = COALESCE(?, selection),
+    required   = COALESCE(?, required),
+    sort_order = COALESCE(?, sort_order),
+    updated_at = ?
+    WHERE id=?`).run(
+    name_en !== undefined ? String(name_en).trim() : null,
+    name_ar !== undefined ? String(name_ar||'').trim() : null,
+    name_ko !== undefined ? String(name_ko||'').trim() : null,
+    sel,
+    required !== undefined ? (required ? 1 : 0) : null,
+    sort_order !== undefined && Number.isFinite(Number(sort_order)) ? Number(sort_order) : null,
+    Date.now(), id
+  );
+  const after = db.prepare('SELECT * FROM menu_modifier_groups WHERE id=?').get(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.modifier_group.update',
+    target_type: 'menu_modifier_group',
+    target_id: id,
+    before, after,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/menu/modifier-groups/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_modifier_groups WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  // refuse if any item references this group
+  const used = db.prepare('SELECT COUNT(*) AS n FROM menu_item_modifiers WHERE group_id=?').get(id).n;
+  if (used > 0) return res.status(409).json({ error: 'group_in_use', items: used });
+  db.prepare('DELETE FROM menu_modifier_groups WHERE id=?').run(id); // CASCADE deletes options
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.modifier_group.delete',
+    target_type: 'menu_modifier_group',
+    target_id: id,
+    before,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// ─── modifier OPTIONS (nested under a group) ─────────────────────────────────
+app.post('/api/admin/menu/modifier-groups/:gid/options', requireMenuEdit, (req, res) => {
+  const gid = parseInt(req.params.gid, 10);
+  const g = db.prepare('SELECT id FROM menu_modifier_groups WHERE id=?').get(gid);
+  if (!g) return res.status(404).json({ error: 'group_not_found' });
+  const { code, name_en, name_ar, name_ko, price_delta_iqd, is_default, sort_order } = req.body || {};
+  if (!code || !/^[a-z0-9_]{1,32}$/.test(String(code)))
+    return res.status(400).json({ error: 'invalid_code' });
+  if (!name_en || !String(name_en).trim()) return res.status(400).json({ error: 'name_en_required' });
+  const delta = Math.floor(Number(price_delta_iqd) || 0);
+  if (!Number.isFinite(delta)) return res.status(400).json({ error: 'invalid_price' });
+  try {
+    const r = db.prepare(`INSERT INTO menu_modifier_options
+      (group_id, code, name_en, name_ar, name_ko, price_delta_iqd, is_default, sort_order)
+      VALUES (?,?,?,?,?,?,?,?)`).run(
+      gid, String(code).trim(), String(name_en).trim(),
+      name_ar ? String(name_ar).trim() : '', name_ko ? String(name_ko).trim() : '',
+      delta, is_default ? 1 : 0,
+      Number.isFinite(Number(sort_order)) ? Number(sort_order) : 100
+    );
+    writeAudit({
+      actor: req.cashier,
+      action: 'menu.modifier_option.create',
+      target_type: 'menu_modifier_option',
+      target_id: r.lastInsertRowid,
+      after: { group_id: gid, code, name_en, price_delta_iqd: delta },
+      ip: req.ip
+    });
+    res.json({ success: true, id: r.lastInsertRowid });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'code_exists' });
+    res.status(500).json({ error: 'create_failed' });
+  }
+});
+
+app.put('/api/admin/menu/modifier-options/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_modifier_options WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  const { name_en, name_ar, name_ko, price_delta_iqd, is_default, sort_order } = req.body || {};
+  if (name_en !== undefined && !String(name_en).trim())
+    return res.status(400).json({ error: 'name_en_required' });
+  let deltaArg = null;
+  if (price_delta_iqd !== undefined) {
+    const d = Math.floor(Number(price_delta_iqd));
+    if (!Number.isFinite(d)) return res.status(400).json({ error: 'invalid_price' });
+    deltaArg = d;
+  }
+  db.prepare(`UPDATE menu_modifier_options SET
+    name_en         = COALESCE(?, name_en),
+    name_ar         = COALESCE(?, name_ar),
+    name_ko         = COALESCE(?, name_ko),
+    price_delta_iqd = COALESCE(?, price_delta_iqd),
+    is_default      = COALESCE(?, is_default),
+    sort_order      = COALESCE(?, sort_order)
+    WHERE id=?`).run(
+    name_en !== undefined ? String(name_en).trim() : null,
+    name_ar !== undefined ? String(name_ar||'').trim() : null,
+    name_ko !== undefined ? String(name_ko||'').trim() : null,
+    deltaArg,
+    is_default !== undefined ? (is_default ? 1 : 0) : null,
+    sort_order !== undefined && Number.isFinite(Number(sort_order)) ? Number(sort_order) : null,
+    id
+  );
+  const after = db.prepare('SELECT * FROM menu_modifier_options WHERE id=?').get(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.modifier_option.update',
+    target_type: 'menu_modifier_option',
+    target_id: id,
+    before, after,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/menu/modifier-options/:id', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const before = db.prepare('SELECT * FROM menu_modifier_options WHERE id=?').get(id);
+  if (!before) return res.status(404).json({ error: 'not_found' });
+  db.prepare('DELETE FROM menu_modifier_options WHERE id=?').run(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.modifier_option.delete',
+    target_type: 'menu_modifier_option',
+    target_id: id,
+    before,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// Public — used by order screen to render option pickers.
+app.get('/api/menu/modifier-groups', (_req, res) => {
+  const groups = db.prepare('SELECT id FROM menu_modifier_groups ORDER BY sort_order, name_en').all();
+  res.json(groups.map(g => loadModifierGroup(g.id)));
+});
+
+// ─── Sprint 2.4: menu item ↔ modifier group assignment (M:N) ─────────────────
+// Each menu item can be associated with any number of modifier groups.
+// The set of attached groups is replaced atomically per PUT call.
+//
+// Public reads embed attached groups inside the item record so the order
+// screen can render the option picker without a second roundtrip.
+
+function getItemModifierGroupIds(itemId) {
+  return db.prepare('SELECT group_id FROM menu_item_modifiers WHERE item_id=? ORDER BY sort_order').all(itemId).map(r => r.group_id);
+}
+
+app.get('/api/admin/menu/items/:id/modifier-groups', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!db.prepare('SELECT id FROM menu_items_v2 WHERE id=?').get(id))
+    return res.status(404).json({ error: 'not_found' });
+  const ids = getItemModifierGroupIds(id);
+  res.json({ item_id: id, group_ids: ids });
+});
+
+app.put('/api/admin/menu/items/:id/modifier-groups', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const item = db.prepare('SELECT id FROM menu_items_v2 WHERE id=?').get(id);
+  if (!item) return res.status(404).json({ error: 'not_found' });
+
+  const body = req.body || {};
+  const incoming = Array.isArray(body.group_ids) ? body.group_ids : null;
+  if (!incoming) return res.status(400).json({ error: 'group_ids_required' });
+
+  // sanitize: every id must reference a real group; preserve order
+  const cleanIds = [];
+  const seen = new Set();
+  for (const raw of incoming) {
+    const gid = parseInt(raw, 10);
+    if (!Number.isFinite(gid) || seen.has(gid)) continue;
+    const exists = db.prepare('SELECT id FROM menu_modifier_groups WHERE id=?').get(gid);
+    if (!exists) return res.status(400).json({ error: 'invalid_group_id', group_id: gid });
+    cleanIds.push(gid);
+    seen.add(gid);
+  }
+
+  const before = getItemModifierGroupIds(id);
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM menu_item_modifiers WHERE item_id=?').run(id);
+    const ins = db.prepare('INSERT INTO menu_item_modifiers (item_id, group_id, sort_order) VALUES (?,?,?)');
+    cleanIds.forEach((gid, idx) => ins.run(id, gid, (idx + 1) * 10));
+  });
+  tx();
+
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.modifier_groups',
+    target_type: 'menu_item',
+    target_id: id,
+    before: { group_ids: before },
+    after:  { group_ids: cleanIds },
+    ip: req.ip
+  });
+
+  res.json({ success: true, group_ids: cleanIds });
+});
+
+// Public — return one item with its attached modifier groups (and nested options).
+app.get('/api/menu/items/:id/full', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const i = db.prepare(`
+    SELECT i.id, i.code, i.name_en, i.name_ar, i.name_ko, i.emoji, i.photo_url,
+           i.category_id, c.code AS category_code, i.base_price, i.kind,
+           i.sold_out, i.sort_order, i.description, i.active
+    FROM menu_items_v2 i
+    LEFT JOIN menu_categories c ON c.id = i.category_id
+    WHERE i.id = ?
+  `).get(id);
+  if (!i || i.active !== 1) return res.status(404).json({ error: 'not_found' });
+  const groupIds = getItemModifierGroupIds(id);
+  const groups = groupIds.map(gid => loadModifierGroup(gid)).filter(Boolean);
+  // Sprint 2.5: include set components if this is a set
+  let components = null;
+  if (i.kind === 'set') components = loadSetComponents(id);
+  res.json({ ...i, sold_out: i.sold_out === 1, modifier_groups: groups, components });
+});
+
+// ─── Sprint 2.5: set / combo components ──────────────────────────────────────
+// A set item (menu_items_v2.kind='set') has a fixed price (base_price). Its
+// components are other menu_items_v2 rows joined via menu_set_components.
+// Components serve two purposes:
+//   1. Display on the order screen so the customer/staff sees what's included.
+//   2. Inventory: when a set is sold, each component's recipe should be
+//      consumed (wired up in Sprint 2.7 alongside MENU migration).
+//
+// Validation rules:
+//   * The host item MUST have kind='set' to receive components.
+//   * A component cannot be a 'set' (no nested sets).
+//   * A component cannot be the host itself (no self-loops).
+
+function loadSetComponents(setId) {
+  return db.prepare(`
+    SELECT sc.component_item_id AS item_id, sc.quantity, sc.sort_order,
+           i.code, i.name_en, i.name_ar, i.name_ko, i.emoji, i.photo_url,
+           i.base_price, i.sold_out
+    FROM menu_set_components sc
+    JOIN menu_items_v2 i ON i.id = sc.component_item_id
+    WHERE sc.set_item_id = ?
+    ORDER BY sc.sort_order
+  `).all(setId).map(r => ({ ...r, sold_out: r.sold_out === 1 }));
+}
+
+app.get('/api/admin/menu/items/:id/set-components', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const item = db.prepare('SELECT id, kind FROM menu_items_v2 WHERE id=?').get(id);
+  if (!item) return res.status(404).json({ error: 'not_found' });
+  res.json({ item_id: id, kind: item.kind, components: loadSetComponents(id) });
+});
+
+// PUT replaces the full component list atomically (mirrors the modifier-groups
+// endpoint pattern from 2.4 — cleaner than per-row CRUD for an admin UI).
+app.put('/api/admin/menu/items/:id/set-components', requireMenuEdit, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const item = db.prepare('SELECT id, kind FROM menu_items_v2 WHERE id=?').get(id);
+  if (!item) return res.status(404).json({ error: 'not_found' });
+  if (item.kind !== 'set') return res.status(400).json({ error: 'not_a_set', detail: 'item.kind must be "set" first' });
+
+  const body = req.body || {};
+  if (!Array.isArray(body.components))
+    return res.status(400).json({ error: 'components_required' });
+
+  const clean = [];
+  const seen = new Set();
+  for (const c of body.components) {
+    const compId = parseInt(c?.item_id ?? c?.component_item_id, 10);
+    const qty = Math.max(1, Math.floor(Number(c?.quantity) || 1));
+    if (!Number.isFinite(compId)) continue;
+    if (compId === id) return res.status(400).json({ error: 'self_loop', detail: 'set cannot include itself' });
+    if (seen.has(compId)) continue;
+    const comp = db.prepare('SELECT id, kind FROM menu_items_v2 WHERE id=?').get(compId);
+    if (!comp) return res.status(400).json({ error: 'invalid_component', component_id: compId });
+    if (comp.kind === 'set') return res.status(400).json({ error: 'nested_set_forbidden', component_id: compId });
+    clean.push({ component_id: compId, quantity: qty });
+    seen.add(compId);
+  }
+
+  const before = loadSetComponents(id);
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM menu_set_components WHERE set_item_id=?').run(id);
+    const ins = db.prepare('INSERT INTO menu_set_components (set_item_id, component_item_id, quantity, sort_order) VALUES (?,?,?,?)');
+    clean.forEach((c, idx) => ins.run(id, c.component_id, c.quantity, (idx + 1) * 10));
+  });
+  tx();
+
+  const after = loadSetComponents(id);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.item.set_components',
+    target_type: 'menu_item',
+    target_id: id,
+    before: { components: before.map(c => ({ id: c.item_id, qty: c.quantity })) },
+    after:  { components: after.map(c  => ({ id: c.item_id, qty: c.quantity })) },
+    ip: req.ip
+  });
+
+  res.json({ success: true, components: after });
 });
 
 // جلب قائمة الكاشيرين (للمدير فقط)
@@ -1546,17 +3309,62 @@ const MAX_UNIT_PRICE = 1_000_000; // IQD per unit hard cap (anti-overflow)
 const TAX_RATE = 0.10;
 function getServerExpectedTotal(items) {
   if (!Array.isArray(items) || items.length === 0) return { expected: 0, ok: false };
+
   const priceRows = db.prepare('SELECT menu_item, selling_price FROM menu_prices').all();
   const priceMap = new Map();
   for (const r of priceRows) priceMap.set(r.menu_item, Number(r.selling_price) || 0);
+
+  const getV2ById   = db.prepare('SELECT base_price FROM menu_items_v2 WHERE id=?');
+  const getV2ByCode = db.prepare('SELECT base_price FROM menu_items_v2 WHERE code=?');
+  const getV2ByName = db.prepare('SELECT base_price FROM menu_items_v2 WHERE name_en=? OR name_ko=? OR name_ar=? LIMIT 1');
+
+  function resolveBasePrice(it) {
+    // base_price=0 in menu_items_v2 is treated as "price not configured" so we
+    // fall through to client/menu_prices instead of locking the order to 0.
+    if (it.menu_item_id != null) {
+      const r = getV2ById.get(parseInt(it.menu_item_id, 10));
+      const p = Number(r && r.base_price) || 0;
+      if (p > 0) return p;
+    }
+    if (it.code) {
+      const r = getV2ByCode.get(String(it.code));
+      const p = Number(r && r.base_price) || 0;
+      if (p > 0) return p;
+    }
+    if (it.name) {
+      const r = getV2ByName.get(it.name, it.name, it.name);
+      const p = Number(r && r.base_price) || 0;
+      if (p > 0) return p;
+      if (priceMap.has(it.name)) {
+        const mp = Number(priceMap.get(it.name)) || 0;
+        if (mp > 0) return mp;
+      }
+    }
+    // last resort: trust client price, capped
+    return Math.max(0, Math.min(MAX_UNIT_PRICE, Number(it && (it.price ?? it.p)) || 0));
+  }
+
+  function resolveModifierDelta(it) {
+    const raw = Array.isArray(it.modifier_option_ids) ? it.modifier_option_ids
+              : Array.isArray(it.modifiers) ? it.modifiers
+              : [];
+    if (!raw.length) return 0;
+    const ids = raw.map(x => parseInt(x, 10)).filter(Number.isFinite);
+    if (!ids.length) return 0;
+    const placeholders = ids.map(() => '?').join(',');
+    const row = db.prepare(
+      `SELECT COALESCE(SUM(price_delta_iqd),0) AS s FROM menu_modifier_options WHERE id IN (${placeholders})`
+    ).get(...ids);
+    return Number(row?.s) || 0;
+  }
+
   let subtotal = 0;
   for (const it of items) {
-    const name = it && it.name;
     const qty = Math.max(0, Math.floor(Number(it && (it.qty ?? it.q ?? it.quantity)) || 0));
-    if (!name || qty <= 0) continue;
-    const serverPrice = priceMap.has(name) ? priceMap.get(name) : null;
-    const clientPrice = Math.max(0, Math.min(MAX_UNIT_PRICE, Number(it && (it.price ?? it.p)) || 0));
-    const unitPrice = serverPrice != null ? serverPrice : clientPrice;
+    if (qty <= 0) continue;
+    const base = resolveBasePrice(it);
+    const delta = resolveModifierDelta(it);
+    const unitPrice = Math.max(0, Math.min(MAX_UNIT_PRICE, base + delta));
     subtotal += unitPrice * qty;
   }
   const tax = Math.round(subtotal * TAX_RATE);
@@ -1566,7 +3374,8 @@ function getServerExpectedTotal(items) {
 
 // إنشاء طلب (الموقع → الخادم)
 app.post('/api/orders', orderLimiter, optionalCustomer, (req, res) => {
-  let { type, tableNum, customerName, customerPhone, arrivalTime, items, total, source } = req.body;
+  let { type, tableNum, customerName, customerPhone, arrivalTime, items, total, source,
+        discount_kind, discount_value, manager_override } = req.body;
   if (!type || !items?.length || total == null)
     return res.status(400).json({ error: 'Invalid order data / بيانات الطلب غير صحيحة' });
 
@@ -1575,7 +3384,7 @@ app.post('/api/orders', orderLimiter, optionalCustomer, (req, res) => {
   const numericTotal = Number(total);
   if (!Number.isFinite(numericTotal) || numericTotal < 0)
     return res.status(400).json({ error: 'Invalid total / إجمالي غير صالح' });
-  const { expected: serverExpected } = getServerExpectedTotal(items);
+  const { expected: serverExpected, subtotal: serverSubtotal } = getServerExpectedTotal(items);
   if (numericTotal > serverExpected + 1) {
     return res.status(400).json({ error: 'PRICE_MISMATCH', expected: serverExpected, received: numericTotal });
   }
@@ -1583,19 +3392,29 @@ app.post('/api/orders', orderLimiter, optionalCustomer, (req, res) => {
   source = (source === 'online') ? 'online' : 'cashier';
   if (type === 'pickup' && !arrivalTime)
     return res.status(400).json({ error: 'Pickup orders require an arrival time / طلبات الاستلام تتطلب وقت الوصول' });
-  const isCashierOrAdmin = (() => {
+
+  // Resolve cashier identity for this request — needed for both QR fallback and
+  // Sprint 1.5 discount permission check. Returns either { cashier, isAdmin } or null.
+  function resolveCashierFromHeaders() {
     const adminToken = req.headers['x-auth-token'];
     if (adminToken) {
       const row = db.prepare('SELECT created_at FROM admin_sessions WHERE token=?').get(adminToken);
-      if (row && Date.now() - row.created_at <= ADMIN_SESSION_TTL) return true;
+      if (row && Date.now() - row.created_at <= ADMIN_SESSION_TTL) {
+        return { cashier: { id: 0, name: 'Admin', role: 'owner', permissions: getOwnerPermissions(), isAdmin: true } };
+      }
     }
     const cashierToken = req.headers['x-cashier-token'];
     if (cashierToken) {
-      const row = db.prepare('SELECT cs.created_at FROM cashier_sessions cs WHERE cs.token=?').get(cashierToken);
-      if (row && Date.now() - row.created_at <= CASHIER_SESSION_TTL) return true;
+      const row = db.prepare('SELECT cs.*, c.id as cid, c.name, c.role, c.role_id FROM cashier_sessions cs JOIN cashiers c ON c.id=cs.cashier_id WHERE cs.token=?').get(cashierToken);
+      if (row && (Date.now() - row.created_at) <= CASHIER_SESSION_TTL) {
+        const ctx = resolveCashierContext(row);
+        return { cashier: { id: row.cid, name: row.name, role: ctx.role, role_id: ctx.role_id, permissions: ctx.permissions, isAdmin: false } };
+      }
     }
-    return false;
-  })();
+    return null;
+  }
+  const authCtx = resolveCashierFromHeaders();
+  const isCashierOrAdmin = !!authCtx;
 
   if (type === 'dine' && !isCashierOrAdmin) {
     const { dineSessionToken } = req.body;
@@ -1603,6 +3422,68 @@ app.post('/api/orders', orderLimiter, optionalCustomer, (req, res) => {
     const session = db.prepare('SELECT * FROM dine_sessions WHERE session_token=?').get(dineSessionToken);
     if (!session) return res.status(403).json({ error: 'QR_INVALID' });
     if (session.expires_at < Date.now()) return res.status(403).json({ error: 'QR_EXPIRED' });
+  }
+
+  // ── Sprint 1.5: discount permission gating (cashier orders only) ───────
+  let discountAuditPayload = null;
+  if (isCashierOrAdmin && discount_kind && Number(discount_value) > 0) {
+    const actor = authCtx.cashier;
+    const kind = (discount_kind === 'fixed') ? 'fixed' : 'percent';
+    const value = Number(discount_value);
+
+    // determine permission keys involved
+    const boolKey  = (kind === 'fixed') ? 'discount_fixed'        : 'discount_percent';
+    const limitKey = (kind === 'fixed') ? 'discount_fixed_max_iqd' : 'discount_percent_max';
+
+    const actorAllowed = actor.permissions?.[boolKey] === true;
+    const actorLimit   = Number(actor.permissions?.[limitKey]) || 0;
+    const dailyLimit   = Number(actor.permissions?.discount_daily_count_limit) || 0;
+
+    // count today's discount audit_log entries for this actor
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const todayCount = db.prepare(
+      "SELECT COUNT(*) AS c FROM audit_log WHERE actor_id=? AND action='order.discount_applied' AND at>=?"
+    ).get(actor.id || 0, startOfDay.getTime()).c;
+
+    const overflowsValue = value > actorLimit;
+    const overflowsCount = todayCount >= dailyLimit;
+    const needsManager   = !actorAllowed || overflowsValue || overflowsCount;
+
+    let approver = null;
+    let reason   = null;
+    if (needsManager) {
+      if (!manager_override || !manager_override.name || !manager_override.password) {
+        return res.status(403).json({
+          error: 'permission_denied',
+          missing: boolKey,
+          reason: !actorAllowed ? 'no_permission' : (overflowsValue ? 'limit_exceeded' : 'daily_count_exceeded'),
+          actor_limit: actorLimit,
+          today_count: todayCount,
+          daily_limit: dailyLimit,
+          value: value,
+          kind: kind
+        });
+      }
+      if (!manager_override.reason || !String(manager_override.reason).trim()) {
+        return res.status(400).json({ error: 'reason_required' });
+      }
+      const v = validateManagerOverride({
+        manager_name: manager_override.name,
+        manager_password: manager_override.password,
+        required_perm: boolKey
+      });
+      if (!v.ok) return res.status(401).json({ error: v.error });
+      const mgrRow = db.prepare('SELECT * FROM cashiers WHERE id=?').get(v.approver.id);
+      const mgrCtx = resolveCashierContext(mgrRow);
+      const mgrLimit = Number(mgrCtx.permissions?.[limitKey]) || 0;
+      if (value > mgrLimit) {
+        return res.status(403).json({ error: 'manager_limit_exceeded', approver_limit: mgrLimit, value });
+      }
+      approver = v.approver;
+      reason   = String(manager_override.reason).trim();
+    }
+    discountAuditPayload = { actor, approver, reason, kind, value };
   }
 
   // ملء معلومات العميل تلقائياً: إذا كان مسجلاً، يُجلب الاسم/الهاتف من قاعدة البيانات
@@ -1631,6 +3512,21 @@ app.post('/api/orders', orderLimiter, optionalCustomer, (req, res) => {
 
     const order = parseOrder(createOrder());
     broadcastSSE({ type: 'new_order', order });
+
+    // Sprint 1.5: audit (after order insert so target_id matches)
+    if (discountAuditPayload) {
+      writeAudit({
+        actor: discountAuditPayload.actor,
+        approver: discountAuditPayload.approver,
+        reason: discountAuditPayload.reason,
+        action: 'order.discount_applied',
+        target_type: 'order',
+        target_id: order.id,
+        after: { kind: discountAuditPayload.kind, value: discountAuditPayload.value, total },
+        ip: req.ip
+      });
+    }
+
     res.json({ success: true, order });
   } catch (e) {
     console.error('خطأ في إنشاء الطلب:', e);
@@ -1780,8 +3676,17 @@ app.put('/api/orders/:id/status', requireCashierOrAdmin, (req, res) => {
 });
 
 // استرداد طلب (refund) — يستعيد المخزون وفقاً للوصفات ويسجّل الحدث
+//
+// Sprint 1.5 permission gating:
+//   1. Caller must hold `refund` permission.
+//      If not, body must contain manager_override = { name, password, reason };
+//      the manager must hold `refund`.
+//   2. Refund amount must not exceed the actor's `refund_max_iqd` limit.
+//      If it does, manager_override is required AND the manager's
+//      `refund_max_iqd` must cover the amount.
+//   3. Every refund writes audit_log with actor + (optional) approver + reason.
 app.post('/api/orders/:id/refund', requireCashierOrAdmin, (req, res) => {
-  const { lines, total, full } = req.body || {};
+  const { lines, total, full, manager_override } = req.body || {};
   if (!Array.isArray(lines) || lines.length === 0) {
     return res.status(400).json({ error: 'بنود الاسترداد مطلوبة' });
   }
@@ -1789,11 +3694,70 @@ app.post('/api/orders/:id/refund', requireCashierOrAdmin, (req, res) => {
   if (refundAmount <= 0) {
     return res.status(400).json({ error: 'مبلغ الاسترداد غير صالح' });
   }
-  // CRITICAL: server-side refund amount validation against menu_prices.
-  // Client may not refund more than the lines × server price + tax.
-  const { expected: serverExpectedRefund } = getServerExpectedTotal(lines);
+  // CRITICAL: refund amount must not exceed the prices LOCKED into the original
+  // order (refund lines themselves carry only {name, qty} — the price is the
+  // source of truth at the order, not in the live menu).
+  const orderRowForPricing = db.prepare("SELECT * FROM orders WHERE id=?").get(req.params.id);
+  if (!orderRowForPricing) return res.status(404).json({ error: 'الطلب غير موجود' });
+  const parsedForPricing = parseOrder(orderRowForPricing);
+  const orderItemsForPricing = Array.isArray(parsedForPricing.items) ? parsedForPricing.items : [];
+  const priceByName = new Map();
+  for (const it of orderItemsForPricing) {
+    const nm = it && it.name;
+    const p  = Number(it && (it.price ?? it.p)) || 0;
+    if (nm && !priceByName.has(nm)) priceByName.set(nm, p);
+  }
+  const linesWithPrice = lines.map(ln => {
+    const nm = ln && ln.name;
+    if (ln && (ln.price != null)) return ln;
+    if (nm && priceByName.has(nm)) return { ...ln, price: priceByName.get(nm) };
+    return ln;
+  });
+  const { expected: serverExpectedRefund } = getServerExpectedTotal(linesWithPrice);
   if (refundAmount > serverExpectedRefund + 1) {
     return res.status(400).json({ error: 'REFUND_PRICE_MISMATCH', expected: serverExpectedRefund, received: refundAmount });
+  }
+
+  // ── Permission gating ──────────────────────────────────────────────────
+  const actor = req.cashier;
+  const actorPerm   = actor.permissions?.refund === true;
+  const actorLimit  = Number(actor.permissions?.refund_max_iqd) || 0;
+  const overflows   = refundAmount > actorLimit;
+  const needsManager = !actorPerm || overflows;
+  let approver = null;
+  let reason   = null;
+  if (needsManager) {
+    if (!manager_override || !manager_override.name || !manager_override.password) {
+      return res.status(403).json({
+        error: 'permission_denied',
+        missing: 'refund',
+        reason: !actorPerm ? 'no_permission' : 'limit_exceeded',
+        actor_limit: actorLimit,
+        amount: refundAmount
+      });
+    }
+    if (!manager_override.reason || !String(manager_override.reason).trim()) {
+      return res.status(400).json({ error: 'reason_required' });
+    }
+    const v = validateManagerOverride({
+      manager_name: manager_override.name,
+      manager_password: manager_override.password,
+      required_perm: 'refund'
+    });
+    if (!v.ok) return res.status(401).json({ error: v.error });
+    // manager's own limit must cover the refund amount
+    const mgrRow = db.prepare('SELECT * FROM cashiers WHERE id=?').get(v.approver.id);
+    const mgrCtx = resolveCashierContext(mgrRow);
+    const mgrLimit = Number(mgrCtx.permissions?.refund_max_iqd) || 0;
+    if (refundAmount > mgrLimit) {
+      return res.status(403).json({
+        error: 'manager_limit_exceeded',
+        approver_limit: mgrLimit,
+        amount: refundAmount
+      });
+    }
+    approver = v.approver;
+    reason   = String(manager_override.reason).trim();
   }
 
   const cashierName = req.cashierName || null;
@@ -1896,11 +3860,92 @@ app.post('/api/orders/:id/refund', requireCashierOrAdmin, (req, res) => {
     broadcastSSE({ type: 'order_refunded', refund_id: refundId, order_id: order.id, amount: refundAmount, full: isFull, order: parsed });
     if (isFull) broadcastSSE({ type: 'order_updated', order: parsed });
 
+    // Sprint 1.5: audit
+    writeAudit({
+      actor: actor,
+      approver: approver,
+      reason: reason,
+      action: 'order.refund',
+      target_type: 'order',
+      target_id: order.id,
+      after: { refund_id: refundId, amount: refundAmount, full: isFull, lines: lines.length },
+      ip: req.ip
+    });
+
     res.json({ success: true, refund_id: refundId, amount: refundAmount, full: isFull, order: parsed });
   } catch (e) {
     console.error('خطأ في الاسترداد:', e);
     res.status(500).json({ error: 'فشل في الاسترداد' });
   }
+});
+
+// ─── Sprint 1.5: shift close ─────────────────────────────────────────────
+// Frontend posts the shift summary (opening cash, counted cash, cash sales,
+// txn count, started_at). Server enforces permission gating and writes
+// audit_log. If counted != expected (variance != 0), the actor must hold
+// `close_shift_force` OR provide manager_override.
+app.post('/api/shift/close', requireCashierOrAdmin, (req, res) => {
+  const { opening_cash, counted_cash, cash_sales, txn_count, started_at, manager_override } = req.body || {};
+  const opening = Number(opening_cash) || 0;
+  const counted = Number(counted_cash) || 0;
+  const sales   = Number(cash_sales)   || 0;
+  const expected = opening + sales;
+  const variance = counted - expected;
+
+  const actor = req.cashier;
+  if (actor.permissions?.close_shift !== true) {
+    return res.status(403).json({ error: 'permission_denied', missing: 'close_shift' });
+  }
+
+  let approver = null;
+  let reason   = null;
+  const hasVariance = Math.abs(variance) > 0;
+  if (hasVariance && actor.permissions?.close_shift_force !== true) {
+    if (!manager_override || !manager_override.name || !manager_override.password) {
+      return res.status(403).json({
+        error: 'permission_denied',
+        missing: 'close_shift_force',
+        reason: 'variance_present',
+        variance, expected, counted
+      });
+    }
+    if (!manager_override.reason || !String(manager_override.reason).trim()) {
+      return res.status(400).json({ error: 'reason_required' });
+    }
+    const v = validateManagerOverride({
+      manager_name: manager_override.name,
+      manager_password: manager_override.password,
+      required_perm: 'close_shift_force'
+    });
+    if (!v.ok) return res.status(401).json({ error: v.error });
+    approver = v.approver;
+    reason   = String(manager_override.reason).trim();
+  }
+
+  writeAudit({
+    actor: actor,
+    approver: approver,
+    reason: reason,
+    action: 'shift.close',
+    target_type: 'shift',
+    target_id: started_at || String(Date.now()),
+    after: {
+      opening_cash: opening,
+      counted_cash: counted,
+      cash_sales:   sales,
+      expected,
+      variance,
+      txn_count: Number(txn_count) || 0
+    },
+    ip: req.ip
+  });
+
+  res.json({
+    success: true,
+    expected,
+    variance,
+    forced: !!approver
+  });
 });
 
 // تذكرة بث SSE — يطلبها العميل عبر POST موثّق ثم يستخدمها مرّة واحدة في EventSource
@@ -1934,6 +3979,7 @@ app.get('/api/orders/stream', (req, res) => {
 
   sseClients.add(res);
   const heartbeat = setInterval(() => {
+    // client disconnected; req.on('close') will clear interval
     try { res.write(':heartbeat\n\n'); } catch (_) { }
   }, 25000);
 
@@ -2002,10 +4048,34 @@ function parseOrder(row) {
 // ─── INGREDIENTS ──────────────────────────────────────────────────────────────
 
 // 컬럼 없으면 추가 (기존 DB 마이그레이션)
-try { db.prepare("ALTER TABLE ingredients ADD COLUMN category TEXT NOT NULL DEFAULT '기타'").run(); } catch { }
-try { db.prepare("ALTER TABLE ingredients ADD COLUMN capacity_ml INTEGER NOT NULL DEFAULT 0").run(); } catch { }
-try { db.prepare("ALTER TABLE recipes ADD COLUMN menu_category TEXT NOT NULL DEFAULT '기타'").run(); } catch { }
-try { db.prepare("ALTER TABLE recipes ADD COLUMN unit TEXT NOT NULL DEFAULT 'ml'").run(); } catch { }
+tryAlter("ALTER TABLE ingredients ADD COLUMN category TEXT NOT NULL DEFAULT '기타'");
+tryAlter("ALTER TABLE ingredients ADD COLUMN capacity_ml INTEGER NOT NULL DEFAULT 0");
+tryAlter("ALTER TABLE recipes ADD COLUMN menu_category TEXT NOT NULL DEFAULT '기타'");
+tryAlter("ALTER TABLE recipes ADD COLUMN unit TEXT NOT NULL DEFAULT 'ml'");
+tryAlter("ALTER TABLE recipes ADD COLUMN menu_item_id INTEGER REFERENCES menu_items_v2(id) ON DELETE CASCADE");
+tryAlter("CREATE INDEX IF NOT EXISTS idx_recipes_menu_item_id ON recipes(menu_item_id)");
+
+// recipes.menu_item (text) → menu_item_id 백필: code/name_en/name_ko/name_ar 매칭
+(function backfillRecipesMenuItemId() {
+  try {
+    const rows = db.prepare(`SELECT DISTINCT menu_item FROM recipes WHERE menu_item_id IS NULL AND menu_item IS NOT NULL`).all();
+    if (!rows.length) return;
+    const findItem = db.prepare(`
+      SELECT id FROM menu_items_v2
+      WHERE code = ? OR name_en = ? OR name_ko = ? OR name_ar = ?
+      LIMIT 1
+    `);
+    const upd = db.prepare(`UPDATE recipes SET menu_item_id = ? WHERE menu_item = ? AND menu_item_id IS NULL`);
+    let matched = 0;
+    for (const { menu_item: m } of rows) {
+      const hit = findItem.get(m, m, m, m);
+      if (hit) { upd.run(hit.id, m); matched++; }
+    }
+    if (matched) console.log(`[migrate] recipes.menu_item_id backfilled: ${matched}/${rows.length}`);
+  } catch (e) {
+    console.warn('[migrate] recipes.menu_item_id backfill failed', e.message);
+  }
+})();
 
 // 이름에서 용량(mL/g) 자동 파싱 — capacity_ml = 0 인 재료만 업데이트
 (function migrateCapacityFromName() {
@@ -2380,7 +4450,7 @@ app.delete('/api/ingredients/:id', requireAuth, (req, res) => {
       if (full.startsWith(path.resolve(UPLOAD_DIR) + path.sep) && fs.existsSync(full)) {
         fs.unlinkSync(full);
       }
-    } catch (_) { }
+    } catch (e) { console.warn('[ingredient-delete] image unlink failed', existing.image_path, e.message); }
   }
   res.json({ success: true });
 });
@@ -2413,7 +4483,7 @@ app.post('/api/ingredients/:id/image', requireAuth, (req, res) => {
         if (oldFull.startsWith(path.resolve(UPLOAD_DIR) + path.sep) && fs.existsSync(oldFull)) {
           fs.unlinkSync(oldFull);
         }
-      } catch (_) { }
+      } catch (e) { console.warn('[ingredient-image-replace] old unlink failed', existing.image_path, e.message); }
     }
     db.prepare('UPDATE ingredients SET image_path=? WHERE id=?').run(newPath, id);
     res.json({ success: true, image_path: newPath });
@@ -2610,17 +4680,40 @@ app.get('/api/recipes', requireAuth, (req, res) => {
 });
 
 app.post('/api/recipes', requireAuth, (req, res) => {
-  const { menu_item, items, menu_category } = req.body;
-  if (!menu_item || !items?.length)
+  const { menu_item, menu_item_id, items, menu_category } = req.body;
+  const mid = menu_item_id != null ? parseInt(menu_item_id, 10) : null;
+  if ((!mid && !menu_item) || !items?.length)
     return res.status(400).json({ error: 'أدخل اسم القائمة والمواد' });
-  const category = (menu_category && menu_category.trim()) ? menu_category.trim() : '기타';
-  const del = db.prepare('DELETE FROM recipes WHERE menu_item=?');
-  const ins = db.prepare('INSERT INTO recipes (menu_item, ingredient_id, quantity, menu_category, unit) VALUES (?,?,?,?,?)');
-  del.run(menu_item);
-  for (const item of items) {
-    const unit = ['ml', 'g'].includes(item.unit) ? item.unit : 'ml';
-    ins.run(menu_item, item.ingredient_id, item.quantity, category, unit);
+
+  // Resolve canonical menu_item text from menu_items_v2 if id supplied (so recipes
+  // stay aligned even if the caller didn't echo back the latest name).
+  let nameText = menu_item ? String(menu_item).trim() : null;
+  let menuRow = null;
+  if (mid) {
+    menuRow = db.prepare('SELECT id, code, name_en, name_ko, name_ar FROM menu_items_v2 WHERE id=?').get(mid);
+    if (!menuRow) return res.status(400).json({ error: 'invalid_menu_item_id' });
+    if (!nameText) nameText = menuRow.name_en || menuRow.name_ko || menuRow.code;
   }
+
+  const category = (menu_category && menu_category.trim()) ? menu_category.trim() : '기타';
+  const ins = db.prepare(`INSERT INTO recipes
+    (menu_item, ingredient_id, quantity, menu_category, unit, menu_item_id)
+    VALUES (?,?,?,?,?,?)`);
+
+  const tx = db.transaction(() => {
+    if (mid) {
+      db.prepare('DELETE FROM recipes WHERE menu_item_id=?').run(mid);
+      // also clean any legacy text-only rows for the same name to avoid duplicates
+      if (nameText) db.prepare('DELETE FROM recipes WHERE menu_item=? AND menu_item_id IS NULL').run(nameText);
+    } else {
+      db.prepare('DELETE FROM recipes WHERE menu_item=?').run(nameText);
+    }
+    for (const item of items) {
+      const unit = ['ml', 'g'].includes(item.unit) ? item.unit : 'ml';
+      ins.run(nameText, item.ingredient_id, item.quantity, category, unit, mid);
+    }
+  });
+  tx();
   res.json({ success: true });
 });
 
@@ -2629,17 +4722,78 @@ app.delete('/api/recipes/menu/:menuItem', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
+app.delete('/api/recipes/by-id/:id', requireAuth, (req, res) => {
+  const mid = parseInt(req.params.id, 10);
+  if (!Number.isFinite(mid)) return res.status(400).json({ error: 'invalid_id' });
+  db.prepare('DELETE FROM recipes WHERE menu_item_id=?').run(mid);
+  res.json({ success: true });
+});
+
+function computeRecipeCost(rows) {
+  return rows.reduce((s, r) => {
+    const unitCost = r.capacity_ml > 0 ? r.cost_per_unit / r.capacity_ml : r.cost_per_unit;
+    return s + r.quantity * unitCost;
+  }, 0);
+}
+
 app.get('/api/cost/:menuItem', requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT r.quantity, i.cost_per_unit, i.unit, i.name_ko, i.capacity_ml
     FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
     WHERE r.menu_item=?
   `).all(req.params.menuItem);
-  const total = rows.reduce((s, r) => {
-    const unitCost = r.capacity_ml > 0 ? r.cost_per_unit / r.capacity_ml : r.cost_per_unit;
-    return s + r.quantity * unitCost;
-  }, 0);
-  res.json({ menu_item: req.params.menuItem, items: rows, total_cost: Math.round(total) });
+  res.json({ menu_item: req.params.menuItem, items: rows, total_cost: Math.round(computeRecipeCost(rows)) });
+});
+
+app.get('/api/cost/by-id/:id', requireAuth, (req, res) => {
+  const mid = parseInt(req.params.id, 10);
+  if (!Number.isFinite(mid)) return res.status(400).json({ error: 'invalid_id' });
+  const rows = db.prepare(`
+    SELECT r.quantity, i.cost_per_unit, i.unit, i.name_ko, i.capacity_ml
+    FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
+    WHERE r.menu_item_id=?
+  `).all(mid);
+  res.json({ menu_item_id: mid, items: rows, total_cost: Math.round(computeRecipeCost(rows)) });
+});
+
+// Combined view for the warehouse "Menu" tab: every menu_items_v2 row plus its
+// recipe-derived unit cost. Front-end can group by category and show margin.
+app.get('/api/menu/with-cost', requireAuth, (req, res) => {
+  const items = db.prepare(`
+    SELECT m.*,
+           c.code AS category_code,
+           c.name_en AS category_name_en,
+           c.name_ar AS category_name_ar,
+           c.name_ko AS category_name_ko,
+           c.sort_order AS category_sort
+    FROM menu_items_v2 m
+    LEFT JOIN menu_categories c ON c.id = m.category_id
+    ORDER BY COALESCE(c.sort_order, 9999), c.id, m.sort_order, m.id
+  `).all();
+  const recipeStmt = db.prepare(`
+    SELECT r.id AS recipe_id, r.quantity, r.unit AS recipe_unit,
+           i.id AS ingredient_id, i.name_ko, i.name_ar, i.unit AS ing_unit,
+           i.cost_per_unit, i.capacity_ml
+    FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
+    WHERE r.menu_item_id = ?
+  `);
+  // Legacy fallback for recipes whose menu_item_id couldn't be backfilled.
+  const legacyStmt = db.prepare(`
+    SELECT r.id AS recipe_id, r.quantity, r.unit AS recipe_unit,
+           i.id AS ingredient_id, i.name_ko, i.name_ar, i.unit AS ing_unit,
+           i.cost_per_unit, i.capacity_ml
+    FROM recipes r JOIN ingredients i ON r.ingredient_id = i.id
+    WHERE r.menu_item_id IS NULL AND (r.menu_item = ? OR r.menu_item = ? OR r.menu_item = ?)
+  `);
+  const out = items.map(it => {
+    let recipe = recipeStmt.all(it.id);
+    if (!recipe.length) {
+      recipe = legacyStmt.all(it.code, it.name_en, it.name_ko);
+    }
+    const cost = Math.round(computeRecipeCost(recipe));
+    return { ...it, cost, recipe };
+  });
+  res.json(out);
 });
 
 // ─── DAILY SALES ──────────────────────────────────────────────────────────────
@@ -2871,18 +5025,46 @@ app.get('/api/stamps/lookup', requireCashierOrAdmin, (req, res) => {
 
 // ─── RESERVATIONS ─────────────────────────────────────────────────────────────
 
+// Slots: 07:00 ~ 01:00 (next-day). nextDay=true → 영업일 다음날 새벽 (Iraq UTC+3).
+const RESERVATION_SLOTS = [
+  { time: '07:00', nextDay: false }, { time: '08:00', nextDay: false },
+  { time: '09:00', nextDay: false }, { time: '10:00', nextDay: false },
+  { time: '11:00', nextDay: false }, { time: '12:00', nextDay: false },
+  { time: '13:00', nextDay: false }, { time: '14:00', nextDay: false },
+  { time: '15:00', nextDay: false }, { time: '16:00', nextDay: false },
+  { time: '17:00', nextDay: false }, { time: '18:00', nextDay: false },
+  { time: '19:00', nextDay: false }, { time: '20:00', nextDay: false },
+  { time: '21:00', nextDay: false }, { time: '22:00', nextDay: false },
+  { time: '23:00', nextDay: false }, { time: '00:00', nextDay: true  },
+  { time: '01:00', nextDay: true  },
+];
+function slotInstantMs(dateStr, time, nextDay) {
+  const [Y, M, D] = dateStr.split('-').map(Number);
+  const [h, m] = time.split(':').map(Number);
+  const day = D + (nextDay ? 1 : 0);
+  return Date.UTC(Y, M - 1, day, h - 3, m, 0);
+}
+function isSlotPast(dateStr, time, nextDay) {
+  return slotInstantMs(dateStr, time, nextDay) <= Date.now();
+}
+
 // إنشاء حجز (العميل — تسجيل الدخول اختياري)
 app.post('/api/reservations', reservationLimiter, optionalCustomer, (req, res) => {
   const { name, phone, date, time, party_size, notes, table_num } = req.body;
   if (!name || !phone || !date || !time)
     return res.status(400).json({ error: 'Name, phone, date and time are required / الاسم والهاتف والتاريخ والوقت مطلوبة' });
+  const ALLOWED_AREAS = ['floor_1', 'floor_2', 'study_room'];
+  if (!table_num || !ALLOWED_AREAS.includes(table_num))
+    return res.status(400).json({ error: 'Please choose an area: Floor 1, Floor 2, or Study Room / يرجى اختيار المنطقة: الطابق الأول، الطابق الثاني، أو غرفة الدراسة' });
   if (party_size && (party_size < 1 || party_size > 20))
     return res.status(400).json({ error: 'Party size must be 1–20' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
     return res.status(400).json({ error: 'Invalid date format' });
-  const todayStr = new Date().toISOString().split('T')[0];
-  if (date < todayStr)
-    return res.status(400).json({ error: 'Cannot book a date in the past / لا يمكن حجز تاريخ في الماضي' });
+  const slotDef = RESERVATION_SLOTS.find(s => s.time === time);
+  if (!slotDef)
+    return res.status(400).json({ error: 'Invalid time slot / فترة وقت غير صالحة' });
+  if (isSlotPast(date, slotDef.time, slotDef.nextDay))
+    return res.status(400).json({ error: 'Cannot book a past time / لا يمكن حجز وقت قد مضى' });
 
   // منع التكرار في نفس التاريخ/الوقت (حد أقصى 4 مجموعات)
   const existing = db.prepare("SELECT COUNT(*) as cnt FROM reservations WHERE date=? AND time=? AND status != 'cancelled'").get(date, time);
@@ -2927,11 +5109,15 @@ app.put('/api/reservations/:id/status', requireCashierOrAdmin, (req, res) => {
 app.get('/api/reservations/availability', (req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'date مطلوب' });
-  const ALL_SLOTS = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
   const rows = db.prepare("SELECT time, COUNT(*) as count FROM reservations WHERE date=? AND status != 'cancelled' GROUP BY time").all(date);
   const slotMap = {};
   rows.forEach(r => { slotMap[r.time] = r.count; });
-  const slots = ALL_SLOTS.map(t => ({ time: t, count: slotMap[t] || 0 }));
+  const slots = RESERVATION_SLOTS.map(s => ({
+    time: s.time,
+    count: slotMap[s.time] || 0,
+    is_past: isSlotPast(date, s.time, s.nextDay),
+    is_next_day: s.nextDay,
+  }));
   res.json({ slots });
 });
 
@@ -3972,7 +6158,7 @@ function computeMenuSalesInRange(startStr, endStr) {
   `).all(startStr, endStr);
   const map = new Map();
   for (const o of orders) {
-    let items = []; try { items = JSON.parse(o.items || '[]'); } catch (_) { }
+    let items = []; try { items = JSON.parse(o.items || '[]'); } catch (e) { console.warn('[profit] order.items JSON parse failed, order_id=', o.id, e.message); }
     for (const it of (items || [])) {
       const nm = it && it.name; if (!nm) continue;
       const q = Number(it.qty ?? it.quantity) || 0;
@@ -3984,7 +6170,7 @@ function computeMenuSalesInRange(startStr, endStr) {
     }
   }
   for (const r of refunds) {
-    let lines = []; try { lines = JSON.parse(r.lines || '[]'); } catch (_) { }
+    let lines = []; try { lines = JSON.parse(r.lines || '[]'); } catch (e) { console.warn('[profit] refund.lines JSON parse failed, refund_id=', r.id, e.message); }
     for (const ln of (lines || [])) {
       const nm = ln && ln.name; if (!nm || !map.has(nm)) continue;
       const q = Number(ln.qty ?? ln.quantity) || 0;
@@ -4089,7 +6275,7 @@ app.get('/api/profitability/menu/:menu', requireAuth, (req, res) => {
   `).all(startStr, endStr);
   const dayMap = new Map();
   for (const o of orders) {
-    let items = []; try { items = JSON.parse(o.items || '[]'); } catch (_) { }
+    let items = []; try { items = JSON.parse(o.items || '[]'); } catch (e) { console.warn('[profit-trend] order.items JSON parse failed', e.message); }
     for (const it of (items || [])) {
       if (!it || it.name !== menu) continue;
       const q = Number(it.qty ?? it.quantity) || 0;
