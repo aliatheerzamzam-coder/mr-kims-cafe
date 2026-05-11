@@ -7,6 +7,9 @@
          stockStatus, exportCSV, exportXLS, exportJSON, audit, restoreIngredients} = MK;
   const {INV, CUSTOMERS, RESERVATIONS, PICKUPS, MENU} = MK_DATA;
 
+  // local esc for safe HTML interpolation (XSS guard)
+  const esc = (s)=> String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
   // ================== TABLES VIEW ==================
   let selTable = null;
   let currentFloor = (MK_DATA.FLOORS&&MK_DATA.FLOORS[0]) ? MK_DATA.FLOORS[0].id : 'F1';
@@ -317,8 +320,8 @@
     const L = T_();
     el.innerHTML = `
       <div class="tbl-detail">
-        <div class="id">${tbl.id} ${tbl.label?'· '+tbl.label:''}</div>
-        <div class="meta">${tbl.seats} ${L.seats} · ${tbl.shape}</div>
+        <div class="id">${esc(tbl.id)} ${tbl.label?'· '+esc(tbl.label):''}</div>
+        <div class="meta">${tbl.seats} ${L.seats} · ${esc(tbl.shape)}</div>
         <span class="st ${s.status}">● ${L[s.status]||s.status}</span>
         ${s.orderId?`<div style="margin-top:6px;font-family:var(--mk-font-mono);font-size:11px;color:#367d4d;font-weight:900">${s.orderId}</div>`:''}
       </div>
@@ -758,7 +761,7 @@
       const lines = items.map(i=>{
         const st = kdsStation(i.sku);
         const dim = (filter!=='all' && st!==filter) ? 'kl-dim' : '';
-        return `<div class="kl ${dim}"><div class="kn">${kdsStationBadge(st)}${i.q}× ${i.name}</div>${i.mods?`<div class="km">${i.mods}</div>`:''}</div>`;
+        return `<div class="kl ${dim}"><div class="kn">${kdsStationBadge(st)}${i.q}× ${esc(i.name)}</div>${i.mods?`<div class="km">${esc(i.mods)}</div>`:''}</div>`;
       }).join('');
       const nextAct = k.status==='incoming'?`<button class="kds-bump" onclick="MKV.kdsAdvance('${k.id}')">▶ ${L.preparing}</button>`:
                       k.status==='preparing'?`<button class="kds-bump" onclick="MKV.kdsAdvance('${k.id}')">✓ ${L.ready}</button>`:
@@ -881,17 +884,19 @@
   function _resName(r){ return r.name || r.name_ar || r.name_en || '—'; }
   function renderReservations(){
     const L = T_();
+    const AREA_LABELS = { floor_1: 'Floor 1', floor_2: 'Floor 2', study_room: 'Study Room' };
     const res = document.getElementById('rv-res');
     RESERVATIONS.sort((a,b)=> new Date(_resWhen(a)) - new Date(_resWhen(b)));
     res.innerHTML = RESERVATIONS.map(r=>{
       const when = _resWhen(r);
       const time = r.time || fmtTime(when);
-      const tblOrNotes = r.table || r.notes || '';
+      const areaLabel = r.table_num ? (AREA_LABELS[r.table_num] || r.table_num) : '';
+      const tblOrNotes = areaLabel || r.table || r.notes || '';
       return `<div class="rs-card res">
         <div class="tm"><div class="hh">${time}</div><div class="am">${r.party||1}${L.seats.charAt(0)}</div></div>
         <div>
-          <div class="m1">${_resName(r)}</div>
-          <div class="m2">${r.phone||'—'}${tblOrNotes?' · '+tblOrNotes:''} · ${L[r.status]||r.status||''}</div>
+          <div class="m1">${esc(_resName(r))}</div>
+          <div class="m2">${esc(r.phone||'—')}${tblOrNotes?' · 📍 '+esc(tblOrNotes):''} · ${L[r.status]||esc(r.status||'')}</div>
         </div>
         <div class="mact">
           <button class="prim" onclick="MKV.seatRes('${r.id}')">✓ ${L.seat}</button>
@@ -903,11 +908,11 @@
     const pk = document.getElementById('rv-pk');
     pk.innerHTML = PICKUPS.map(p=>{
       const time = fmtTime(p.at);
-      const items = p.items.map(i=>{ const it = MENU.find(m=>m.sku===i.sku); return `${i.q}× ${it?itemName(it):i.sku}`; }).join(', ');
+      const items = p.items.map(i=>{ const it = MENU.find(m=>m.sku===i.sku); return `${i.q}× ${esc(it?itemName(it):i.sku)}`; }).join(', ');
       return `<div class="rs-card pickup">
         <div class="tm"><div class="hh">${time}</div><div class="am">📱</div></div>
         <div>
-          <div class="m1">${p.name}</div>
+          <div class="m1">${esc(p.name)}</div>
           <div class="m2">${items} · ${fmtNum(p.total)} IQD</div>
         </div>
         <div class="mact">
@@ -988,34 +993,34 @@
       const time = fmtTime(o.at);
       const items = (o.items||[]).map(i=>{
         const qty = i.qty || i.q || 1;
-        const size = i.size ? `<span class="oo-size">${i.size}</span>` : '';
+        const size = i.size ? `<span class="oo-size">${esc(i.size)}</span>` : '';
         const price = (i.price!=null) ? `<div class="oo-line-price">${fmtNum(i.price*qty)} IQD</div>` : '';
         return `<div class="oo-line">
           <div class="oo-line-left">
             <span class="oo-qty">${qty}×</span>
-            <span class="oo-line-name">${_onlineItemName(i)}</span>
+            <span class="oo-line-name">${esc(_onlineItemName(i))}</span>
           </div>
           <div class="oo-line-right">${size}${price}</div>
         </div>`;
       }).join('');
       const tp = TYPE_MAP[o.type] || { label:(o.type||'ONLINE').toUpperCase(), icon:'📱', cls:'' };
       const cd = (o.type==='pickup') ? _arrivalCountdown(o.arrival_time) : null;
-      const cdHtml = cd ? `<div class="oo-cd ${cd.urgent?'urg':''}">⏰ ${L.arrivalTime}: <b>${fmtTime(o.arrival_time)}</b> · <b>${cd.text}</b></div>` : '';
+      const cdHtml = cd ? `<div class="oo-cd ${cd.urgent?'urg':''}">⏰ ${L.arrivalTime}: <b>${fmtTime(o.arrival_time)}</b> · <b>${esc(cd.text)}</b></div>` : '';
       const tableNum = o.table_num || o.table || o.tableNo || o.tableNum;
-      const tableHtml = (o.type==='dine' && tableNum) ? `<div class="oo-meta oo-table-row"><span class="oo-meta-k">🪑 TABLE</span><span class="oo-meta-v oo-table-v">${tableNum}</span></div>` : '';
+      const tableHtml = (o.type==='dine' && tableNum) ? `<div class="oo-meta oo-table-row"><span class="oo-meta-k">🪑 TABLE</span><span class="oo-meta-v oo-table-v">${esc(tableNum)}</span></div>` : '';
       const name = o.customer_name || '—';
       const phone = o.customer_phone || '—';
       return `<div class="oo-card ${cd&&cd.urgent?'urgent':''}">
         <div class="oo-banner ${tp.cls}">
           <span class="oo-banner-type">${tp.icon} ${tp.label}</span>
-          <span class="oo-banner-id">#${o.num||o.id}</span>
+          <span class="oo-banner-id">#${esc(o.num||o.id)}</span>
         </div>
         <div class="oo-top">
           <span class="oo-time">🕒 ${time}</span>
         </div>
         ${tableHtml}
-        <div class="oo-meta"><span class="oo-meta-k">👤 NAME</span><span class="oo-meta-v">${name}</span></div>
-        <div class="oo-meta"><span class="oo-meta-k">📞 PHONE</span><span class="oo-meta-v">${phone}</span></div>
+        <div class="oo-meta"><span class="oo-meta-k">👤 NAME</span><span class="oo-meta-v">${esc(name)}</span></div>
+        <div class="oo-meta"><span class="oo-meta-k">📞 PHONE</span><span class="oo-meta-v">${esc(phone)}</span></div>
         ${cdHtml}
         <div class="oo-items">${items}</div>
         <div class="oo-tot">${fmtNum(o.total||0)} IQD</div>
@@ -1105,7 +1110,7 @@
       const readyFree = c.stamps>=10 ? `<span class="stamp free">🎁</span> <small style="color:#10b981">${L.redeemStamp}!</small>` : `<small>${c.stamps}/10</small>`;
       return `<div class="cc">
         <div class="ct">
-          <div><div class="cn">${nm}</div><div class="cp">${c.phone} · ${c.id}</div></div>
+          <div><div class="cn">${esc(nm)}</div><div class="cp">${esc(c.phone)} · ${esc(c.id)}</div></div>
           <span class="tier ${c.tier}">${L[c.tier.toLowerCase()]||c.tier}</span>
         </div>
         <div class="stats">
@@ -1206,7 +1211,7 @@
 
   async function rptExport(kind){
     if(typeof MK_DATA.loadTxns === 'function'){
-      try { await MK_DATA.loadTxns(parseInt(rptRange)||1, _reportsHeaders()); } catch(_){}
+      try { await MK_DATA.loadTxns(parseInt(rptRange)||1, _reportsHeaders()); } catch(e){ console.warn('[pos-rptExport] loadTxns failed, exporting stale data', e); }
     }
     const cutoff = Date.now() - parseInt(rptRange)*86400000;
     const txns = MK_DATA.TXNS.filter(tx=> new Date(tx.at).getTime() >= cutoff);
@@ -1329,14 +1334,56 @@
     }
   }
 
-  function confirmShiftClose(){
+  async function confirmShiftClose(){
     const opening = parseFloat(document.getElementById('shift-open-cash')?.value)||0;
     const counted = parseFloat(document.getElementById('shift-counted-cash')?.value)||0;
     const cashSales = parseFloat(document.getElementById('shift-cash-sales-val')?.value)||0;
     const since = STATE.shift.startedAt;
     const txns = MK_DATA.TXNS.filter(tx=> !tx.id.startsWith('RF-') && tx.at >= since);
     const total = txns.reduce((s,tx)=>s+tx.total, 0);
-    // CSV export
+
+    // Sprint 1.5: server validates close_shift / close_shift_force permissions
+    // and audits. On 403 (variance + no force perm), prompt manager modal.
+    const submitClose = async (managerOverride) => {
+      return await fetch('/api/shift/close', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', ..._reportsHeaders() },
+        body: JSON.stringify({
+          opening_cash: opening,
+          counted_cash: counted,
+          cash_sales:   cashSales,
+          txn_count:    txns.length,
+          started_at:   since,
+          manager_override: managerOverride || undefined
+        })
+      });
+    };
+
+    let r = await submitClose(null);
+    if (r.status === 403) {
+      const err = await r.json().catch(()=>({}));
+      if (err.error === 'permission_denied' && err.missing === 'close_shift') {
+        MKO.toast('✕ Permission denied: close_shift', 'err');
+        return;
+      }
+      if (err.error === 'permission_denied' && err.missing === 'close_shift_force') {
+        if (!window.MKS?.requireManagerOverride) {
+          MKO.toast('✕ Manager approval required (module not loaded)', 'err');
+          return;
+        }
+        const hint = `Variance ${err.variance>0?'+':''}${err.variance} IQD requires manager approval`;
+        const ok = await window.MKS.requireManagerOverride('close_shift_force', hint);
+        if (!ok) { MKO.toast('Cancelled', 'warn'); return; }
+        r = await submitClose(ok);
+      }
+    }
+    if (!r.ok) {
+      const err = await r.json().catch(()=>({}));
+      MKO.toast('✕ '+(err.error || t('shiftClose')+' failed'), 'err');
+      return;
+    }
+
+    // CSV export (post-success)
     const rows = [
       ['ID','DateTime','Type','Table','Cashier','Payment','Total'],
       ...txns.map(tx=>[tx.id, tx.at, tx.type||'', tx.table||'', tx.cashier||'', tx.payment||'', tx.total])
@@ -1409,15 +1456,43 @@
     _refundBusy = true;
     if(btn) btn.disabled = true;
     try {
-      const r = await fetch('/api/orders/'+encodeURIComponent(_refundTxId)+'/refund', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', ..._reportsHeaders() },
-        body: JSON.stringify({
-          lines: lines.map(l=>({ name:l.name, qty:l.q, price:l.price })),
-          total: rfTotal,
-          full: isFull
-        })
-      });
+      // Sprint 1.5: send manager_override if available. The first attempt
+      // is made without one — server replies 403 with `missing` if the
+      // caller lacks permission or the amount exceeds their refund_max_iqd.
+      // We then prompt the manager modal and retry inline.
+      const submitRefund = async (managerOverride) => {
+        return await fetch('/api/orders/'+encodeURIComponent(_refundTxId)+'/refund', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', ..._reportsHeaders() },
+          body: JSON.stringify({
+            lines: lines.map(l=>({ name:l.name, qty:l.q, price:l.price })),
+            total: rfTotal,
+            full: isFull,
+            manager_override: managerOverride || undefined
+          })
+        });
+      };
+
+      let r = await submitRefund(null);
+      if (r.status === 403) {
+        const err = await r.json().catch(()=>({}));
+        if (err.error === 'permission_denied') {
+          // Trigger manager-override modal (settings module exposes it globally)
+          if (!window.MKS?.requireManagerOverride) {
+            MKO.toast('✕ Manager approval required (module not loaded)', 'err');
+            return;
+          }
+          const reasonHint = err.reason === 'limit_exceeded'
+            ? `Refund ${rfTotal} IQD exceeds your limit (${err.actor_limit||0} IQD)`
+            : 'Refund requires manager approval';
+          const ok = await window.MKS.requireManagerOverride('refund', reasonHint);
+          if (!ok) { MKO.toast('Cancelled', 'warn'); return; }
+          r = await submitRefund(ok);
+        } else if (err.error === 'manager_limit_exceeded') {
+          MKO.toast(`✕ Manager limit exceeded (${err.approver_limit||0} IQD)`, 'err');
+          return;
+        }
+      }
       if(!r.ok){
         const err = await r.json().catch(()=>({}));
         MKO.toast('✕ '+(err.error || t('refund')+' failed'), 'err');

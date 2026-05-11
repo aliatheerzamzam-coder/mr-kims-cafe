@@ -367,5 +367,56 @@ window.MK_DATA = (function(){
     return TXNS;
   }
 
-  return { CATS, OPTIONS, MENU, INV, TABLES, FLOORS, CUSTOMERS, RESERVATIONS, PICKUPS, TXNS, loadTxns, loadInventory, applicableOptions, saveTables, saveFloors, resetTablesToSeed, resetFloorsToSeed };
+  // ---------- SPRINT 2.7: DB-BACKED MENU (V2) ----------
+  // These arrays are populated by loadPublicMenu() from /api/menu/public.
+  // They live alongside the legacy hardcoded MENU/CATS/OPTIONS so the order
+  // view can fall back when the DB is empty (first install). Once the owner
+  // has populated the menu through Settings, V2 takes over.
+  const MENU_V2 = [];
+  const CATS_V2 = [];
+  const MODIFIER_GROUPS_V2 = [];
+  const MENU_V2_SOLDOUT = new Set();
+
+  // Pull the public menu bundle. Replaces V2 arrays in place so existing
+  // bindings keep pointing at the same objects. Returns a snapshot.
+  async function loadPublicMenu(headers = {}){
+    try {
+      const r = await fetch('/api/menu/public', { headers });
+      if (!r.ok) return { categories: CATS_V2, items: MENU_V2, modifier_groups: MODIFIER_GROUPS_V2 };
+      const data = await r.json();
+      const cats = Array.isArray(data && data.categories) ? data.categories : [];
+      const items = Array.isArray(data && data.items) ? data.items : [];
+      const groups = Array.isArray(data && data.modifier_groups) ? data.modifier_groups : [];
+      CATS_V2.length = 0; cats.forEach(c => CATS_V2.push(c));
+      MENU_V2.length = 0; items.forEach(it => MENU_V2.push(it));
+      MODIFIER_GROUPS_V2.length = 0; groups.forEach(g => MODIFIER_GROUPS_V2.push(g));
+      MENU_V2_SOLDOUT.clear();
+      items.forEach(it => { if (it.sold_out) MENU_V2_SOLDOUT.add(it.id); });
+    } catch (_) {
+      /* keep prior V2 cache on failure — at worst the order view falls back to legacy */
+    }
+    return { categories: CATS_V2, items: MENU_V2, modifier_groups: MODIFIER_GROUPS_V2 };
+  }
+
+  // Helper used by the order view: locate a V2 modifier group by its `code`
+  // (matches the seeded codes 'size'/'temp'/'milk'/'shot'/'syrup' or any
+  // owner-defined code).
+  function getModifierGroupV2ByCode(code){
+    return MODIFIER_GROUPS_V2.find(g => g.code === code) || null;
+  }
+  function getModifierGroupV2ById(id){
+    return MODIFIER_GROUPS_V2.find(g => g.id === id) || null;
+  }
+  function getMenuV2ById(id){
+    return MENU_V2.find(m => m.id === id) || null;
+  }
+
+  return {
+    CATS, OPTIONS, MENU, INV, TABLES, FLOORS, CUSTOMERS, RESERVATIONS, PICKUPS, TXNS,
+    loadTxns, loadInventory, applicableOptions,
+    saveTables, saveFloors, resetTablesToSeed, resetFloorsToSeed,
+    // Sprint 2.7
+    MENU_V2, CATS_V2, MODIFIER_GROUPS_V2, MENU_V2_SOLDOUT,
+    loadPublicMenu, getModifierGroupV2ByCode, getModifierGroupV2ById, getMenuV2ById
+  };
 })();

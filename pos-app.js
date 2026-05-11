@@ -14,7 +14,7 @@ window.MK = (function(){
       // order screen
       search:'ابحث بالاسم، SKU، أو رمز...', scan:'مسح', newOrder:'طلب جديد', parkOrder:'احفظ',
       all:'الكل', dine:'داخل', take:'استلام', deli:'توصيل', pickup:'طلب تطبيق',
-      cart:'السلة', subtotal:'المجموع الفرعي', discount:'خصم', tax:'ضريبة 10%', total:'الإجمالي', pay:'الدفع',
+      cart:'السلة', subtotal:'المجموع الفرعي', discount:'خصم', total:'الإجمالي', pay:'الدفع',
       emptyCart:'السلة فارغة', tapToAdd:'اضغط منتج للإضافة', table:'طاولة', guest:'ضيف', addCustomer:'إضافة عميل',
       note:'ملاحظة', split:'تقسيم', cash:'نقداً', card:'بطاقة', zaincash:'ZainCash', switchPay:'Switch', stamps:'طوابع',
       received:'المستلم', change:'الباقي', due:'المطلوب', confirmPay:'تأكيد الدفع وطباعة',
@@ -60,7 +60,7 @@ window.MK = (function(){
       customers:'Customers', reports:'Reports', settings:'Settings', logout:'Sign out',
       search:'Search name, SKU, or shortcut...', scan:'Scan', newOrder:'New Order', parkOrder:'Park',
       all:'All', dine:'Dine-in', take:'Takeout', deli:'Delivery', pickup:'App Pickup',
-      cart:'Cart', subtotal:'Subtotal', discount:'Discount', tax:'Tax 10%', total:'Total', pay:'Pay',
+      cart:'Cart', subtotal:'Subtotal', discount:'Discount', total:'Total', pay:'Pay',
       emptyCart:'Cart empty', tapToAdd:'Tap an item to add', table:'Table', guest:'Guest', addCustomer:'Add customer',
       note:'Note', split:'Split', cash:'Cash', card:'Card', zaincash:'ZainCash', switchPay:'Switch', stamps:'Stamps',
       received:'Received', change:'Change', due:'Due', confirmPay:'Confirm & Print',
@@ -163,11 +163,15 @@ window.MK = (function(){
   function cartDiscountAmt(sub){ return Math.round(sub * STATE.order.discount); }
   function cartTotals(){
     const sub = cartSub();
-    const disc = cartDiscountAmt(sub);
-    const afterDisc = sub - disc;
-    const tax = Math.round(afterDisc * 0.1);
-    const total = afterDisc + tax;
-    return { sub, disc, afterDisc, tax, total };
+    let disc;
+    if (STATE.order.discountKind === 'fixed') {
+      disc = Math.min(sub, Math.max(0, Number(STATE.order.discountFixedAmt) || 0));
+    } else {
+      disc = cartDiscountAmt(sub);
+    }
+    const afterDisc = Math.max(0, sub - disc);
+    const total = afterDisc;
+    return { sub, disc, afterDisc, tax: 0, total };
   }
 
   // ---------- INVENTORY ----------
@@ -277,7 +281,6 @@ window.MK = (function(){
         <div class="rule"></div>
         <div class="tr"><span>${L.subtotal}</span><span class="v">${fmtNum(tot.sub)}</span></div>
         ${tot.disc?`<div class="tr"><span>${L.discount}</span><span class="v">-${fmtNum(tot.disc)}</span></div>`:''}
-        <div class="tr"><span>${L.tax}</span><span class="v">${fmtNum(tot.tax)}</span></div>
         <div class="tr big"><span>${L.total}</span><span class="v">${fmtNum(tot.total)} IQD</span></div>
         <div class="rule"></div>
         <div class="meta"><span>${L.cash==='نقداً'?'طريقة الدفع':'Payment'}:</span><span>${order.payment||'CASH'}</span></div>
@@ -325,7 +328,6 @@ window.MK = (function(){
     document.documentElement.lang = STATE.lang;
     document.documentElement.dir = STATE.lang==='ar' ? 'rtl' : 'ltr';
     document.body.classList.toggle('mk-rtl', STATE.lang==='ar');
-    document.body.classList.toggle('mk-ko', STATE.lang==='ko');
   }
 
   return {

@@ -7,12 +7,25 @@
          isOutOfStock, stockStatus, consumeIngredients, printReceipt, printKitchen, audit, fmtDateTime} = MK;
   const {CATS, OPTIONS, MENU, CUSTOMERS, applicableOptions} = MK_DATA;
 
+  // local esc for safe HTML interpolation (XSS guard)
+  const esc = (s)=> String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+  // Sprint 2.7 helpers — when DB-backed menu is populated we use it; otherwise
+  // we fall back to the hardcoded legacy MENU/CATS/OPTIONS so a fresh install
+  // (no DB items yet) still has a working POS.
+  function useV2(){ return Array.isArray(MK_DATA.MENU_V2) && MK_DATA.MENU_V2.length > 0; }
+  function localized(obj, lang){
+    if (!obj) return '';
+    return obj['name_' + lang] || obj.name_en || obj.name_ar || obj.name_ko || '';
+  }
+
   // ---------- RENDER ORDER VIEW ----------
   let activeCat = 'all';
   let searchQ = '';
 
   function renderCats(){
     const el = document.getElementById('cats-strip');
+    if (useV2()) return renderCatsV2(el);
     const total = MENU.length;
     const html = [{k:'all',i:'⭐',ct:total}, ...CATS.map(c=>({...c,ct:MENU.filter(m=>m.c===c.k).length}))]
       .map(c=>{
@@ -23,15 +36,31 @@
     el.innerHTML = html;
   }
 
+  function renderCatsV2(el){
+    const items = MK_DATA.MENU_V2;
+    const cats = MK_DATA.CATS_V2;
+    const total = items.length;
+    const all = `<button class="cat-b ${activeCat==='all'?'on':''}" onclick="MKO.setCat('all')">
+      <span>⭐</span>${t('all')}<span class="ct">${total}</span></button>`;
+    const rest = cats.map(c => {
+      const ct = items.filter(it => it.category_code === c.code).length;
+      const nm = localized(c, STATE.lang) || c.code;
+      const code = String(c.code).replace(/'/g, '');
+      return `<button class="cat-b ${c.code===activeCat?'on':''}" onclick="MKO.setCat('${esc(code)}')">
+        <span>•</span>${esc(nm)}<span class="ct">${ct}</span></button>`;
+    }).join('');
+    el.innerHTML = all + rest;
+  }
+
   function renderGrid(){
     const el = document.getElementById('pgrid');
+    if (useV2()) return renderGridV2(el);
     let list = activeCat==='all' ? MENU : MENU.filter(m=>m.c===activeCat);
     if(searchQ){
       const q = searchQ.toLowerCase();
       list = list.filter(m=>
         m.en.toLowerCase().includes(q) ||
         m.ar.includes(q) ||
-        (m.ko||'').includes(q) ||
         m.sku.toLowerCase().includes(q)
       );
     }
@@ -45,6 +74,36 @@
         <div class="pic">${it.e}</div>
         <div class="pn">${itemName(it)}</div>
         <div class="pp">${fmtNum(it.p)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderGridV2(el){
+    let list = activeCat === 'all' ? MK_DATA.MENU_V2 : MK_DATA.MENU_V2.filter(m => m.category_code === activeCat);
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      list = list.filter(m =>
+        (m.name_en || '').toLowerCase().includes(q) ||
+        (m.name_ar || '').includes(q) ||
+        (m.name_ko || '').includes(q) ||
+        (m.code || '').toLowerCase().includes(q)
+      );
+    }
+    el.innerHTML = list.map(it => {
+      const out = !!it.sold_out;
+      const isSet = it.kind === 'set';
+      const classes = ['pc', out ? 'out' : '', isSet ? 'set' : ''].filter(Boolean).join(' ');
+      const click = out ? '' : `onclick="MKO.openOptsV2(${it.id})"`;
+      const nm = localized(it, STATE.lang) || it.code;
+      const setBadge = isSet ? '<span class="flg">SET</span>' : '';
+      const pic = it.photo_url
+        ? `<div class="pic has-photo"><img src="${esc(it.photo_url)}" alt=""></div>`
+        : `<div class="pic">${esc(it.emoji || '🍽️')}</div>`;
+      return `<div class="${classes}" ${click} data-low="${t('low')}" data-out="${t('outStock')}">
+        <span class="sku">${esc(it.code)}</span>${setBadge}
+        ${pic}
+        <div class="pn">${esc(nm)}</div>
+        <div class="pp">${fmtNum(it.base_price)}</div>
       </div>`;
     }).join('');
   }
@@ -122,7 +181,6 @@
   function updateTotals(){
     const tot = cartTotals();
     document.getElementById('sub-v').textContent = fmtNum(tot.sub);
-    document.getElementById('tax-v').textContent = fmtNum(tot.tax);
     document.getElementById('tot-v').textContent = fmtIQD(tot.total);
     document.getElementById('paybtn-amt').textContent = fmtIQD(tot.total);
     document.getElementById('paybtn').disabled = !STATE.cart.length;
@@ -168,13 +226,36 @@
       if(def) opts[g] = def.k;
     });
     if(it.c==='ice' && opts.temp) opts.temp = 'c';
-    editing = {item:it, q:1, opts, apps};
+    editing = {item:it, q:1, opts, apps, _v2:false};
+    renderOptsModal();
+    document.getElementById('opt-modal').classList.add('show');
+  }
+
+  // Sprint 2.7: open options for a DB-backed (V2) menu item.
+  function openOptsV2(itemId){
+    const it = MK_DATA.getMenuV2ById(itemId);
+    if(!it) return;
+    const groups = (it.modifier_group_ids || [])
+      .map(gid => MK_DATA.getModifierGroupV2ById(gid))
+      .filter(Boolean);
+    // Build default opts: single-select → option.code; multi-select → array of codes
+    const opts = {};
+    groups.forEach(g => {
+      const defaults = (g.options || []).filter(o => o.is_default === 1 || o.is_default === true);
+      if (g.selection === 'multi') {
+        opts[g.code] = defaults.map(o => o.code);
+      } else {
+        opts[g.code] = defaults.length ? defaults[0].code : null;
+      }
+    });
+    editing = { _v2:true, item: it, q: 1, opts, groups };
     renderOptsModal();
     document.getElementById('opt-modal').classList.add('show');
   }
 
   function renderOptsModal(){
     const e = editing;
+    if (e._v2) return renderOptsModalV2();
     const it = e.item;
     document.getElementById('opt-t').firstChild.textContent = itemName(it)+' ';
     document.getElementById('opt-s').textContent = it.sku+' · '+fmtIQD(it.p);
@@ -199,13 +280,93 @@
     updateOptTotal();
   }
 
+  function renderOptsModalV2(){
+    const e = editing;
+    const it = e.item;
+    const nm = (it['name_' + STATE.lang]) || it.name_en || it.code;
+    document.getElementById('opt-t').firstChild.textContent = nm + ' ';
+    document.getElementById('opt-s').textContent = it.code + ' · ' + fmtIQD(it.base_price);
+    const body = document.getElementById('opt-body');
+    let html = '';
+
+    // Set components display (read-only — set price is fixed)
+    if (it.kind === 'set' && Array.isArray(it.components) && it.components.length) {
+      const compHtml = it.components.map(c => {
+        const cnm = c['name_' + STATE.lang] || c.name_en || c.code;
+        const q = c.quantity || 1;
+        const emoji = c.emoji || '•';
+        return `<div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span>${esc(emoji)} ${esc(cnm)}</span>
+          <span style="font-weight:700">×${q}</span>
+        </div>`;
+      }).join('');
+      html += `<div class="og"><div class="ol">${esc(STATE.lang === 'ar' ? 'مكونات الوجبة' : 'Set components')}</div>
+        <div style="padding:8px 4px;font-size:13px">${compHtml}</div></div>`;
+    }
+
+    // Modifier groups
+    e.groups.forEach(g => {
+      const groupNm = g['name_' + STATE.lang] || g.name_en || g.code;
+      const isMulti = g.selection === 'multi';
+      const buttons = (g.options || []).map(o => {
+        const optNm = o['name_' + STATE.lang] || o.name_en || o.code;
+        const d = o.price_delta_iqd > 0 ? `+${fmtNum(o.price_delta_iqd)}` : (o.price_delta_iqd < 0 ? fmtNum(o.price_delta_iqd) : '');
+        const sel = isMulti
+          ? (Array.isArray(e.opts[g.code]) && e.opts[g.code].includes(o.code))
+          : (e.opts[g.code] === o.code);
+        const groupCode = String(g.code).replace(/'/g, '');
+        const optCode = String(o.code).replace(/'/g, '');
+        return `<button onclick="MKO.setOpt('${esc(groupCode)}','${esc(optCode)}')" class="${sel?'on':''}">${esc(optNm)}${d?'<small>'+d+'</small>':''}</button>`;
+      }).join('');
+      const reqMark = g.required ? ' *' : '';
+      html += `<div class="og"><div class="ol">${esc(groupNm)}${reqMark}</div><div class="orow">${buttons}</div></div>`;
+    });
+
+    if (!e.groups.length && it.kind !== 'set') {
+      html = `<div class="og"><div class="ol">${t('note')}</div>
+        <textarea id="opt-note" placeholder="..." style="width:100%;padding:8px;border:1px solid #d7ded9;border-radius:6px;font-family:inherit;font-size:12px;min-height:60px;font-weight:600;resize:none"></textarea></div>`;
+    }
+    body.innerHTML = html;
+    document.getElementById('opt-q').textContent = e.q;
+    updateOptTotal();
+  }
+
   function setOpt(g,k){
-    editing.opts[g] = k;
+    if (editing._v2) {
+      const grp = editing.groups.find(x => x.code === g);
+      if (grp && grp.selection === 'multi') {
+        const cur = Array.isArray(editing.opts[g]) ? editing.opts[g].slice() : [];
+        const idx = cur.indexOf(k);
+        if (idx >= 0) cur.splice(idx, 1);
+        else cur.push(k);
+        editing.opts[g] = cur;
+      } else {
+        editing.opts[g] = k;
+      }
+    } else {
+      editing.opts[g] = k;
+    }
     renderOptsModal();
   }
   function optQ(d){ editing.q = Math.max(1, editing.q+d); renderOptsModal(); }
   function calcOptPrice(){
     const e = editing;
+    if (e._v2) {
+      let p = Number(e.item.base_price) || 0;
+      e.groups.forEach(g => {
+        const sel = e.opts[g.code];
+        if (g.selection === 'multi' && Array.isArray(sel)) {
+          sel.forEach(code => {
+            const o = (g.options || []).find(x => x.code === code);
+            if (o) p += Number(o.price_delta_iqd) || 0;
+          });
+        } else if (sel) {
+          const o = (g.options || []).find(x => x.code === sel);
+          if (o) p += Number(o.price_delta_iqd) || 0;
+        }
+      });
+      return p;
+    }
     let p = e.item.p;
     Object.keys(e.opts).forEach(g=>{
       const c = OPTIONS[g]?.choices.find(x=>x.k===e.opts[g]);
@@ -219,6 +380,7 @@
   function closeOpts(){ document.getElementById('opt-modal').classList.remove('show'); editing=null; }
   function confirmOpts(){
     const e = editing;
+    if (e._v2) return confirmOptsV2();
     const price = calcOptPrice();
     // Build mods label
     const modsLabel = [];
@@ -234,6 +396,44 @@
     closeOpts();
     renderCart();
     toast('✓ '+itemName(e.item));
+  }
+
+  // Sprint 2.7: confirm options for a V2 (DB-backed) item.
+  function confirmOptsV2(){
+    const e = editing;
+    const price = calcOptPrice();
+    const nm = e.item['name_' + STATE.lang] || e.item.name_en || e.item.code;
+    const modsLabel = [];
+    e.groups.forEach(g => {
+      const sel = e.opts[g.code];
+      const collect = (code) => {
+        const o = (g.options || []).find(x => x.code === code);
+        if (!o) return;
+        // Skip default options when label-building so the cart line stays terse
+        const isDefault = o.is_default === 1 || o.is_default === true;
+        if (isDefault) return;
+        const lbl = o['name_' + STATE.lang] || o.name_en || o.code;
+        modsLabel.push(lbl);
+      };
+      if (g.selection === 'multi' && Array.isArray(sel)) sel.forEach(collect);
+      else if (sel) collect(sel);
+    });
+    STATE.cart.push({
+      sku: e.item.code,
+      e: e.item.emoji || '🍽️',
+      name: nm,
+      price,
+      q: e.q,
+      opts: JSON.parse(JSON.stringify(e.opts)),
+      modsLabel,
+      _v2: true,
+      itemId: e.item.id,
+      kind: e.item.kind
+    });
+    MK.audit('cart.add', { code: e.item.code, q: e.q, _v2: true });
+    closeOpts();
+    renderCart();
+    toast('✓ ' + nm);
   }
 
   // ---------- CUSTOMER PICKER ----------
@@ -319,15 +519,56 @@
     renderCart();
     MK.audit('order.resume', id);
   }
+  // Sprint 1.5: discount input. Two kinds — percent or fixed IQD.
+  // Server-side permission check happens at /api/orders submit time (so we
+  // can also enforce daily count limit). Client-side just collects input;
+  // any manager override is captured here and stashed on STATE.order until
+  // the order is paid/submitted.
   function openDiscount(){
+    const isAr = STATE.lang === 'ar';
     const v = prompt(
-      STATE.lang==='ar'?'نسبة الخصم % أو كود:\n• عدد → نسبة %\n• STUDENT → 15%\n• STAFF → 20%':
-      'Discount % or code:\n• number → %\n• STUDENT → 15%\n• STAFF → 20%', '');
-    if(!v) return;
-    if(v.toUpperCase()==='STUDENT'){ STATE.order.discount=.15; STATE.order.discountLabel='STUDENT 15%'; }
-    else if(v.toUpperCase()==='STAFF'){ STATE.order.discount=.20; STATE.order.discountLabel='STAFF 20%'; }
-    else { const n = parseFloat(v); if(n>0&&n<=50){ STATE.order.discount=n/100; STATE.order.discountLabel=n+'%'; } }
-    MK.audit('order.discount', STATE.order.discountLabel);
+      isAr ? 'الخصم: أدخل عدداً متبوعاً بـ % (مثال: 10%) أو IQD (مثال: 5000IQD)\nأو كود: STUDENT / STAFF / EMPLOYEE'
+           : 'Discount: number followed by % (e.g. 10%) or IQD (e.g. 5000IQD)\nOr code: STUDENT / STAFF / EMPLOYEE',
+      '');
+    if (!v) return;
+    const raw = String(v).trim().toUpperCase();
+    let kind = 'percent';
+    let value = 0;
+    let label = '';
+    if (raw === 'STUDENT')      { kind='percent'; value=15; label='STUDENT 15%'; }
+    else if (raw === 'STAFF')   { kind='percent'; value=20; label='STAFF 20%'; }
+    else if (raw === 'EMPLOYEE'){ kind='percent'; value=50; label='EMPLOYEE 50%'; }
+    else if (/IQD$/.test(raw)) {
+      const n = parseFloat(raw);
+      if (!(n > 0)) return;
+      kind = 'fixed'; value = Math.floor(n);
+      label = value + ' IQD';
+    } else {
+      const n = parseFloat(raw);
+      if (!(n > 0 && n <= 100)) return;
+      kind = 'percent'; value = n;
+      label = n + '%';
+    }
+    // apply to cart state
+    if (kind === 'percent') {
+      STATE.order.discount = value / 100;
+      STATE.order.discountLabel = label;
+      STATE.order.discountKind = 'percent';
+      STATE.order.discountValue = value;
+      STATE.order.discountFixedAmt = 0;
+    } else {
+      // fixed: stored as 0 in `discount` ratio; cartTotals must be extended
+      // to subtract a flat amount. We keep a separate field on STATE.order
+      // and let cartTotals read it.
+      STATE.order.discount = 0;
+      STATE.order.discountLabel = label;
+      STATE.order.discountKind = 'fixed';
+      STATE.order.discountValue = value;
+      STATE.order.discountFixedAmt = value;
+    }
+    // clear any previous override; new discount needs fresh approval if needed
+    STATE.order.discountManagerOverride = null;
+    MK.audit('order.discount.set', { kind, value, label });
     renderCart();
   }
   function addNote(){
@@ -459,8 +700,8 @@
       customerId: rcpt.customerId,
       status: 'incoming'
     });
-    try { if(window.MKV && typeof MKV.renderKDS==='function' && (MK.STATE.view==='kds'||MK.STATE.view==='kitchen')) MKV.renderKDS(); } catch(_){}
-    try { if(typeof updateKdsBadge==='function') updateKdsBadge(); } catch(_){}
+    try { if(window.MKV && typeof MKV.renderKDS==='function' && (MK.STATE.view==='kds'||MK.STATE.view==='kitchen')) MKV.renderKDS(); } catch(e){ console.warn('[finishPay] renderKDS failed', e); }
+    try { if(typeof updateKdsBadge==='function') updateKdsBadge(); } catch(e){ console.warn('[finishPay] updateKdsBadge failed', e); }
     // Kitchen ticket for prep items
     MK.audit('payment.complete', {id:rcpt.id, total:rcpt.total, method:PM});
     const prepLines = STATE.cart.filter(l=>l.sku.startsWith('C')||l.sku.startsWith('I')||l.sku.startsWith('T')||l.sku.startsWith('S')||l.sku.startsWith('F'));
@@ -515,12 +756,20 @@
     toastTimer = setTimeout(()=>t.classList.remove('show'), 2000);
   }
 
+  // Sprint 2.7: listen for SSE-driven sold-out updates and re-render the grid
+  // if the user is looking at the order view. Cheap to call (just a re-render).
+  try {
+    window.addEventListener('menu:sold_out_changed', () => {
+      if (MK.STATE && MK.STATE.view === 'order') renderGrid();
+    });
+  } catch(_) {}
+
   // ---------- PUBLIC ----------
   window.MKO = {
     init(){ renderCats(); renderGrid(); renderCart(); },
     refresh(){ renderCats(); renderGrid(); renderCart(); },
     setCat, setSearch,
-    openOpts, setOpt, optQ, closeOpts, confirmOpts,
+    openOpts, openOptsV2, setOpt, optQ, closeOpts, confirmOpts,
     openCustomer, filterCust, pickCustomer, clearCustomer,
     lineQ, removeLine,
     setOrderType,

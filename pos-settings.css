@@ -1,0 +1,362 @@
+/* =========================================================================
+   Mr. Kim's POS — Settings tab styles (Sprint 1)
+   Two-column layout: left section nav, right detail panel.
+   Visible only to owner role; gated client-side by pos-settings.js.
+   ========================================================================= */
+
+#v-settings { padding: 0; }
+
+.set-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: calc(100vh - 64px);
+  background: var(--bg, #0f1115);
+  color: var(--fg, #e8e8ee);
+}
+
+.set-nav {
+  background: rgba(255,255,255,0.02);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 16px 8px;
+  overflow-y: auto;
+}
+.set-nav h4 {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin: 12px 12px 6px;
+}
+.set-nav button {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+  transition: background .12s;
+}
+.set-nav button:hover { background: rgba(255,255,255,0.05); }
+.set-nav button.on {
+  background: rgba(110,170,255,0.14);
+  color: #fff;
+  font-weight: 600;
+}
+.set-nav button .ic { font-size: 16px; opacity: 0.85; }
+.set-nav button .lock { margin-inline-start: auto; opacity: 0.5; font-size: 11px; }
+
+.set-pane {
+  padding: 28px 36px;
+  overflow-y: auto;
+}
+.set-pane > header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.set-pane > header h2 {
+  font-size: 22px; font-weight: 700; margin: 0;
+}
+.set-pane > header .desc { color: rgba(255,255,255,0.55); font-size: 13px; }
+.set-pane > header .spacer { flex: 1; }
+
+.set-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+}
+.set-card h3 {
+  font-size: 15px; font-weight: 600; margin: 0 0 16px;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+}
+.set-row > label { color: rgba(255,255,255,0.7); font-size: 13px; }
+.set-row > .ctl input[type=text],
+.set-row > .ctl input[type=email],
+.set-row > .ctl input[type=tel],
+.set-row > .ctl input[type=password],
+.set-row > .ctl input[type=number],
+.set-row > .ctl input[type=time],
+.set-row > .ctl select,
+.set-row > .ctl textarea {
+  width: 100%;
+  padding: 9px 11px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+}
+.set-row > .ctl textarea { min-height: 70px; resize: vertical; }
+.set-row > .ctl input:focus,
+.set-row > .ctl select:focus,
+.set-row > .ctl textarea:focus {
+  outline: none;
+  border-color: rgba(110,170,255,0.5);
+  background: rgba(0,0,0,0.45);
+}
+
+.set-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  margin-top: 16px;
+}
+.set-btn {
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #fff; font-size: 13px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.set-btn:hover { background: rgba(255,255,255,0.08); }
+.set-btn.primary {
+  background: #2a72ff;
+  border-color: #2a72ff;
+}
+.set-btn.primary:hover { background: #4486ff; }
+.set-btn.danger { background: #c53030; border-color: #c53030; }
+.set-btn.danger:hover { background: #e04141; }
+.set-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── staff list ───────────────────────────────────────────────────────── */
+.staff-tbl { width: 100%; border-collapse: collapse; }
+.staff-tbl th, .staff-tbl td {
+  padding: 10px 12px;
+  text-align: start;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.staff-tbl th {
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.staff-tbl .role-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.staff-tbl .role-owner   { background: rgba(255,176,0,0.16);  color: #ffb000; }
+.staff-tbl .role-manager { background: rgba(110,170,255,0.16); color: #6eaaff; }
+.staff-tbl .role-cashier { background: rgba(110,255,170,0.14); color: #6effaa; }
+.staff-tbl .role-barista { background: rgba(180,180,180,0.14); color: #ddd; }
+.staff-tbl .inactive { opacity: 0.4; }
+.staff-tbl .row-acts { display: flex; gap: 6px; justify-content: flex-end; }
+.staff-tbl .row-acts button {
+  padding: 5px 10px; font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 5px; color: #fff; cursor: pointer;
+}
+.staff-tbl .row-acts button:hover { background: rgba(255,255,255,0.12); }
+.staff-tbl .row-acts button.danger { color: #ff7070; }
+
+/* ── permission matrix ─────────────────────────────────────────────────── */
+.perm-grid {
+  display: grid;
+  grid-template-columns: 1fr repeat(4, 90px);
+  gap: 1px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.perm-grid > div {
+  background: var(--bg, #0f1115);
+  padding: 10px 12px;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 36px;
+}
+.perm-grid > .h {
+  background: rgba(255,255,255,0.04);
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+}
+.perm-grid > .lbl {
+  justify-content: flex-start;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+.perm-grid > .lbl.group {
+  background: rgba(255,255,255,0.025);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+}
+.perm-grid input[type=checkbox] {
+  width: 18px; height: 18px;
+  accent-color: #2a72ff;
+  cursor: pointer;
+}
+.perm-grid input[type=number] {
+  width: 70px;
+  padding: 4px 6px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 5px;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+.perm-grid > .locked {
+  opacity: 0.45;
+  background: rgba(255,255,255,0.02);
+}
+
+/* ── audit log ─────────────────────────────────────────────────────────── */
+.audit-tbl {
+  width: 100%; border-collapse: collapse;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.audit-tbl th { font-family: inherit; font-size: 10px; }
+.audit-tbl td { padding: 7px 10px; vertical-align: top; }
+.audit-tbl .at  { white-space: nowrap; color: rgba(255,255,255,0.55); }
+.audit-tbl .who { white-space: nowrap; color: #6eaaff; }
+.audit-tbl .act { white-space: nowrap; color: #ffd06e; }
+.audit-tbl .approver { color: #ffb000; font-weight: 600; }
+.audit-tbl .reason { color: #fff; font-style: italic; }
+.audit-tbl .diff {
+  font-family: inherit;
+  white-space: pre-wrap;
+  color: rgba(255,255,255,0.75);
+  max-width: 480px;
+  word-break: break-all;
+}
+
+/* ── manager-approve modal ─────────────────────────────────────────────── */
+.mgr-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+.mgr-modal.show { display: flex; }
+.mgr-modal .box {
+  background: #1a1d24;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  width: 420px;
+  max-width: 92vw;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.mgr-modal h3 {
+  margin: 0 0 6px;
+  font-size: 17px; font-weight: 700;
+}
+.mgr-modal .sub {
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+.mgr-modal .field { margin-bottom: 12px; }
+.mgr-modal .field label {
+  display: block;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 6px;
+}
+.mgr-modal .field input,
+.mgr-modal .field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  color: #fff; font-size: 13px;
+}
+.mgr-modal .field textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+.mgr-modal .err {
+  color: #ff7070;
+  font-size: 12px;
+  margin-bottom: 12px;
+  min-height: 16px;
+}
+.mgr-modal .actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  margin-top: 6px;
+}
+
+/* ── force-change-password modal ───────────────────────────────────────── */
+.pw-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 10000;
+}
+.pw-modal.show { display: flex; }
+.pw-modal .box {
+  background: #1a1d24;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  width: 380px;
+  padding: 28px;
+}
+.pw-modal h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.pw-modal .sub {
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+.pw-modal input[type=password] {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  color: #fff; font-size: 13px;
+  margin-bottom: 10px;
+}
+.pw-modal .err {
+  color: #ff7070; font-size: 12px;
+  min-height: 16px; margin-bottom: 12px;
+}
+
+/* ── responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .set-shell { grid-template-columns: 1fr; height: auto; }
+  .set-nav {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    padding: 12px;
+  }
+  .set-nav h4 { display: none; }
+  .set-row { grid-template-columns: 1fr; gap: 6px; }
+  .perm-grid { grid-template-columns: 1fr repeat(4, 70px); font-size: 11px; }
+}
+
+[dir="rtl"] .set-nav { border-right: 0; border-left: 1px solid rgba(255,255,255,0.06); }
+[dir="rtl"] .set-row > label { text-align: end; }
