@@ -58,7 +58,18 @@ test.describe('/admin 에이전트 회의 (CLAUDE_MOCK=1 필요)', () => {
   });
 
   test('cashier 토큰만으로는 거부된다 (admin 전용)', async () => {
-    const cashierToken = await cashierLogin();
+    // The default QA cashier (qa_tester) is intentionally an owner so it can
+    // run most tests — create a true cashier-role account for this admin gate.
+    const cashierName = `qa_meetings_cashier_${Date.now().toString().slice(-6)}`;
+    const cashierPass = 'cashier-pass-1';
+    await apiRequest('POST', '/api/cashiers',
+      { name: cashierName, password: cashierPass, role: 'cashier' },
+      { 'x-auth-token': token });
+    const loginRes = await apiRequest('POST', '/api/cashier/login',
+      { name: cashierName, password: cashierPass });
+    const cashierToken = loginRes.data && loginRes.data.token;
+    expect(cashierToken).toBeTruthy();
+
     const { status } = await apiRequest('POST', '/api/meetings/ask',
       { team_id: 'marketing', prompt: 'hi' },
       { 'x-cashier-token': cashierToken });

@@ -146,50 +146,140 @@ test.describe('스탬프 차감 — 전화번호로 처리 (캐셔 연동)', () 
   });
 });
 
-test.describe('테이블 예약 — table_num 텍스트 필드', () => {
+test.describe('테이블 예약 — area enum 필드 (floor_1/floor_2/study_room)', () => {
   // 고유 날짜: TS 기반으로 1-28일 범위 내 날짜 생성
   const dayA = String(parseInt(TS) % 27 + 1).padStart(2, '0');
   const dayB = String((parseInt(TS) + 1) % 27 + 1).padStart(2, '0');
   const dayC = String((parseInt(TS) + 2) % 27 + 1).padStart(2, '0');
+  const dayD = String((parseInt(TS) + 3) % 27 + 1).padStart(2, '0');
+  const dayE = String((parseInt(TS) + 4) % 27 + 1).padStart(2, '0');
 
-  test('table_num 없이 예약 성공', async () => {
-    const { status, data } = await apiRequest('POST', '/api/reservations', {
+  test('table_num 없이 예약 → 400 (이제 필수)', async () => {
+    const { status } = await apiRequest('POST', '/api/reservations', {
       name: '예약손님A',
       phone: `0773${TS}`,
       date: `2099-06-${dayA}`,
       time: '18:00',
       party_size: 2,
     });
-    expect(status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.reservation.table_num).toBeFalsy();
+    expect(status).toBe(400);
   });
 
-  test('table_num 텍스트로 예약 성공', async () => {
+  test('floor_1 으로 예약 성공', async () => {
     const { status, data } = await apiRequest('POST', '/api/reservations', {
       name: '예약손님B',
       phone: `0774${TS}`,
       date: `2099-07-${dayB}`,
       time: '19:00',
       party_size: 3,
-      table_num: '창가 5번',
+      table_num: 'floor_1',
     });
     expect(status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.reservation.table_num).toBe('창가 5번');
+    expect(data.reservation.table_num).toBe('floor_1');
   });
 
-  test('숫자 테이블 번호 텍스트로 예약', async () => {
+  test('floor_2 으로 예약 성공', async () => {
     const { status, data } = await apiRequest('POST', '/api/reservations', {
       name: '예약손님C',
       phone: `0775${TS}`,
       date: `2099-08-${dayC}`,
       time: '12:00',
       party_size: 4,
-      table_num: '3',
+      table_num: 'floor_2',
     });
     expect(status).toBe(200);
-    expect(data.reservation.table_num).toBe('3');
+    expect(data.reservation.table_num).toBe('floor_2');
+  });
+
+  test('study_room 으로 예약 성공', async () => {
+    const { status, data } = await apiRequest('POST', '/api/reservations', {
+      name: '예약손님D',
+      phone: `0776${TS}`,
+      date: `2099-09-${dayD}`,
+      time: '15:00',
+      party_size: 2,
+      table_num: 'study_room',
+    });
+    expect(status).toBe(200);
+    expect(data.reservation.table_num).toBe('study_room');
+  });
+
+  test('잘못된 area 값 → 400', async () => {
+    const { status } = await apiRequest('POST', '/api/reservations', {
+      name: '예약손님E',
+      phone: `0777${TS}`,
+      date: `2099-10-${dayE}`,
+      time: '14:00',
+      party_size: 2,
+      table_num: 'rooftop',
+    });
+    expect(status).toBe(400);
+  });
+
+  test('07:00 슬롯 (오전 7시) 예약 성공', async () => {
+    const dayF = String((parseInt(TS) + 5) % 27 + 1).padStart(2, '0');
+    const { status, data } = await apiRequest('POST', '/api/reservations', {
+      name: '아침손님',
+      phone: `0780${TS}`,
+      date: `2099-06-${dayF}`,
+      time: '07:00',
+      party_size: 2,
+      table_num: 'floor_1',
+    });
+    expect(status).toBe(200);
+    expect(data.reservation.time).toBe('07:00');
+  });
+
+  test('01:00 슬롯 (다음날 새벽 1시) 예약 성공', async () => {
+    const dayG = String((parseInt(TS) + 6) % 27 + 1).padStart(2, '0');
+    const { status, data } = await apiRequest('POST', '/api/reservations', {
+      name: '새벽손님',
+      phone: `0781${TS}`,
+      date: `2099-07-${dayG}`,
+      time: '01:00',
+      party_size: 2,
+      table_num: 'floor_2',
+    });
+    expect(status).toBe(200);
+    expect(data.reservation.time).toBe('01:00');
+  });
+
+  test('슬롯 외 시간(02:30) → 400', async () => {
+    const dayH = String((parseInt(TS) + 7) % 27 + 1).padStart(2, '0');
+    const { status } = await apiRequest('POST', '/api/reservations', {
+      name: '시간잘못',
+      phone: `0782${TS}`,
+      date: `2099-08-${dayH}`,
+      time: '02:30',
+      party_size: 2,
+      table_num: 'floor_1',
+    });
+    expect(status).toBe(400);
+  });
+
+  test('지난 시간 예약 → 400', async () => {
+    // 2020-01-01 18:00 (확실히 과거)
+    const { status } = await apiRequest('POST', '/api/reservations', {
+      name: '과거손님',
+      phone: `0783${TS}`,
+      date: '2020-01-01',
+      time: '18:00',
+      party_size: 2,
+      table_num: 'floor_1',
+    });
+    expect(status).toBe(400);
+  });
+
+  test('availability에 19개 슬롯 + is_past/is_next_day 포함', async () => {
+    const { status, data } = await apiRequest('GET', '/api/reservations/availability?date=2099-12-31');
+    expect(status).toBe(200);
+    expect(data.slots).toHaveLength(19);
+    expect(data.slots[0].time).toBe('07:00');
+    expect(data.slots[0].is_next_day).toBe(false);
+    expect(data.slots[18].time).toBe('01:00');
+    expect(data.slots[18].is_next_day).toBe(true);
+    expect(typeof data.slots[0].is_past).toBe('boolean');
   });
 
   test('이름 없이 예약 → 400', async () => {
@@ -235,7 +325,12 @@ test.describe('캐셔 주문 연동 — dine-in/pickup 모두 캐셔에 표시',
   test.beforeAll(async () => {
     cashierToken = await cashierLogin();
 
-    const dineSessionToken = await startDineSession(TABLE_QR_TOKEN);
+    // Provision a fresh table token for this test run — local DB may not have
+    // the legacy hardcoded TABLE_QR_TOKEN seeded.
+    const { data: tokRes } = await apiRequest('POST', '/api/table-tokens',
+      { tableNum: '99' }, { 'x-cashier-token': cashierToken });
+    const provisionedToken = tokRes && tokRes.token ? tokRes.token : TABLE_QR_TOKEN;
+    const dineSessionToken = await startDineSession(provisionedToken);
     const dine = await createOrder({
       type: 'dine',
       items: [{ key: 'latte', name: '라떼', price: 4500, qty: 1 }],

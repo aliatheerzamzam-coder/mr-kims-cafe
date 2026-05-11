@@ -29,8 +29,14 @@ test.describe('30명 동시 주문 — dine-in/pickup 혼합 스트레스', () =
   test.beforeAll(async () => {
     cashierToken = await cashierLogin();
 
+    // Provision a fresh table token — local DB may not have the legacy
+    // hardcoded TABLE_QR_TOKEN seeded.
+    const { data: tokRes } = await apiRequest('POST', '/api/table-tokens',
+      { tableNum: '88' }, { 'x-cashier-token': cashierToken });
+    const provisionedToken = tokRes && tokRes.token ? tokRes.token : TABLE_QR_TOKEN;
+
     // dine-in 세션 1개 발급 (동일 세션으로 여러 주문 가능)
-    const dineSessionToken = await startDineSession(TABLE_QR_TOKEN);
+    const dineSessionToken = await startDineSession(provisionedToken);
 
     const promises = Array.from({ length: N }, (_, i) => {
       const isDine = i % 2 === 0; // 홀짝으로 절반씩 혼합
@@ -148,7 +154,10 @@ test.describe('30명+ 연속 상태 변경 — 서버 안정성', () => {
 
   test('15개 주문 동시 making 상태 변경', async () => {
     const cashierToken = await cashierLogin();
-    const dineSessionToken = await startDineSession(TABLE_QR_TOKEN);
+    const { data: tokRes } = await apiRequest('POST', '/api/table-tokens',
+      { tableNum: '87' }, { 'x-cashier-token': cashierToken });
+    const provisionedToken = tokRes && tokRes.token ? tokRes.token : TABLE_QR_TOKEN;
+    const dineSessionToken = await startDineSession(provisionedToken);
 
     // 새 주문 15개 생성 (dine/pickup 혼합 — dine은 세션 토큰 필요)
     const orders = await Promise.all(

@@ -19,14 +19,12 @@ test.describe('Menu search', () => {
     const titleText = await page.textContent('#cat-panel-title');
     expect(titleText.toLowerCase()).toContain('search results');
 
-    // category tiles + group tabs hidden
+    // category tiles hidden during search (group tabs row was removed from index.html)
     await expect(page.locator('#cat-grid')).toBeHidden();
-    await expect(page.locator('#group-tabs')).toBeHidden();
 
     // clear
     await page.click('#menu-search-clear');
     await expect(page.locator('#cat-grid')).toBeVisible();
-    await expect(page.locator('#group-tabs')).toBeVisible();
   });
 
   test('no results shows empty state', async ({ page }) => {

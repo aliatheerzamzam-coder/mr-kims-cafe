@@ -36,7 +36,12 @@ async function workforceLogin(password = process.env.WORKFORCE_INITIAL_PASSWORD 
 }
 
 // 캐셔 로그인
-async function cashierLogin(name = 'ali atheer', password = '1234') {
+// QA seed: 'qa_tester' owner cashier (created in DB) — keeps live operator
+// credentials untouched. Override via env if a different account is needed.
+async function cashierLogin(
+  name = process.env.QA_CASHIER_NAME || 'qa_tester',
+  password = process.env.QA_CASHIER_PASSWORD || '1234'
+) {
   const { status, data } = await apiRequest('POST', '/api/cashier/login', { name, password });
   if (status !== 200 || !data.token) throw new Error(`캐셔 로그인 실패: ${JSON.stringify(data)}`);
   return data.token;

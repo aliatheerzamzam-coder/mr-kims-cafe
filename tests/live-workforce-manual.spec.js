@@ -5,8 +5,10 @@ const WORKFORCE_URL = 'https://mrkimscafe.com/workforce/meetings';
 const EMAIL = process.env.WORKFORCE_EMAIL || 'test@example.local';
 const PASSWORD = process.env.WORKFORCE_PASSWORD || '';
 
+// Live-site checks. Skipped unless LIVE_SITE_TESTS=1 — see live-workforce-qa.
 test.describe('Workforce Meetings — 라이브 사이트 접근성 검수', () => {
-  
+  test.skip(!process.env.LIVE_SITE_TESTS, 'set LIVE_SITE_TESTS=1 to run live-site checks');
+
   test('1. 로그인 페이지 로드 및 UI 요소 확인', async ({ page }) => {
     // 콘솔 에러 추적
     const consoleLogs = [];

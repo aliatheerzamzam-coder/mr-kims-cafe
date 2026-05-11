@@ -34,9 +34,14 @@ test.describe('Reservation success screen (index.html)', () => {
     await expect(firstSlot).toBeVisible({ timeout: 5000 });
     await firstSlot.click();
 
-    // Fill name and phone
+    // Fill name and phone — use unique phone per run to avoid stale-state
+    // collisions in the local DB across repeated test invocations.
+    const uniqPhone = `0770${String(Date.now()).slice(-7)}`;
     await page.locator('#res-name').fill('Test Customer');
-    await page.locator('#res-phone').fill('07700000001');
+    await page.locator('#res-phone').fill(uniqPhone);
+
+    // Pick an area — the form validates this client-side too.
+    await page.locator('.reserve-area-btn[data-area="floor_1"]').click();
 
     // Submit the reservation
     await page.locator('#btn-reserve').click();
@@ -90,10 +95,13 @@ test.describe('Cashier reservation flash popup (cashier.html)', () => {
     await page.goto('/cashier.html');
     await page.waitForLoadState('domcontentloaded');
 
-    // Login overlay uses #loginName / #loginPw / doCashierLogin
+    // Login overlay uses #loginName / #loginPw / doCashierLogin.
+    // Match the QA helper credentials (qa_tester / 1234) — owner role, kept
+    // separate from real operator accounts so password rotation in prod
+    // doesn't break tests.
     await expect(page.locator('#loginOverlay')).toBeVisible({ timeout: 5000 });
-    await page.locator('#loginName').fill('ali atheer');
-    await page.locator('#loginPw').fill('1234');
+    await page.locator('#loginName').fill(process.env.QA_CASHIER_NAME || 'qa_tester');
+    await page.locator('#loginPw').fill(process.env.QA_CASHIER_PASSWORD || '1234');
     await page.locator('#loginBtn').click();
 
     // After login, overlay must hide
@@ -118,7 +126,8 @@ test.describe('Cashier reservation flash popup (cashier.html)', () => {
         time: freeSlot.time,
         party_size: 2,
         name: 'Flash Test User',
-        phone: '07799000003'
+        phone: `0779${String(Date.now()).slice(-7)}`,
+        table_num: 'floor_1',
       })
     });
     expect(resp.status()).toBe(200);
@@ -138,5 +147,75 @@ test.describe('Cashier reservation flash popup (cashier.html)', () => {
     );
     if (fatalErrors.length > 0) console.log('Cashier JS errors:', fatalErrors);
     expect(fatalErrors.length).toBe(0);
+  });
+});
+
+test.describe('Web-orders reservation flash dismiss (web-orders.html)', () => {
+  test('X button immediately closes reservation flash', async ({ page }) => {
+    await page.goto('/web-orders.html');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('#loginOverlay')).toBeVisible({ timeout: 5000 });
+    await page.locator('#loginName').fill(process.env.QA_CASHIER_NAME || 'qa_tester');
+    await page.locator('#loginPw').fill(process.env.QA_CASHIER_PASSWORD || '1234');
+    await page.locator('#loginBtn').click();
+    await expect(page.locator('#loginOverlay')).toBeHidden({ timeout: 5000 });
+    await page.waitForTimeout(800);
+
+    // Trigger a real reservation via API so the SSE path drives the flash.
+    const date = getFutureDate(34);
+    const avail = await page.request.get(`/api/reservations/availability?date=${date}`);
+    const { slots } = await avail.json();
+    const freeSlot = slots.find(s => s.count < 4);
+    expect(freeSlot).toBeTruthy();
+    const resp = await page.request.post('/api/reservations', {
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({
+        date,
+        time: freeSlot.time,
+        party_size: 3,
+        name: 'XBtn Test',
+        phone: `0778${String(Date.now()).slice(-7)}`,
+        table_num: 'floor_1',
+      })
+    });
+    expect(resp.status()).toBe(200);
+
+    await expect(page.locator('#res-flash')).toHaveClass(/show/, { timeout: 6000 });
+    await expect(page.locator('#res-flash-close')).toBeVisible();
+    await page.locator('#res-flash-close').click();
+    await expect(page.locator('#res-flash')).not.toHaveClass(/show/, { timeout: 1000 });
+  });
+
+  test('reservation flash auto-dismisses within 11 seconds', async ({ page }) => {
+    await page.goto('/web-orders.html');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('#loginOverlay')).toBeVisible({ timeout: 5000 });
+    await page.locator('#loginName').fill(process.env.QA_CASHIER_NAME || 'qa_tester');
+    await page.locator('#loginPw').fill(process.env.QA_CASHIER_PASSWORD || '1234');
+    await page.locator('#loginBtn').click();
+    await expect(page.locator('#loginOverlay')).toBeHidden({ timeout: 5000 });
+    await page.waitForTimeout(800);
+
+    const date = getFutureDate(35);
+    const avail = await page.request.get(`/api/reservations/availability?date=${date}`);
+    const { slots } = await avail.json();
+    const freeSlot = slots.find(s => s.count < 4);
+    expect(freeSlot).toBeTruthy();
+    const resp = await page.request.post('/api/reservations', {
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({
+        date,
+        time: freeSlot.time,
+        party_size: 2,
+        name: 'Auto Dismiss Test',
+        phone: `0779${String(Date.now()).slice(-7)}`,
+        table_num: 'floor_2',
+      })
+    });
+    expect(resp.status()).toBe(200);
+
+    await expect(page.locator('#res-flash')).toHaveClass(/show/, { timeout: 6000 });
+    // 10초 자동 dismiss + 약간의 여유 → 11초 안에 .show 가 사라져야 함
+    await expect(page.locator('#res-flash')).not.toHaveClass(/show/, { timeout: 11000 });
   });
 });
