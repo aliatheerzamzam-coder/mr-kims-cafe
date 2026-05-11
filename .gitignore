@@ -9,3 +9,8 @@ server.log
 *.code-workspace
 .claude/reports/
 test-results/
+test-results-current-*/
+playwright-report/
+uploads/
+*.db.pre-reset-*
+.claude/scheduled_tasks.lock
