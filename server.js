@@ -1418,11 +1418,12 @@ const loginLimiter = rateLimit({
 });
 
 // Production: 5 attempts per 15 minutes — anti-bruteforce.
-// Test (NODE_ENV=test): 5 attempts per 1 second — bcrypt-verified loops of 6
-// requests still trip 429 (cumulative <1s), but recovers fast enough that
-// sibling tests get a fresh login window before the next describe runs.
+// Test (NODE_ENV=test): 5 attempts per 5 seconds + localhost is NOT skipped so
+// 24-workforce-security-patch can verify the limiter trips on the 6th request.
+// 5s window covers a non-trivial bcrypt loop, then resets fast enough for the
+// next describe to start with a clean window.
 const workforceLoginLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === 'test' ? 1000 : 15 * 60 * 1000,
+  windowMs: process.env.NODE_ENV === 'test' ? 5000 : 15 * 60 * 1000,
   max: 5,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
