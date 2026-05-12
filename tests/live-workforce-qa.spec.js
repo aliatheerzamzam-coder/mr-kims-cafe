@@ -8,7 +8,6 @@ const SCREENSHOTS_DIR = './test-results/workforce-live';
 // default — Cloudflare / network state from CI environments often produces
 // false negatives. Run manually with `LIVE_SITE_TESTS=1 npx playwright test ...`.
 test.describe('Workforce Meetings - 라이브 사이트 QA', () => {
-  test.skip(!process.env.LIVE_SITE_TESTS, 'set LIVE_SITE_TESTS=1 to run live-site checks');
   let page;
 
   test.beforeAll(async () => {
@@ -16,6 +15,7 @@ test.describe('Workforce Meetings - 라이브 사이트 QA', () => {
   });
 
   test.beforeEach(async ({ page: p }) => {
+    test.skip(!process.env.LIVE_SITE_TESTS, 'set LIVE_SITE_TESTS=1 to run live-site checks');
     page = p;
     // DevTools 에러 추적
     page.on('console', msg => {

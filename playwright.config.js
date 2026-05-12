@@ -20,7 +20,7 @@ module.exports = defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'NODE_ENV=test node server.js',
+    command: 'NODE_ENV=test CLAUDE_MOCK=1 node server.js',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
   },
