@@ -1418,12 +1418,12 @@ const loginLimiter = rateLimit({
 });
 
 // Production: 5 attempts per 15 minutes — anti-bruteforce.
-// Test (NODE_ENV=test): 5 attempts per 5 seconds + localhost is NOT skipped so
-// 24-workforce-security-patch can verify the limiter trips on the 6th request.
-// 5s window covers a non-trivial bcrypt loop, then resets fast enough for the
-// next describe to start with a clean window.
+// Test (NODE_ENV=test): 5 attempts per 1 second + localhost is NOT skipped so
+// 24-workforce-security-patch can verify the limiter trips. The M9 spec fires
+// its 6 requests in parallel (Promise.all), so a 1s window is enough; the
+// short window also means sibling describes always start with a fresh limiter.
 const workforceLoginLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === 'test' ? 5000 : 15 * 60 * 1000,
+  windowMs: process.env.NODE_ENV === 'test' ? 1000 : 15 * 60 * 1000,
   max: 5,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
@@ -2345,7 +2345,10 @@ app.delete('/api/admin/menu/categories/:id', requireMenuEdit, (req, res) => {
   if (!c) return res.status(404).json({ error: 'not_found' });
   // refuse delete if any menu_items_v2 rows reference this category
   const used = db.prepare('SELECT COUNT(*) AS n FROM menu_items_v2 WHERE category_id=?').get(id).n;
-  if (used > 0) return res.status(409).json({ error: 'category_in_use', items: used });
+  if (used > 0) {
+    const items = db.prepare('SELECT id, name_en, name_ar FROM menu_items_v2 WHERE category_id=? ORDER BY sort_order, name_en').all(id);
+    return res.status(409).json({ error: 'category_in_use', items: used, item_list: items });
+  }
   db.prepare('DELETE FROM menu_categories WHERE id=?').run(id);
   writeAudit({
     actor: req.cashier,
@@ -2356,6 +2359,36 @@ app.delete('/api/admin/menu/categories/:id', requireMenuEdit, (req, res) => {
     ip: req.ip
   });
   res.json({ success: true });
+});
+
+// Bulk-reassign all menu items from one category to another (or to NULL).
+// Used by the warehouse UI when deleting a category that has items attached.
+app.post('/api/admin/menu/categories/:id/move-items', requireMenuEdit, (req, res) => {
+  const fromId = parseInt(req.params.id, 10);
+  if (!Number.isFinite(fromId)) return res.status(400).json({ error: 'invalid_id' });
+  const from = db.prepare('SELECT * FROM menu_categories WHERE id=?').get(fromId);
+  if (!from) return res.status(404).json({ error: 'not_found' });
+  const rawTo = req.body?.to_category_id;
+  let toId = null;
+  if (rawTo !== null && rawTo !== undefined && rawTo !== '') {
+    toId = parseInt(rawTo, 10);
+    if (!Number.isFinite(toId)) return res.status(400).json({ error: 'invalid_to_id' });
+    if (toId === fromId) return res.status(400).json({ error: 'same_category' });
+    const to = db.prepare('SELECT id FROM menu_categories WHERE id=?').get(toId);
+    if (!to) return res.status(404).json({ error: 'to_not_found' });
+  }
+  const before = db.prepare('SELECT id, category_id FROM menu_items_v2 WHERE category_id=?').all(fromId);
+  const result = db.prepare('UPDATE menu_items_v2 SET category_id=? WHERE category_id=?').run(toId, fromId);
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.category.move_items',
+    target_type: 'menu_category',
+    target_id: fromId,
+    before: { from_category_id: fromId, items: before.map(i => i.id) },
+    after:  { to_category_id: toId, moved: result.changes },
+    ip: req.ip
+  });
+  res.json({ success: true, moved: result.changes });
 });
 
 // Public read endpoint — used by index.html (customer site) and cashier order

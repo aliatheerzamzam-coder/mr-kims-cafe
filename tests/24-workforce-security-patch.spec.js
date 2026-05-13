@@ -256,17 +256,16 @@ test.describe('Workforce 보안 패치', () => {
 
   test.describe('M9: loginLimiter 분리', () => {
     test('workforce 로그인 실패 후 rate limit 확인', async () => {
-      // 잘못된 비번으로 여러 번 시도
-      const failures = [];
-      for (let i = 0; i < 6; i++) {
-        const { status } = await apiRequest('POST', '/api/workforce/auth/login', {
-          password: 'wrong_password_attempt_' + i,
-        });
-        failures.push(status);
-      }
-
-      // 처음 몇 개는 401 (잘못된 비번), 5회 초과 후 429 (rate limit)
-      const limit429 = failures.findIndex(s => s === 429);
+      // 6 requests in parallel — fits inside windowMs even when sibling tests
+      // are sharing the same limiter (max=5 ⇒ at least one 429 in the batch).
+      const attempts = await Promise.all(
+        Array.from({ length: 6 }, (_, i) =>
+          apiRequest('POST', '/api/workforce/auth/login', {
+            password: 'wrong_password_attempt_' + i,
+          }).then(r => r.status)
+        )
+      );
+      const limit429 = attempts.findIndex(s => s === 429);
       expect(limit429).toBeGreaterThanOrEqual(0);
     });
 
