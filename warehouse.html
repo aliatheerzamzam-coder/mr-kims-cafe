@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Mr. Kim's Cafe — Warehouse</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -36,6 +36,7 @@
     <button class="active" onclick="showTab('dashboard',this)" data-i18n="nav_dashboard"><span class="ic">📊</span> <span data-i18n="nav_dashboard">📊 Dashboard</span></button>
     <button onclick="showTab('ingredients',this)" data-i18n="nav_ingredients"><span class="ic">🧪</span> <span data-i18n="nav_ingredients">🧪 Ingredients</span></button>
     <button onclick="showTab('menu',this); loadMenuTab()" data-i18n="nav_menu"><span class="ic">📖</span> <span data-i18n="nav_menu">📖 Menu</span></button>
+    <button onclick="showTab('options',this); loadOptionsTab()" data-i18n="nav_options"><span class="ic">🎛️</span> <span data-i18n="nav_options">🎛️ Menu Options</span></button>
     <button onclick="showTab('recipes',this)" data-i18n="nav_recipes"><span class="ic">📋</span> <span data-i18n="nav_recipes">📋 Recipes & Cost</span></button>
     <button onclick="showTab('adjust',this)" data-i18n="nav_adjust"><span class="ic">📦</span> <span data-i18n="nav_adjust">📦 Stock In/Out</span></button>
     <button onclick="showTab('daily',this)" data-i18n="nav_daily"><span class="ic">🛒</span> <span data-i18n="nav_daily">🛒 Daily Sales</span></button>
@@ -195,7 +196,157 @@
     </div>
   </div>
   <p style="font-size:.83rem;color:var(--soft);margin:-.25rem 0 .85rem" data-i18n="menu_hint">Items added or edited here are shared with the POS and the public website.</p>
+
+  <!-- 메뉴 카테고리 관리 패널 -->
+  <div class="card" style="margin-bottom:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="toggleMenuCatMgr()">
+      <span style="font-weight:700;font-size:.95rem" data-i18n="menucat_mgr_title">📂 Menu Category Management</span>
+      <span id="menuCatMgrToggle" style="font-size:.8rem;color:var(--soft)" data-i18n="cat_toggle_expand">▼ Expand</span>
+    </div>
+    <div id="menuCatMgrBody" class="hidden" style="margin-top:1rem">
+      <div id="menuCatMgrList"></div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 70px auto auto;gap:.5rem;align-items:end;margin-top:.75rem">
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem" data-i18n="menucat_label_code">Code *</label>
+          <input id="newMenuCatCode" placeholder="drinks" maxlength="32">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem" data-i18n="menucat_label_name_en">Name (EN) *</label>
+          <input id="newMenuCatNameEn" placeholder="Drinks">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem" data-i18n="menucat_label_name_ar">Name (AR) *</label>
+          <input id="newMenuCatNameAr" class="ar" dir="rtl" placeholder="مشروبات">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem" data-i18n="menucat_label_icon">Icon</label>
+          <input id="newMenuCatIcon" placeholder="☕" style="text-align:center" maxlength="8">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.78rem" data-i18n="menucat_label_sort">Sort</label>
+          <input id="newMenuCatSort" type="number" placeholder="100" value="100">
+        </div>
+        <button id="menuCatSubmitBtn" class="btn btn-primary btn-sm" onclick="submitMenuCatForm()" data-i18n="btn_add" style="align-self:end">Add</button>
+        <button id="menuCatCancelBtn" class="btn btn-outline btn-sm hidden" onclick="cancelEditMenuCat()" data-i18n="btn_cancel" style="align-self:end">Cancel</button>
+      </div>
+      <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;margin-top:.5rem;color:var(--soft)">
+        <input id="newMenuCatActive" type="checkbox" checked>
+        <span data-i18n="menucat_label_active">Active</span>
+      </label>
+      <div id="menuCatMgrMsg" style="font-size:.82rem;margin-top:.35rem;min-height:1.2em"></div>
+    </div>
+  </div>
+
   <div id="menuCategoriesContainer"></div>
+</div>
+
+<!-- ── 메뉴 카테고리 삭제 시 일괄 이동 모달 ── -->
+<div class="modal-overlay hidden" id="menuCatMoveModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h3 data-i18n="menucat_move_title">Move Items Before Delete</h3>
+      <button class="modal-close" onclick="closeModal('menuCatMoveModal')" aria-label="Close">×</button>
+    </div>
+    <p id="menuCatMoveMsg" style="font-size:.88rem;color:var(--mid);margin-bottom:.75rem"></p>
+    <div id="menuCatMoveItemsList" style="max-height:180px;overflow:auto;font-size:.83rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.5rem;margin-bottom:.75rem"></div>
+    <div class="form-group">
+      <label data-i18n="menucat_move_target">Move to category</label>
+      <select id="menuCatMoveTarget"></select>
+    </div>
+    <div id="menuCatMoveErr" style="color:var(--red);font-size:.85rem;min-height:1.1em"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('menuCatMoveModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="menuCatMoveBtn" class="btn btn-danger" onclick="confirmMoveAndDeleteCat()" data-i18n="menucat_btn_move_delete">Move &amp; Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── Menu Options (modifier groups) ───────────── -->
+<div class="tab-panel" id="tab-options">
+  <div class="sec-head">
+    <h2 data-i18n="tab_options_title">🎛️ Menu Options</h2>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="loadOptionsTab()" data-i18n="btn_refresh">🔄 Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="openModGroupModal()" data-i18n="modgrp_btn_add">+ Add Group</button>
+    </div>
+  </div>
+  <p style="font-size:.83rem;color:var(--soft);margin:-.25rem 0 .85rem" data-i18n="options_hint_v2">Drag groups and options to reorder. Customers see them in this exact order.</p>
+  <div id="optionGroupsList">Loading…</div>
+</div>
+
+<!-- ── 옵션 그룹 추가/수정 모달 ── -->
+<div class="modal-overlay hidden" id="modGroupModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h3 id="modGroupModalTitle" data-i18n="modgrp_title_add">Add Option Group</h3>
+      <button class="modal-close" onclick="closeModal('modGroupModal')" aria-label="Close">×</button>
+    </div>
+    <div class="form-group">
+      <label data-i18n="menucat_label_code">Code *</label>
+      <input id="modGroupCode" maxlength="32" placeholder="size">
+    </div>
+    <div class="form-group">
+      <label data-i18n="menucat_label_name_en">Name (EN) *</label>
+      <input id="modGroupNameEn" placeholder="Size">
+    </div>
+    <div class="form-group">
+      <label data-i18n="menucat_label_name_ar">Name (AR) *</label>
+      <input id="modGroupNameAr" class="ar" dir="rtl" placeholder="الحجم">
+    </div>
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem">
+      <label style="display:inline-flex;align-items:center;gap:.4rem">
+        <span data-i18n="modgrp_selection">Selection</span>
+        <select id="modGroupSelection">
+          <option value="single" data-i18n-opt="modgrp_single">Single</option>
+          <option value="multi" data-i18n-opt="modgrp_multi">Multi</option>
+        </select>
+      </label>
+      <label style="display:inline-flex;align-items:center;gap:.35rem">
+        <input id="modGroupRequired" type="checkbox">
+        <span data-i18n="modgrp_required">Required</span>
+      </label>
+    </div>
+    <div id="modGroupErr" style="color:var(--red);font-size:.8rem;min-height:1.1em"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('modGroupModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="modGroupSaveBtn" class="btn btn-primary" onclick="submitModGroupForm()" data-i18n="btn_save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 옵션 추가/수정 모달 ── -->
+<div class="modal-overlay hidden" id="modOptModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h3 id="modOptModalTitle" data-i18n="modopt_title_add">Add Option</h3>
+      <button class="modal-close" onclick="closeModal('modOptModal')" aria-label="Close">×</button>
+    </div>
+    <div class="form-group">
+      <label data-i18n="menucat_label_code">Code *</label>
+      <input id="modOptCode" maxlength="32" placeholder="small">
+    </div>
+    <div class="form-group">
+      <label data-i18n="menucat_label_name_en">Name (EN) *</label>
+      <input id="modOptNameEn" placeholder="Small">
+    </div>
+    <div class="form-group">
+      <label data-i18n="menucat_label_name_ar">Name (AR)</label>
+      <input id="modOptNameAr" class="ar" dir="rtl" placeholder="صغير">
+    </div>
+    <div class="form-group">
+      <label data-i18n="modopt_price_delta">Price delta (IQD)</label>
+      <input id="modOptPriceDelta" type="number" step="100" value="0">
+    </div>
+    <label style="display:inline-flex;align-items:center;gap:.35rem;font-size:.85rem;margin-bottom:.5rem">
+      <input id="modOptIsDefault" type="checkbox">
+      <span data-i18n="modopt_is_default">Default option (pre-selected)</span>
+    </label>
+    <div id="modOptErr" style="color:var(--red);font-size:.8rem;min-height:1.1em"></div>
+    <div class="btn-bar">
+      <button class="btn btn-outline" onclick="closeModal('modOptModal')" data-i18n="btn_cancel">Cancel</button>
+      <button id="modOptSaveBtn" class="btn btn-primary" onclick="submitModOptForm()" data-i18n="btn_save">Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── MENU EDITOR MODAL ── -->
@@ -906,17 +1057,17 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
       <div class="form-group" style="margin-bottom:0">
         <label data-i18n="label_menu_name">Menu Name *</label>
-        <input id="recipeMenuName" data-i18n-ph="ph_menu_name" placeholder="e.g. Iced Latte">
+        <div class="ing-search-wrap" style="position:relative">
+          <input id="recipeMenuName" class="ing-search-input" type="text" autocomplete="off" data-i18n-ph="ph_menu_name_search" placeholder="Search existing menu…">
+          <input id="recipeMenuItemId" type="hidden">
+          <div id="recipeMenuDropdown" class="ing-dropdown"></div>
+        </div>
+        <small id="recipeMenuHint" style="font-size:.72rem;color:var(--soft)" data-i18n="hint_menu_pick">Choose from registered menu items so cost &amp; margin stay aligned.</small>
       </div>
       <div class="form-group" style="margin-bottom:0">
         <label data-i18n="label_recipe_cat">Menu Type</label>
-        <input id="recipeCategory" list="menuCatList" data-i18n-ph="ph_recipe_cat" placeholder="e.g. Drink">
-        <datalist id="menuCatList">
-          <option value="Drink">
-          <option value="Smoothie">
-          <option value="Dessert">
-          <option value="Other">
-        </datalist>
+        <input id="recipeCategory" list="menuCatList" data-i18n-ph="ph_recipe_cat" placeholder="Auto-filled from menu" readonly style="background:var(--bg);color:var(--soft)">
+        <datalist id="menuCatList"></datalist>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">

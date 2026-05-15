@@ -2250,6 +2250,33 @@ app.get('/api/admin/menu/categories', requireAuth, (_req, res) => {
   res.json(rows.map(r => ({ ...r, active: r.active === 1 })));
 });
 
+// Reorder categories in bulk. Body: { order: [id1, id2, ...] }. Sort_order is
+// reassigned in 100-step increments so future inserts have room to slot in.
+// Must be defined BEFORE the PUT/:id route below — Express otherwise treats
+// "reorder" as an :id param and lands on the wrong handler.
+app.put('/api/admin/menu/categories/reorder', requireMenuEdit, (req, res) => {
+  const order = Array.isArray(req.body?.order) ? req.body.order : null;
+  if (!order || !order.length) return res.status(400).json({ error: 'invalid_order' });
+  const ids = order.map(n => parseInt(n, 10));
+  if (ids.some(n => !Number.isFinite(n))) return res.status(400).json({ error: 'invalid_order' });
+  const rows = db.prepare(`SELECT id FROM menu_categories WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  if (rows.length !== ids.length) return res.status(400).json({ error: 'unknown_ids' });
+  const upd = db.prepare('UPDATE menu_categories SET sort_order=?, updated_at=? WHERE id=?');
+  const now = Date.now();
+  const tx = db.transaction(() => {
+    ids.forEach((id, idx) => upd.run((idx + 1) * 100, now, id));
+  });
+  tx();
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.category.reorder',
+    target_type: 'menu_category',
+    after: { order: ids },
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
 app.post('/api/admin/menu/categories', requireMenuEdit, (req, res) => {
   const { code, name_en, name_ar, name_ko, icon, color, sort_order, active } = req.body || {};
   if (!code || !/^[a-z0-9_-]{2,32}$/.test(String(code))) {
@@ -2789,6 +2816,30 @@ app.get('/api/admin/menu/modifier-groups', requireAuth, (_req, res) => {
   res.json(groups.map(g => loadModifierGroup(g.id)));
 });
 
+// Reorder modifier groups in bulk. Must be defined BEFORE PUT/:id below.
+app.put('/api/admin/menu/modifier-groups/reorder', requireMenuEdit, (req, res) => {
+  const order = Array.isArray(req.body?.order) ? req.body.order : null;
+  if (!order || !order.length) return res.status(400).json({ error: 'invalid_order' });
+  const ids = order.map(n => parseInt(n, 10));
+  if (ids.some(n => !Number.isFinite(n))) return res.status(400).json({ error: 'invalid_order' });
+  const rows = db.prepare(`SELECT id FROM menu_modifier_groups WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  if (rows.length !== ids.length) return res.status(400).json({ error: 'unknown_ids' });
+  const upd = db.prepare('UPDATE menu_modifier_groups SET sort_order=?, updated_at=? WHERE id=?');
+  const now = Date.now();
+  const tx = db.transaction(() => {
+    ids.forEach((id, idx) => upd.run((idx + 1) * 100, now, id));
+  });
+  tx();
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.modifier_group.reorder',
+    target_type: 'menu_modifier_group',
+    after: { order: ids },
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
 app.get('/api/admin/menu/modifier-groups/:id', requireAuth, (req, res) => {
   const g = loadModifierGroup(parseInt(req.params.id, 10));
   if (!g) return res.status(404).json({ error: 'not_found' });
@@ -2883,6 +2934,7 @@ app.delete('/api/admin/menu/modifier-groups/:id', requireMenuEdit, (req, res) =>
   res.json({ success: true });
 });
 
+
 // ─── modifier OPTIONS (nested under a group) ─────────────────────────────────
 app.post('/api/admin/menu/modifier-groups/:gid/options', requireMenuEdit, (req, res) => {
   const gid = parseInt(req.params.gid, 10);
@@ -2970,6 +3022,34 @@ app.delete('/api/admin/menu/modifier-options/:id', requireMenuEdit, (req, res) =
     target_type: 'menu_modifier_option',
     target_id: id,
     before,
+    ip: req.ip
+  });
+  res.json({ success: true });
+});
+
+// Reorder options within a group in bulk. Body: { order: [id1, id2, ...] }.
+// All ids must belong to the same group_id (gid).
+app.put('/api/admin/menu/modifier-groups/:gid/options/reorder', requireMenuEdit, (req, res) => {
+  const gid = parseInt(req.params.gid, 10);
+  const g = db.prepare('SELECT id FROM menu_modifier_groups WHERE id=?').get(gid);
+  if (!g) return res.status(404).json({ error: 'group_not_found' });
+  const order = Array.isArray(req.body?.order) ? req.body.order : null;
+  if (!order || !order.length) return res.status(400).json({ error: 'invalid_order' });
+  const ids = order.map(n => parseInt(n, 10));
+  if (ids.some(n => !Number.isFinite(n))) return res.status(400).json({ error: 'invalid_order' });
+  const rows = db.prepare(`SELECT id FROM menu_modifier_options WHERE group_id=? AND id IN (${ids.map(() => '?').join(',')})`).all(gid, ...ids);
+  if (rows.length !== ids.length) return res.status(400).json({ error: 'unknown_or_foreign_ids' });
+  const upd = db.prepare('UPDATE menu_modifier_options SET sort_order=? WHERE id=?');
+  const tx = db.transaction(() => {
+    ids.forEach((id, idx) => upd.run((idx + 1) * 100, id));
+  });
+  tx();
+  writeAudit({
+    actor: req.cashier,
+    action: 'menu.modifier_option.reorder',
+    target_type: 'menu_modifier_option',
+    target_id: gid,
+    after: { group_id: gid, order: ids },
     ip: req.ip
   });
   res.json({ success: true });

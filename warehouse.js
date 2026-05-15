@@ -230,6 +230,65 @@ const TRANSLATIONS = {
     err_loc_format:'كود غير صالح (مثال: 2A2)',
     err_loc_qty:'الكمية يجب أن تكون 0 أو أكثر',
     confirm_del_loc:'حذف هذا الموقع؟',
+    // ── Menu Category Management (server-backed) ──
+    menucat_mgr_title:'📂 إدارة فئات القائمة',
+    menucat_label_code:'الرمز *',
+    menucat_label_name_en:'الاسم (EN) *',
+    menucat_label_name_ar:'الاسم (AR) *',
+    menucat_label_icon:'أيقونة',
+    menucat_label_sort:'الترتيب',
+    menucat_label_active:'نشط',
+    menucat_err_code:'الرمز: حروف صغيرة/أرقام/_- فقط (2–32)',
+    menucat_err_name_en:'أدخل الاسم بالإنجليزية',
+    menucat_err_name_ar:'أدخل الاسم بالعربية',
+    menucat_err_dup:'هذا الرمز موجود مسبقاً',
+    menucat_err_save:'فشل الحفظ',
+    menucat_err_delete:'فشل الحذف',
+    menucat_err_move:'فشل نقل العناصر',
+    menucat_added:'تمت إضافة الفئة',
+    menucat_deleted:'تم حذف الفئة',
+    menucat_confirm_del:'حذف الفئة "${name}"؟',
+    menucat_move_title:'نقل العناصر قبل الحذف',
+    menucat_move_msg:'الفئة "${name}" تحتوي على ${count} عنصر. اختر فئة جديدة لنقلها إليها ثم احذف.',
+    menucat_move_target:'انقل إلى فئة',
+    menucat_move_none:'— بدون فئة —',
+    menucat_btn_move_delete:'نقل وحذف',
+    menucat_err_reorder:'فشل في تغيير الترتيب',
+    // ── Recipe modal — menu picker ──
+    menu_no_result:'لا توجد قائمة مطابقة',
+    ph_menu_name_search:'ابحث في القوائم المسجلة…',
+    hint_menu_pick:'اختر من القوائم المسجلة لضمان دقة حساب التكلفة والهامش.',
+    err_menu_pick:'اختر عنصراً من القائمة المنسدلة',
+    // ── Menu Options (modifier groups + options) ──
+    options_hint_v2:'اسحب المجموعات والخيارات لإعادة الترتيب. يراها العملاء بنفس هذا الترتيب.',
+    modgrp_btn_add:'+ إضافة مجموعة',
+    modgrp_title_add:'إضافة مجموعة خيارات',
+    modgrp_title_edit:'تعديل المجموعة',
+    modgrp_selection:'النوع',
+    modgrp_single:'اختيار واحد',
+    modgrp_multi:'اختيار متعدد',
+    modgrp_required:'إلزامي',
+    modgrp_empty:'لا توجد مجموعات بعد. اضغط "إضافة مجموعة".',
+    modgrp_err_load:'فشل التحميل',
+    modgrp_err_save:'فشل الحفظ',
+    modgrp_err_delete:'فشل الحذف',
+    modgrp_err_code:'الرمز: حروف صغيرة/أرقام/_ فقط (2–32 حرفاً)',
+    modgrp_err_reorder:'فشل في تغيير ترتيب المجموعات',
+    modgrp_err_in_use:'هذه المجموعة مستخدمة في ${count} عنصر. أزلها من العناصر أولاً.',
+    modgrp_confirm_del:'حذف المجموعة "${name}"؟',
+    modopt_count_label:'خيار',
+    modopt_btn_add:'إضافة خيار',
+    modopt_title_add:'إضافة خيار',
+    modopt_title_edit:'تعديل الخيار',
+    modopt_price_delta:'فرق السعر (IQD)',
+    modopt_is_default:'افتراضي (محدد مسبقاً)',
+    modopt_empty:'لا توجد خيارات. أضف واحداً.',
+    modopt_err_code:'الرمز: حروف صغيرة/أرقام/_ فقط',
+    modopt_err_save:'فشل الحفظ',
+    modopt_err_delete:'فشل الحذف',
+    modopt_err_reorder:'فشل في تغيير ترتيب الخيارات',
+    modopt_confirm_del:'حذف الخيار "${name}"؟',
+    loading:'جارٍ التحميل…',
   },
   en: {
     brand_sub:'Warehouse', badge_admin:'🔑 Admin', btn_logout:'Logout',
@@ -437,6 +496,65 @@ const TRANSLATIONS = {
     err_loc_format:'Invalid code (e.g. 2A2)',
     err_loc_qty:'Quantity must be 0 or more',
     confirm_del_loc:'Delete this location?',
+    // ── Menu Category Management (server-backed) ──
+    menucat_mgr_title:'📂 Menu Category Management',
+    menucat_label_code:'Code *',
+    menucat_label_name_en:'Name (EN) *',
+    menucat_label_name_ar:'Name (AR) *',
+    menucat_label_icon:'Icon',
+    menucat_label_sort:'Sort',
+    menucat_label_active:'Active',
+    menucat_err_code:'Code: lowercase letters/digits/_- only (2–32 chars)',
+    menucat_err_name_en:'Enter English name',
+    menucat_err_name_ar:'Enter Arabic name',
+    menucat_err_dup:'This code already exists',
+    menucat_err_save:'Save failed',
+    menucat_err_delete:'Delete failed',
+    menucat_err_move:'Move failed',
+    menucat_added:'Category added',
+    menucat_deleted:'Category deleted',
+    menucat_confirm_del:'Delete category "${name}"?',
+    menucat_move_title:'Move Items Before Delete',
+    menucat_move_msg:'"${name}" has ${count} item(s). Choose a target category to move them, then delete.',
+    menucat_move_target:'Move to category',
+    menucat_move_none:'— Uncategorized —',
+    menucat_btn_move_delete:'Move & Delete',
+    menucat_err_reorder:'Reorder failed',
+    // ── Recipe modal — menu picker ──
+    menu_no_result:'No matching menu',
+    ph_menu_name_search:'Search registered menu…',
+    hint_menu_pick:'Choose from registered menu items so cost & margin stay aligned.',
+    err_menu_pick:'Pick a menu item from the dropdown',
+    // ── Menu Options (modifier groups + options) ──
+    options_hint_v2:'Drag groups and options to reorder. Customers see them in this exact order.',
+    modgrp_btn_add:'+ Add Group',
+    modgrp_title_add:'Add Option Group',
+    modgrp_title_edit:'Edit Group',
+    modgrp_selection:'Selection',
+    modgrp_single:'Single',
+    modgrp_multi:'Multi',
+    modgrp_required:'Required',
+    modgrp_empty:'No option groups yet. Click "Add Group".',
+    modgrp_err_load:'Failed to load',
+    modgrp_err_save:'Save failed',
+    modgrp_err_delete:'Delete failed',
+    modgrp_err_code:'Code: lowercase letters/digits/_ only (2–32 chars)',
+    modgrp_err_reorder:'Failed to reorder groups',
+    modgrp_err_in_use:'This group is used by ${count} item(s). Remove it from those items first.',
+    modgrp_confirm_del:'Delete group "${name}"?',
+    modopt_count_label:'option(s)',
+    modopt_btn_add:'Add Option',
+    modopt_title_add:'Add Option',
+    modopt_title_edit:'Edit Option',
+    modopt_price_delta:'Price delta (IQD)',
+    modopt_is_default:'Default (pre-selected)',
+    modopt_empty:'No options yet. Add one.',
+    modopt_err_code:'Code: lowercase letters/digits/_ only',
+    modopt_err_save:'Save failed',
+    modopt_err_delete:'Delete failed',
+    modopt_err_reorder:'Failed to reorder options',
+    modopt_confirm_del:'Delete option "${name}"?',
+    loading:'Loading…',
   }
 };
 
@@ -498,6 +616,7 @@ function applyLang(lang) {
       if (id === 'dashboard')   loadDashboard();
       else if (id === 'ingredients') loadIngredients();
       else if (id === 'menu')        loadMenuTab();
+      else if (id === 'options')     loadOptionsTab();
       else if (id === 'recipes')     { loadRecipes(); loadSizeRecipes(); }
       else if (id === 'adjust')      loadAdjust();
       else if (id === 'daily')       loadDaily();
@@ -625,9 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('newPw2').addEventListener('keydown', e => {
     if (e.key === 'Enter') changePw();
   });
-  document.getElementById('recipeMenuName').addEventListener('keydown', e => {
-    if (e.key === 'Enter') saveRecipe();
-  });
+  // recipeMenuName picker is wired in _setupRecipeMenuPicker (called on first open).
   document.getElementById('ingNameKo').addEventListener('keydown', e => {
     if (e.key === 'Enter') saveIngredient();
   });
@@ -647,6 +764,7 @@ function showTab(id, btn) {
   if (id === 'dashboard')   loadDashboard();
   if (id === 'ingredients') loadIngredients();
   if (id === 'menu')        loadMenuTab();
+  if (id === 'options')     loadOptionsTab();
   if (id === 'recipes')     { loadRecipes(); loadSizeRecipes(); }
   if (id === 'adjust')      loadAdjust();
   if (id === 'daily')       loadDaily();
@@ -1522,8 +1640,100 @@ async function loadRecipes() {
   }
 }
 
-function openRecipeModal() {
+async function _ensureMenuListLoaded() {
+  if (Array.isArray(menuState.items) && menuState.items.length > 0) return;
+  try {
+    const [mRes, cRes] = await Promise.all([
+      apiFetch('/api/menu/with-cost', { headers: hdr() }),
+      apiFetch('/api/admin/menu/categories', { headers: hdr() }),
+    ]);
+    if (mRes.ok) menuState.items = await mRes.json();
+    if (cRes.ok) menuState.categories = await cRes.json();
+  } catch (e) { /* picker will simply have empty list */ }
+}
+
+let _recipeMenuPickerReady = false;
+
+function _setupRecipeMenuPicker() {
+  if (_recipeMenuPickerReady) return;
+  const input = document.getElementById('recipeMenuName');
+  const hidden = document.getElementById('recipeMenuItemId');
+  const dropdown = document.getElementById('recipeMenuDropdown');
+  const catInput = document.getElementById('recipeCategory');
+  if (!input || !dropdown) return;
+
+  function pickItem(it) {
+    input.value = it.name_en || it.name_ko || it.code || '';
+    input.classList.add('selected');
+    hidden.value = it.id;
+    const cat = (menuState.categories || []).find(c => c.id === it.category_id);
+    catInput.value = cat ? (cat.name_en || cat.name_ko || cat.code) : '';
+    dropdown.classList.remove('open');
+  }
+
+  function renderDropdown(query) {
+    const q = (query || '').toLowerCase().trim();
+    const list = (menuState.items || []).filter(it => {
+      if (!q) return true;
+      return (it.name_en && it.name_en.toLowerCase().includes(q))
+          || (it.name_ko && it.name_ko.toLowerCase().includes(q))
+          || (it.name_ar && it.name_ar.includes(q))
+          || (it.code && it.code.toLowerCase().includes(q));
+    }).slice(0, 50);
+    dropdown.innerHTML = '';
+    if (!list.length) {
+      dropdown.innerHTML = `<div class="ing-no-result">${t('menu_no_result')}</div>`;
+    } else {
+      list.forEach(it => {
+        const cat = (menuState.categories || []).find(c => c.id === it.category_id);
+        const catLabel = cat ? (cat.name_en || cat.code) : '—';
+        const div = document.createElement('div');
+        div.className = 'ing-dropdown-item';
+        div.innerHTML = `<span class="ing-name">${esc(it.name_en || it.name_ko || it.code)}</span><span class="ing-unit">${esc(catLabel)}</span>`;
+        div.addEventListener('mousedown', e => { e.preventDefault(); pickItem(it); });
+        dropdown.appendChild(div);
+      });
+    }
+    dropdown.classList.add('open');
+  }
+
+  input.addEventListener('focus', () => renderDropdown(input.value));
+  input.addEventListener('input', () => {
+    hidden.value = '';
+    input.classList.remove('selected');
+    catInput.value = '';
+    renderDropdown(input.value);
+  });
+  input.addEventListener('blur', () => setTimeout(() => dropdown.classList.remove('open'), 150));
+  input.addEventListener('keydown', e => {
+    const items = [...dropdown.querySelectorAll('.ing-dropdown-item')];
+    const active = dropdown.querySelector('.ing-dropdown-item.active');
+    let idx = items.indexOf(active);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (active) active.classList.remove('active');
+      items[(idx + 1) % items.length]?.classList.add('active');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (active) active.classList.remove('active');
+      items[(idx - 1 + items.length) % items.length]?.classList.add('active');
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (active) active.dispatchEvent(new MouseEvent('mousedown'));
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+    }
+  });
+
+  _recipeMenuPickerReady = true;
+}
+
+async function openRecipeModal() {
+  await _ensureMenuListLoaded();
+  _setupRecipeMenuPicker();
   document.getElementById('recipeMenuName').value = '';
+  document.getElementById('recipeMenuName').classList.remove('selected');
+  document.getElementById('recipeMenuItemId').value = '';
   document.getElementById('recipeCategory').value = '';
   document.getElementById('recipeRows').innerHTML = '';
   document.getElementById('recipeModalMsg').innerHTML = '';
@@ -1531,10 +1741,33 @@ function openRecipeModal() {
   document.getElementById('recipeModal').classList.remove('hidden');
 }
 
-function editRecipe(menu) {
-  document.getElementById('recipeMenuName').value = menu;
+async function editRecipe(menu) {
+  await _ensureMenuListLoaded();
+  _setupRecipeMenuPicker();
   const first = recipes.find(r => r.menu_item === menu);
-  document.getElementById('recipeCategory').value = (first && first.menu_category && first.menu_category !== '기타') ? first.menu_category : (first ? first.menu_category : '');
+  // try to resolve menu_item_id: prefer the value stored on the recipe row,
+  // otherwise match by name against menuState.items.
+  let mid = first && first.menu_item_id ? first.menu_item_id : null;
+  if (!mid) {
+    const match = (menuState.items || []).find(it =>
+      it.name_en === menu || it.name_ko === menu || it.code === menu);
+    if (match) mid = match.id;
+  }
+  const matched = mid ? (menuState.items || []).find(it => it.id === mid) : null;
+  const nameInput = document.getElementById('recipeMenuName');
+  const catInput = document.getElementById('recipeCategory');
+  if (matched) {
+    nameInput.value = matched.name_en || matched.name_ko || matched.code;
+    nameInput.classList.add('selected');
+    document.getElementById('recipeMenuItemId').value = matched.id;
+    const cat = (menuState.categories || []).find(c => c.id === matched.category_id);
+    catInput.value = cat ? (cat.name_en || cat.name_ko || cat.code) : (first?.menu_category || '');
+  } else {
+    // legacy text-only recipe whose menu was deleted/renamed — show name, leave id empty
+    nameInput.value = menu;
+    document.getElementById('recipeMenuItemId').value = '';
+    catInput.value = first?.menu_category || '';
+  }
   document.getElementById('recipeRows').innerHTML = '';
   document.getElementById('recipeModalMsg').innerHTML = '';
   recipes.filter(r => r.menu_item === menu).forEach(item => addRecipeRow(item.ingredient_id, item.quantity, item.recipe_unit || 'ml'));
@@ -1673,9 +1906,14 @@ function addRecipeRow(ingId = '', qty = '', unit = 'ml') {
 
 async function saveRecipe() {
   const menu = document.getElementById('recipeMenuName').value.trim();
+  const menu_item_id = parseInt(document.getElementById('recipeMenuItemId').value, 10);
   const menu_category = document.getElementById('recipeCategory').value.trim() || '기타';
   const msgEl = document.getElementById('recipeModalMsg');
   if (!menu) { msgEl.innerHTML = `<div class="alert alert-danger">${t('err_menu_name')}</div>`; return; }
+  if (!Number.isFinite(menu_item_id)) {
+    msgEl.innerHTML = `<div class="alert alert-danger">${t('err_menu_pick')}</div>`;
+    return;
+  }
 
   const rows = [...document.querySelectorAll('#recipeRows .recipe-row')];
   const rawItems = rows
@@ -1708,7 +1946,7 @@ async function saveRecipe() {
     const resp = await apiFetch('/api/recipes', {
       method: 'POST',
       headers: hdr(),
-      body: JSON.stringify({ menu_item: menu, items: rawItems, menu_category })
+      body: JSON.stringify({ menu_item: menu, menu_item_id, items: rawItems, menu_category })
     });
     const r = await resp.json();
     if (resp.ok && r.success) { closeModal('recipeModal'); loadRecipes(); }
@@ -3528,10 +3766,313 @@ async function loadMenuTab() {
     menuState.ingredients = await iRes.json();
     menuState.modifierGroups = gRes.ok ? await gRes.json() : [];
     renderMenuTab();
+    if (!document.getElementById('menuCatMgrBody')?.classList.contains('hidden')) {
+      renderMenuCatMgr();
+    }
   } catch (e) {
     if (e?.message === 'unauthorized') return;
     const c = document.getElementById('menuCategoriesContainer');
     if (c) c.innerHTML = `<div class="card" style="color:var(--danger)">⚠️ ${esc(e.message || 'load failed')}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+// Sortable helper — drag & drop + ↑↓ buttons (shared)
+// Caller passes a container element that owns `.sortable-item[data-sid]`
+// children. On reorder, callbackPromise receives the new id-list (numbers)
+// and should persist it (eg. PUT a reorder API) and resolve.
+// ══════════════════════════════════════════════
+function attachSortable(container, onReorder) {
+  if (!container || container._sortableBound) return;
+  container._sortableBound = true;
+  let dragged = null;
+
+  container.addEventListener('dragstart', e => {
+    const item = e.target.closest('.sortable-item');
+    if (!item || !container.contains(item)) return;
+    dragged = item;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.dataset.sid || '');
+  });
+  container.addEventListener('dragend', () => {
+    if (dragged) dragged.classList.remove('dragging');
+    container.querySelectorAll('.sortable-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+    dragged = null;
+  });
+  container.addEventListener('dragover', e => {
+    if (!dragged) return;
+    e.preventDefault();
+    const over = e.target.closest('.sortable-item');
+    if (!over || over === dragged || !container.contains(over)) return;
+    container.querySelectorAll('.sortable-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+    over.classList.add('drag-over');
+  });
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    const over = e.target.closest('.sortable-item');
+    if (!over || over === dragged || !container.contains(over)) return;
+    const items = [...container.querySelectorAll('.sortable-item')];
+    const fromIdx = items.indexOf(dragged);
+    const toIdx = items.indexOf(over);
+    if (fromIdx < 0 || toIdx < 0) return;
+    if (fromIdx < toIdx) over.after(dragged); else over.before(dragged);
+    over.classList.remove('drag-over');
+    const order = [...container.querySelectorAll('.sortable-item')].map(el => parseInt(el.dataset.sid, 10));
+    onReorder(order);
+  });
+}
+
+// Arrow-button move helper. Caller passes the container, the sid to move,
+// and direction (-1 or +1). Calls onReorder with the new id-list.
+function sortableMove(container, sid, dir, onReorder) {
+  const items = [...container.querySelectorAll('.sortable-item')];
+  const idx = items.findIndex(el => String(el.dataset.sid) === String(sid));
+  const newIdx = idx + dir;
+  if (idx < 0 || newIdx < 0 || newIdx >= items.length) return;
+  const moving = items[idx];
+  if (dir < 0) items[newIdx].before(moving); else items[newIdx].after(moving);
+  const order = [...container.querySelectorAll('.sortable-item')].map(el => parseInt(el.dataset.sid, 10));
+  onReorder(order);
+}
+
+// ══════════════════════════════════════════════
+// 메뉴 카테고리 관리 (server-backed via /api/admin/menu/categories)
+// ══════════════════════════════════════════════
+let editingMenuCatId = null;
+let pendingDeleteMenuCatId = null;
+
+function toggleMenuCatMgr() {
+  const body = document.getElementById('menuCatMgrBody');
+  const icon = document.getElementById('menuCatMgrToggle');
+  body.classList.toggle('hidden');
+  icon.textContent = body.classList.contains('hidden') ? t('cat_toggle_expand') : t('cat_toggle_collapse');
+  if (!body.classList.contains('hidden')) renderMenuCatMgr();
+}
+
+function renderMenuCatMgr() {
+  const list = document.getElementById('menuCatMgrList');
+  if (!list) return;
+  const cats = [...(menuState.categories || [])].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  if (!cats.length) {
+    list.innerHTML = `<p style="font-size:.82rem;color:var(--soft);margin-bottom:.5rem">${t('cat_empty')}</p>`;
+    return;
+  }
+  list.innerHTML = `<div id="menuCatSortable" class="sortable-list">${cats.map((c, i) => {
+    const count = (menuState.items || []).filter(it => it.category_id === c.id).length;
+    return `<div class="sortable-item" draggable="true" data-sid="${c.id}">
+      <span class="sortable-handle" title="Drag to reorder">⋮⋮</span>
+      <button class="sortable-arrow" ${i === 0 ? 'disabled' : ''} onclick="moveMenuCat(${c.id}, -1)" aria-label="Move up">▲</button>
+      <button class="sortable-arrow" ${i === cats.length - 1 ? 'disabled' : ''} onclick="moveMenuCat(${c.id}, 1)" aria-label="Move down">▼</button>
+      <span style="font-size:1.05rem;flex-shrink:0">${esc(c.icon || '📦')}</span>
+      <span class="grow">
+        <b>${esc(c.name_en)}</b>
+        <span class="ar" dir="rtl" style="margin-inline-start:.4rem;color:var(--soft)">${esc(c.name_ar || '')}</span>
+        <span style="margin-inline-start:.4rem;font-size:.72rem;color:var(--soft);font-family:ui-monospace,monospace">${esc(c.code)}</span>
+        <span style="margin-inline-start:.4rem;font-size:.72rem;color:var(--soft)">· ${count} items</span>
+        ${c.active ? '' : '<span style="margin-inline-start:.4rem;font-size:.7rem;color:var(--red)">⛔</span>'}
+      </span>
+      <button class="btn btn-outline btn-sm" style="padding:.1rem .4rem;min-width:0" onclick="startEditMenuCat(${c.id})">✎</button>
+      <button class="btn btn-danger btn-sm" style="padding:.1rem .4rem;min-width:0" onclick="deleteMenuCategory(${c.id})">✕</button>
+    </div>`;
+  }).join('')}</div>`;
+
+  const container = document.getElementById('menuCatSortable');
+  attachSortable(container, persistMenuCatOrder);
+}
+
+async function persistMenuCatOrder(order) {
+  const res = await apiFetch('/api/admin/menu/categories/reorder', {
+    method: 'PUT', headers: hdr(),
+    body: JSON.stringify({ order })
+  });
+  if (!res.ok) {
+    _menuCatMsg(t('menucat_err_reorder'), 'var(--red)');
+    return;
+  }
+  // re-fetch to sync sort_order numbers — but render from local order to avoid flicker
+  order.forEach((id, idx) => {
+    const c = (menuState.categories || []).find(x => x.id === id);
+    if (c) c.sort_order = (idx + 1) * 100;
+  });
+}
+
+function moveMenuCat(id, dir) {
+  const container = document.getElementById('menuCatSortable');
+  if (!container) return;
+  sortableMove(container, id, dir, persistMenuCatOrder);
+  // refresh arrow disabled states after move
+  setTimeout(renderMenuCatMgr, 100);
+}
+
+function _menuCatFormValues() {
+  return {
+    code:    document.getElementById('newMenuCatCode').value.trim().toLowerCase(),
+    name_en: document.getElementById('newMenuCatNameEn').value.trim(),
+    name_ar: document.getElementById('newMenuCatNameAr').value.trim(),
+    icon:    document.getElementById('newMenuCatIcon').value.trim(),
+    sort_order: parseInt(document.getElementById('newMenuCatSort').value, 10),
+    active:  document.getElementById('newMenuCatActive').checked
+  };
+}
+
+function _menuCatMsg(text, color) {
+  const m = document.getElementById('menuCatMgrMsg');
+  m.style.color = color || 'var(--soft)';
+  m.textContent = text || '';
+  if (text) setTimeout(() => { if (m.textContent === text) m.textContent = ''; }, 3000);
+}
+
+function submitMenuCatForm() {
+  if (editingMenuCatId != null) saveEditMenuCategory(editingMenuCatId);
+  else addMenuCategory();
+}
+
+async function addMenuCategory() {
+  const v = _menuCatFormValues();
+  if (!v.code || !/^[a-z0-9_-]{2,32}$/.test(v.code)) return _menuCatMsg(t('menucat_err_code'), 'var(--red)');
+  if (!v.name_en) return _menuCatMsg(t('menucat_err_name_en'), 'var(--red)');
+  if (!v.name_ar) return _menuCatMsg(t('menucat_err_name_ar'), 'var(--red)');
+  lockBtn('menuCatSubmitBtn');
+  try {
+    const res = await apiFetch('/api/admin/menu/categories', {
+      method: 'POST', headers: hdr(),
+      body: JSON.stringify({
+        code: v.code, name_en: v.name_en, name_ar: v.name_ar,
+        icon: v.icon || null,
+        sort_order: Number.isFinite(v.sort_order) ? v.sort_order : 100,
+        active: v.active
+      })
+    });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.success) {
+      const key = r.error === 'code_exists' ? 'menucat_err_dup' : 'menucat_err_save';
+      return _menuCatMsg(t(key), 'var(--red)');
+    }
+    _clearMenuCatForm();
+    _menuCatMsg(t('menucat_added'), 'var(--green)');
+    await loadMenuTab();
+  } finally {
+    unlockBtn('menuCatSubmitBtn');
+  }
+}
+
+function startEditMenuCat(id) {
+  const c = (menuState.categories || []).find(x => x.id === id);
+  if (!c) return;
+  editingMenuCatId = id;
+  document.getElementById('newMenuCatCode').value = c.code || '';
+  document.getElementById('newMenuCatCode').disabled = true;  // code is immutable on server
+  document.getElementById('newMenuCatNameEn').value = c.name_en || '';
+  document.getElementById('newMenuCatNameAr').value = c.name_ar || '';
+  document.getElementById('newMenuCatIcon').value = c.icon || '';
+  document.getElementById('newMenuCatSort').value = c.sort_order ?? 100;
+  document.getElementById('newMenuCatActive').checked = !!c.active;
+  document.getElementById('menuCatSubmitBtn').textContent = t('btn_save');
+  document.getElementById('menuCatCancelBtn').classList.remove('hidden');
+  _menuCatMsg(t('cat_editing').replace('${name}', c.name_en), 'var(--soft)');
+  document.getElementById('newMenuCatNameEn').focus();
+}
+
+async function saveEditMenuCategory(id) {
+  const v = _menuCatFormValues();
+  if (!v.name_en) return _menuCatMsg(t('menucat_err_name_en'), 'var(--red)');
+  if (!v.name_ar) return _menuCatMsg(t('menucat_err_name_ar'), 'var(--red)');
+  lockBtn('menuCatSubmitBtn');
+  try {
+    const res = await apiFetch(`/api/admin/menu/categories/${id}`, {
+      method: 'PUT', headers: hdr(),
+      body: JSON.stringify({
+        name_en: v.name_en, name_ar: v.name_ar,
+        icon: v.icon || '',
+        sort_order: Number.isFinite(v.sort_order) ? v.sort_order : 100,
+        active: v.active
+      })
+    });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.success) return _menuCatMsg(t('menucat_err_save'), 'var(--red)');
+    cancelEditMenuCat();
+    _menuCatMsg(t('cat_saved'), 'var(--green)');
+    await loadMenuTab();
+  } finally {
+    unlockBtn('menuCatSubmitBtn');
+  }
+}
+
+function cancelEditMenuCat() {
+  editingMenuCatId = null;
+  _clearMenuCatForm();
+  document.getElementById('menuCatSubmitBtn').textContent = t('btn_add');
+  document.getElementById('menuCatCancelBtn').classList.add('hidden');
+}
+
+function _clearMenuCatForm() {
+  document.getElementById('newMenuCatCode').value = '';
+  document.getElementById('newMenuCatCode').disabled = false;
+  document.getElementById('newMenuCatNameEn').value = '';
+  document.getElementById('newMenuCatNameAr').value = '';
+  document.getElementById('newMenuCatIcon').value = '';
+  document.getElementById('newMenuCatSort').value = 100;
+  document.getElementById('newMenuCatActive').checked = true;
+}
+
+async function deleteMenuCategory(id) {
+  const c = (menuState.categories || []).find(x => x.id === id);
+  if (!c) return;
+  const name = c.name_en;
+  if (!confirm(t('menucat_confirm_del').replace('${name}', name))) return;
+  const res = await apiFetch(`/api/admin/menu/categories/${id}`, { method: 'DELETE', headers: hdr() });
+  if (res.ok) {
+    _menuCatMsg(t('menucat_deleted'), 'var(--green)');
+    await loadMenuTab();
+    return;
+  }
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}));
+    openMoveItemsModal(id, body.item_list || [], body.items || 0);
+    return;
+  }
+  _menuCatMsg(t('menucat_err_delete'), 'var(--red)');
+}
+
+function openMoveItemsModal(fromId, itemList, count) {
+  pendingDeleteMenuCatId = fromId;
+  const from = (menuState.categories || []).find(x => x.id === fromId);
+  document.getElementById('menuCatMoveMsg').textContent =
+    t('menucat_move_msg').replace('${name}', from?.name_en || '').replace('${count}', String(count));
+  const ul = document.getElementById('menuCatMoveItemsList');
+  ul.innerHTML = itemList.length
+    ? itemList.map(i => `<div>• ${esc(i.name_en)}${i.name_ar ? ` <span class="ar" dir="rtl" style="color:var(--soft)">(${esc(i.name_ar)})</span>` : ''}</div>`).join('')
+    : `<div style="color:var(--soft)">—</div>`;
+  const sel = document.getElementById('menuCatMoveTarget');
+  const others = (menuState.categories || []).filter(c => c.id !== fromId);
+  sel.innerHTML = `<option value="">${t('menucat_move_none')}</option>` +
+    others.map(c => `<option value="${c.id}">${esc(c.icon || '📦')} ${esc(c.name_en)}</option>`).join('');
+  document.getElementById('menuCatMoveErr').textContent = '';
+  document.getElementById('menuCatMoveModal').classList.remove('hidden');
+}
+
+async function confirmMoveAndDeleteCat() {
+  const fromId = pendingDeleteMenuCatId;
+  if (!fromId) return;
+  const toRaw = document.getElementById('menuCatMoveTarget').value;
+  const errEl = document.getElementById('menuCatMoveErr');
+  errEl.textContent = '';
+  lockBtn('menuCatMoveBtn');
+  try {
+    const mvRes = await apiFetch(`/api/admin/menu/categories/${fromId}/move-items`, {
+      method: 'POST', headers: hdr(),
+      body: JSON.stringify({ to_category_id: toRaw === '' ? null : parseInt(toRaw, 10) })
+    });
+    if (!mvRes.ok) { errEl.textContent = t('menucat_err_move'); return; }
+    const delRes = await apiFetch(`/api/admin/menu/categories/${fromId}`, { method: 'DELETE', headers: hdr() });
+    if (!delRes.ok) { errEl.textContent = t('menucat_err_delete'); return; }
+    closeModal('menuCatMoveModal');
+    pendingDeleteMenuCatId = null;
+    _menuCatMsg(t('menucat_deleted'), 'var(--green)');
+    await loadMenuTab();
+  } finally {
+    unlockBtn('menuCatMoveBtn');
   }
 }
 
@@ -4246,6 +4787,319 @@ async function deleteMenuItem() {
     if (e?.message === 'unauthorized') return;
     alert(e.message || 'failed');
   }
+}
+
+// ══════════════════════════════════════════════
+// Menu Options (modifier groups) — required toggle
+// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// Menu Options tab — modifier groups + options
+// (full CRUD + drag-and-drop, server-backed)
+// ══════════════════════════════════════════════
+let modGroupsCache = [];   // [{ id, code, name_en, name_ar, selection, required, options: [...] }, ...]
+let editingModGroupId = null;
+let editingModOptId = null;
+let editingModOptGroupId = null;
+
+async function loadOptionsTab() {
+  const box = document.getElementById('optionGroupsList');
+  if (!box) return;
+  box.textContent = t('loading') || 'Loading…';
+  try {
+    const resp = await apiFetch('/api/admin/menu/modifier-groups', { headers: hdr() });
+    if (!resp.ok) { box.textContent = t('modgrp_err_load'); return; }
+    modGroupsCache = await resp.json();
+    renderOptionsTab();
+  } catch (e) {
+    box.textContent = (t('modgrp_err_load')) + ': ' + (e?.message || 'unknown');
+  }
+}
+
+function renderOptionsTab() {
+  const box = document.getElementById('optionGroupsList');
+  if (!box) return;
+  const groups = [...modGroupsCache].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  if (!groups.length) {
+    box.innerHTML = `<p style="color:var(--soft);font-size:.85rem">${t('modgrp_empty')}</p>`;
+    return;
+  }
+  box.innerHTML = `<div id="modGroupsSortable" class="sortable-list">${groups.map((g, gi) => {
+    const opts = [...(g.options || [])].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const selKind = g.selection === 'multi' ? t('modgrp_multi') : t('modgrp_single');
+    return `<div class="card sortable-item" draggable="true" data-sid="${g.id}" style="flex-direction:column;align-items:stretch;padding:.65rem .85rem">
+      <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+        <span class="sortable-handle" title="Drag to reorder">⋮⋮</span>
+        <button class="sortable-arrow" ${gi === 0 ? 'disabled' : ''} onclick="moveModGroup(${g.id}, -1)" aria-label="Up">▲</button>
+        <button class="sortable-arrow" ${gi === groups.length - 1 ? 'disabled' : ''} onclick="moveModGroup(${g.id}, 1)" aria-label="Down">▼</button>
+        <strong style="font-size:.95rem">${esc(g.name_en || g.code)}</strong>
+        ${g.name_ar ? `<span class="ar" dir="rtl" style="color:var(--soft);font-size:.82rem">${esc(g.name_ar)}</span>` : ''}
+        <span style="font-size:.7rem;color:var(--soft);font-family:ui-monospace,monospace">${esc(g.code)}</span>
+        <span style="font-size:.72rem;color:var(--soft)">· ${selKind}${g.required ? ' · ' + t('modgrp_required') : ''}</span>
+        <span style="flex:1"></span>
+        <label style="display:inline-flex;align-items:center;gap:.3rem;font-size:.76rem;color:var(--mid);cursor:pointer">
+          <input type="checkbox" ${g.required ? 'checked' : ''} onchange="toggleModifierRequired(${g.id}, this.checked, this)">
+          <span data-i18n="modgrp_required">Required</span>
+        </label>
+        <button class="btn btn-outline btn-sm" style="padding:.18rem .5rem" onclick="openModGroupModal(${g.id})">✎</button>
+        <button class="btn btn-danger btn-sm" style="padding:.18rem .5rem" onclick="deleteModGroup(${g.id})">✕</button>
+      </div>
+      <div style="margin-top:.45rem;padding-top:.45rem;border-top:1px dashed #e3e7e4">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
+          <span style="font-size:.74rem;color:var(--soft)">${opts.length} ${t('modopt_count_label')}</span>
+          <button class="btn btn-outline btn-sm" style="padding:.15rem .5rem;font-size:.7rem" onclick="openModOptModal(${g.id})">+ ${t('modopt_btn_add')}</button>
+        </div>
+        ${opts.length ? `<div class="sortable-list" data-options-of="${g.id}">${opts.map((o, oi) => {
+          const delta = Number(o.price_delta_iqd || 0);
+          const deltaTxt = delta ? ` <span style="font-weight:700;color:${delta > 0 ? 'var(--green)' : 'var(--red)'}">${delta > 0 ? '+' : ''}${delta.toLocaleString()} IQD</span>` : '';
+          return `<div class="sortable-item" draggable="true" data-sid="${o.id}" style="padding:.32rem .5rem;font-size:.78rem">
+            <span class="sortable-handle" title="Drag to reorder">⋮⋮</span>
+            <button class="sortable-arrow" ${oi === 0 ? 'disabled' : ''} onclick="moveModOpt(${g.id}, ${o.id}, -1)" aria-label="Up">▲</button>
+            <button class="sortable-arrow" ${oi === opts.length - 1 ? 'disabled' : ''} onclick="moveModOpt(${g.id}, ${o.id}, 1)" aria-label="Down">▼</button>
+            <span class="grow">
+              <b>${esc(o.name_en || o.code)}</b>
+              ${o.name_ar ? `<span class="ar" dir="rtl" style="margin-inline-start:.3rem;color:var(--soft)">${esc(o.name_ar)}</span>` : ''}
+              <span style="margin-inline-start:.3rem;font-size:.7rem;color:var(--soft);font-family:ui-monospace,monospace">${esc(o.code)}</span>
+              ${deltaTxt}
+              ${o.is_default ? ` <span style="font-size:.68rem;color:var(--green);font-weight:700">★ default</span>` : ''}
+            </span>
+            <button class="btn btn-outline btn-sm" style="padding:.1rem .4rem" onclick="openModOptModal(${g.id}, ${o.id})">✎</button>
+            <button class="btn btn-danger btn-sm" style="padding:.1rem .4rem" onclick="deleteModOpt(${g.id}, ${o.id})">✕</button>
+          </div>`;
+        }).join('')}</div>` : `<p style="font-size:.74rem;color:var(--soft);margin:.2rem 0">${t('modopt_empty')}</p>`}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+
+  // wire drag for groups
+  attachSortable(document.getElementById('modGroupsSortable'), persistModGroupOrder);
+  // wire drag for each group's options list
+  groups.forEach(g => {
+    const c = document.querySelector(`[data-options-of="${g.id}"]`);
+    if (c) attachSortable(c, order => persistModOptOrder(g.id, order));
+  });
+}
+
+async function persistModGroupOrder(order) {
+  const res = await apiFetch('/api/admin/menu/modifier-groups/reorder', {
+    method: 'PUT', headers: hdr(), body: JSON.stringify({ order })
+  });
+  if (!res.ok) {
+    alert(t('modgrp_err_reorder'));
+    return;
+  }
+  order.forEach((id, idx) => {
+    const g = modGroupsCache.find(x => x.id === id);
+    if (g) g.sort_order = (idx + 1) * 100;
+  });
+}
+
+async function persistModOptOrder(gid, order) {
+  const res = await apiFetch(`/api/admin/menu/modifier-groups/${gid}/options/reorder`, {
+    method: 'PUT', headers: hdr(), body: JSON.stringify({ order })
+  });
+  if (!res.ok) {
+    alert(t('modopt_err_reorder'));
+    return;
+  }
+  const g = modGroupsCache.find(x => x.id === gid);
+  if (g && Array.isArray(g.options)) {
+    order.forEach((id, idx) => {
+      const o = g.options.find(x => x.id === id);
+      if (o) o.sort_order = (idx + 1) * 100;
+    });
+  }
+}
+
+function moveModGroup(id, dir) {
+  const c = document.getElementById('modGroupsSortable');
+  if (!c) return;
+  sortableMove(c, id, dir, persistModGroupOrder);
+  setTimeout(renderOptionsTab, 100);
+}
+
+function moveModOpt(gid, oid, dir) {
+  const c = document.querySelector(`[data-options-of="${gid}"]`);
+  if (!c) return;
+  sortableMove(c, oid, dir, order => persistModOptOrder(gid, order));
+  setTimeout(renderOptionsTab, 100);
+}
+
+// ── Group modal ──
+function openModGroupModal(id) {
+  editingModGroupId = id || null;
+  document.getElementById('modGroupModalTitle').textContent = id ? t('modgrp_title_edit') : t('modgrp_title_add');
+  const code  = document.getElementById('modGroupCode');
+  const nameEn = document.getElementById('modGroupNameEn');
+  const nameAr = document.getElementById('modGroupNameAr');
+  const sel = document.getElementById('modGroupSelection');
+  const req = document.getElementById('modGroupRequired');
+  document.getElementById('modGroupErr').textContent = '';
+  if (id) {
+    const g = modGroupsCache.find(x => x.id === id);
+    code.value = g?.code || '';
+    code.disabled = true;
+    nameEn.value = g?.name_en || '';
+    nameAr.value = g?.name_ar || '';
+    sel.value = g?.selection === 'multi' ? 'multi' : 'single';
+    req.checked = !!g?.required;
+  } else {
+    code.value = ''; code.disabled = false;
+    nameEn.value = ''; nameAr.value = '';
+    sel.value = 'single'; req.checked = false;
+  }
+  document.getElementById('modGroupModal').classList.remove('hidden');
+}
+
+async function submitModGroupForm() {
+  const errEl = document.getElementById('modGroupErr');
+  const code = document.getElementById('modGroupCode').value.trim().toLowerCase();
+  const name_en = document.getElementById('modGroupNameEn').value.trim();
+  const name_ar = document.getElementById('modGroupNameAr').value.trim();
+  const selection = document.getElementById('modGroupSelection').value;
+  const required = document.getElementById('modGroupRequired').checked;
+  errEl.textContent = '';
+  if (!editingModGroupId && !/^[a-z0-9_]{2,32}$/.test(code)) { errEl.textContent = t('modgrp_err_code'); return; }
+  if (!name_en) { errEl.textContent = t('menucat_err_name_en'); return; }
+  if (!name_ar) { errEl.textContent = t('menucat_err_name_ar'); return; }
+  lockBtn('modGroupSaveBtn');
+  try {
+    const url = editingModGroupId
+      ? `/api/admin/menu/modifier-groups/${editingModGroupId}`
+      : `/api/admin/menu/modifier-groups`;
+    const method = editingModGroupId ? 'PUT' : 'POST';
+    const body = editingModGroupId
+      ? { name_en, name_ar, selection, required: required ? 1 : 0 }
+      : { code, name_en, name_ar, selection, required: required ? 1 : 0, sort_order: (modGroupsCache.length + 1) * 100 };
+    const r = await apiFetch(url, { method, headers: hdr(), body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.success) {
+      const key = j.error === 'code_exists' ? 'menucat_err_dup' : 'modgrp_err_save';
+      errEl.textContent = t(key);
+      return;
+    }
+    closeModal('modGroupModal');
+    await loadOptionsTab();
+  } finally {
+    unlockBtn('modGroupSaveBtn');
+  }
+}
+
+async function deleteModGroup(id) {
+  const g = modGroupsCache.find(x => x.id === id);
+  if (!g) return;
+  if (!confirm(t('modgrp_confirm_del').replace('${name}', g.name_en || g.code))) return;
+  const r = await apiFetch(`/api/admin/menu/modifier-groups/${id}`, { method: 'DELETE', headers: hdr() });
+  if (r.status === 409) {
+    const j = await r.json().catch(() => ({}));
+    alert(t('modgrp_err_in_use').replace('${count}', String(j.items || '?')));
+    return;
+  }
+  if (!r.ok) { alert(t('modgrp_err_delete')); return; }
+  await loadOptionsTab();
+}
+
+// ── Option modal ──
+function openModOptModal(gid, optId) {
+  editingModOptGroupId = gid;
+  editingModOptId = optId || null;
+  document.getElementById('modOptModalTitle').textContent = optId ? t('modopt_title_edit') : t('modopt_title_add');
+  const code = document.getElementById('modOptCode');
+  const nameEn = document.getElementById('modOptNameEn');
+  const nameAr = document.getElementById('modOptNameAr');
+  const price = document.getElementById('modOptPriceDelta');
+  const isDef = document.getElementById('modOptIsDefault');
+  document.getElementById('modOptErr').textContent = '';
+  if (optId) {
+    const g = modGroupsCache.find(x => x.id === gid);
+    const o = g?.options?.find(x => x.id === optId);
+    code.value = o?.code || '';
+    code.disabled = true;
+    nameEn.value = o?.name_en || '';
+    nameAr.value = o?.name_ar || '';
+    price.value = String(o?.price_delta_iqd ?? 0);
+    isDef.checked = !!o?.is_default;
+  } else {
+    code.value = ''; code.disabled = false;
+    nameEn.value = ''; nameAr.value = '';
+    price.value = '0'; isDef.checked = false;
+  }
+  document.getElementById('modOptModal').classList.remove('hidden');
+}
+
+async function submitModOptForm() {
+  const errEl = document.getElementById('modOptErr');
+  const code = document.getElementById('modOptCode').value.trim().toLowerCase();
+  const name_en = document.getElementById('modOptNameEn').value.trim();
+  const name_ar = document.getElementById('modOptNameAr').value.trim();
+  const price_delta_iqd = parseInt(document.getElementById('modOptPriceDelta').value, 10) || 0;
+  const is_default = document.getElementById('modOptIsDefault').checked;
+  errEl.textContent = '';
+  if (!editingModOptId && !/^[a-z0-9_]{1,32}$/.test(code)) { errEl.textContent = t('modopt_err_code'); return; }
+  if (!name_en) { errEl.textContent = t('menucat_err_name_en'); return; }
+  lockBtn('modOptSaveBtn');
+  try {
+    let url, method, body;
+    if (editingModOptId) {
+      url = `/api/admin/menu/modifier-options/${editingModOptId}`;
+      method = 'PUT';
+      body = { name_en, name_ar, price_delta_iqd, is_default: is_default ? 1 : 0 };
+    } else {
+      url = `/api/admin/menu/modifier-groups/${editingModOptGroupId}/options`;
+      method = 'POST';
+      const g = modGroupsCache.find(x => x.id === editingModOptGroupId);
+      const nextSort = ((g?.options?.length || 0) + 1) * 100;
+      body = { code, name_en, name_ar, price_delta_iqd, is_default: is_default ? 1 : 0, sort_order: nextSort };
+    }
+    const r = await apiFetch(url, { method, headers: hdr(), body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.success) {
+      const key = j.error === 'code_exists' ? 'menucat_err_dup' : 'modopt_err_save';
+      errEl.textContent = t(key);
+      return;
+    }
+    closeModal('modOptModal');
+    await loadOptionsTab();
+  } finally {
+    unlockBtn('modOptSaveBtn');
+  }
+}
+
+async function deleteModOpt(gid, oid) {
+  const g = modGroupsCache.find(x => x.id === gid);
+  const o = g?.options?.find(x => x.id === oid);
+  if (!o) return;
+  if (!confirm(t('modopt_confirm_del').replace('${name}', o.name_en || o.code))) return;
+  const r = await apiFetch(`/api/admin/menu/modifier-options/${oid}`, { method: 'DELETE', headers: hdr() });
+  if (!r.ok) { alert(t('modopt_err_delete')); return; }
+  await loadOptionsTab();
+}
+
+async function toggleModifierRequired(groupId, isRequired, checkboxEl) {
+  if (checkboxEl) checkboxEl.disabled = true;
+  try {
+    const resp = await apiFetch(`/api/admin/menu/modifier-groups/${groupId}`, {
+      method: 'PUT', headers: hdr(),
+      body: JSON.stringify({ required: isRequired ? 1 : 0 })
+    });
+    if (!resp.ok) {
+      alert(t('modgrp_err_save'));
+      if (checkboxEl) checkboxEl.checked = !isRequired;
+    } else {
+      const g = modGroupsCache.find(x => x.id === groupId);
+      if (g) g.required = isRequired ? 1 : 0;
+    }
+  } catch (e) {
+    alert(t('modgrp_err_save'));
+    if (checkboxEl) checkboxEl.checked = !isRequired;
+  } finally {
+    if (checkboxEl) checkboxEl.disabled = false;
+  }
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // ══════════════════════════════════════════════
